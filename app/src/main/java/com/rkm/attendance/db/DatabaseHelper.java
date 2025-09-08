@@ -63,7 +63,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "  attendance_id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
                 "  event_id      INTEGER NOT NULL,\n" +
                 "  devotee_id    INTEGER,\n" +
-                "  cnt           INTEGER DEFAULT 1,\n" +
+                "  reg_type      TEXT NOT NULL, -- 'PRE_REG' or 'SPOT_REG' \n" +
+                "  attended      INTEGER NOT NULL DEFAULT 0, -- 1 for true, 0 for false \n" +
                 "  remark        TEXT,\n" +
                 "  created_at    TEXT DEFAULT CURRENT_TIMESTAMP,\n" +
                 "  updated_at    TEXT DEFAULT CURRENT_TIMESTAMP,\n" +
