@@ -1,66 +1,62 @@
 package com.rkm.rkmattendanceapp.ui;
 
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
+import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+
+import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.rkmattendanceapp.R;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link ReportsFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class ReportsFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
-    public ReportsFragment() {
-        // Required empty public constructor
-    }
-
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment ReportsFragment.
-     */
-    // TODO: Rename and change types and number of parameters
-    public static ReportsFragment newInstance(String param1, String param2) {
-        ReportsFragment fragment = new ReportsFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
+    private ReportsViewModel reportsViewModel;
+    private TextView totalDevoteesText, totalWhatsappText, devoteesInWhatsappText, devoteesWithAttendanceText;
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_reports, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        // Initialize views
+        totalDevoteesText = view.findViewById(R.id.text_total_devotees);
+        totalWhatsappText = view.findViewById(R.id.text_total_whatsapp);
+        devoteesInWhatsappText = view.findViewById(R.id.text_devotees_in_whatsapp);
+        devoteesWithAttendanceText = view.findViewById(R.id.text_devotees_with_attendance);
+
+        reportsViewModel = new ViewModelProvider(this).get(ReportsViewModel.class);
+
+        // Observe the stats
+        reportsViewModel.getCounterStats().observe(getViewLifecycleOwner(), this::updateStatsUI);
+
+        // Observe for errors
+        reportsViewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
+            if (message != null && !message.isEmpty()) {
+                Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
+            }
+        });
+
+        // Load the data
+        reportsViewModel.loadStats();
+    }
+
+    private void updateStatsUI(DevoteeDao.CounterStats stats) {
+        if (stats == null) return;
+        totalDevoteesText.setText(String.valueOf(stats.totalDevotees()));
+        totalWhatsappText.setText(String.valueOf(stats.totalMappedWhatsAppNumbers()));
+        devoteesInWhatsappText.setText(String.valueOf(stats.registeredDevoteesInWhatsApp()));
+        devoteesWithAttendanceText.setText(String.valueOf(stats.devoteesWithAttendance()));
     }
 }
