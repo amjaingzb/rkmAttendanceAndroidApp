@@ -18,15 +18,28 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.rkm.attendance.model.Event;
 import com.rkm.rkmattendanceapp.R;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-public class EventListFragment extends Fragment {
+public class EventListFragment extends Fragment implements EventListAdapter.OnEventListener {
 
     private EventListViewModel eventListViewModel;
     private EventListAdapter adapter;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Set up the Fragment Result Listener to get data back from the bottom sheet
+        getParentFragmentManager().setFragmentResultListener(EventActionsBottomSheetFragment.REQUEST_KEY, this, (requestKey, bundle) -> {
+            String action = bundle.getString(EventActionsBottomSheetFragment.KEY_ACTION);
+            long eventId = bundle.getLong(EventActionsBottomSheetFragment.KEY_EVENT_ID);
+
+            handleEventAction(action, eventId);
+        });
+    }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -43,11 +56,9 @@ public class EventListFragment extends Fragment {
         setupRecyclerView(view);
         observeViewModel();
 
-        // Find the FAB and set its click listener
         FloatingActionButton fab = view.findViewById(R.id.fab_add_event);
         fab.setOnClickListener(v -> showAddEventDialog());
 
-        // Initial data load
         eventListViewModel.loadEvents();
     }
 
@@ -56,6 +67,8 @@ public class EventListFragment extends Fragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setHasFixedSize(true);
         adapter = new EventListAdapter();
+        // Set this fragment as the listener for item clicks
+        adapter.setOnEventListener(this);
         recyclerView.setAdapter(adapter);
     }
 
@@ -96,10 +109,41 @@ public class EventListFragment extends Fragment {
                         return;
                     }
 
-                    // Call the ViewModel to create the event
                     eventListViewModel.createEvent(name, date, remark);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    @Override
+    public void onEventClick(Event event) {
+        // When an event is clicked, show the bottom sheet with actions
+        EventActionsBottomSheetFragment bottomSheet = EventActionsBottomSheetFragment.newInstance(event.getEventId());
+        bottomSheet.show(getParentFragmentManager(), EventActionsBottomSheetFragment.TAG);
+    }
+
+    private void handleEventAction(String action, long eventId) {
+        if (action == null) return;
+
+        switch (action) {
+            case "DELETE":
+                // Show a confirmation dialog before deleting
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("Delete Event")
+                        .setMessage("Are you sure you want to delete this event and all its attendance records?")
+                        .setPositiveButton("Delete", (dialog, which) -> {
+                            eventListViewModel.deleteEvent(eventId);
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+                break;
+            case "EDIT":
+                // TODO: Implement the Edit Event dialog/screen
+                Toast.makeText(getContext(), "Edit feature not yet implemented.", Toast.LENGTH_SHORT).show();
+                break;
+            case "SET_ACTIVE":
+                eventListViewModel.setActiveEvent(eventId);
+                break;
+        }
     }
 }

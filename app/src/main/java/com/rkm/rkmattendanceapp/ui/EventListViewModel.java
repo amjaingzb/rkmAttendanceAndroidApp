@@ -70,4 +70,25 @@ public class EventListViewModel extends AndroidViewModel {
             }
         }).start();
     }
+    public void deleteEvent(long eventId) {
+        new Thread(() -> {
+            try {
+                repository.deleteEvent(eventId);
+                // Refresh the list after deletion
+                loadEvents();
+            } catch (Exception e) {
+                e.printStackTrace();
+                errorMessage.postValue("Failed to delete event: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    // TODO: Add the "set active" logic to the repository and database
+    public void setActiveEvent(long eventId) {
+        // For now, just show a Toast. We will implement the backend logic later.
+        new Thread(() -> {
+            // repository.setActiveEvent(eventId);
+            errorMessage.postValue("Set Active Event feature not yet implemented.");
+        }).start();
+    }
 }
