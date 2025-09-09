@@ -3,12 +3,13 @@ plugins {
 }
 
 android {
-    compileSdk 32
+	namespace 'com.rkm.rkmattendanceapp'
+    compileSdk 33
 
     defaultConfig {
         applicationId "com.rkm.rkmattendanceapp"
         minSdk 26
-        targetSdk 32
+        targetSdk 33
         versionCode 1
         versionName "1.0"
 
@@ -28,14 +29,27 @@ android {
 }
 
 dependencies {
-
-    implementation 'androidx.appcompat:appcompat:1.7.1'
-    implementation 'com.google.android.material:material:1.13.0'
+    // These came from the known-good "Hello World" project
+    implementation 'androidx.core:core-ktx:1.7.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.3.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
-    // Add these for your core library
+    // === ADD THESE LINES BACK ===
+    // Core logic dependencies
     implementation 'com.opencsv:opencsv:5.9'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.2' // Use a recent version
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    
+    // We also need the navigation libraries for our Admin UI
+    def nav_version = "2.5.3"
+    implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
+    implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
+    
+    // And the viewmodel libraries
+    def lifecycle_version = "2.5.1"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
 }

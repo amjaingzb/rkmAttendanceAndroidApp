@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/admin_nav_graph"
+    app:startDestination="@id/nav_events">
+
+    <fragment
+        android:id="@id/nav_events"
+        android:name="com.rkm.rkmattendanceapp.ui.EventListFragment"
+        android:label="Events"
+        tools:layout="@layout/fragment_event_list" />
+    <fragment
+        android:id="@id/nav_devotees"
+        android:name="com.rkm.rkmattendanceapp.ui.DevoteeListFragment"
+        android:label="Devotees"
+        tools:layout="@layout/fragment_devotee_list" />
+    <fragment
+        android:id="@id/nav_reports"
+        android:name="com.rkm.rkmattendanceapp.ui.ReportsFragment"
+        android:label="Reports"
+        tools:layout="@layout/fragment_reports" />
+</navigation>
