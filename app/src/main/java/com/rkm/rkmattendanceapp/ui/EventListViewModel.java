@@ -54,4 +54,20 @@ public class EventListViewModel extends AndroidViewModel {
             }
         }).start();
     }
+
+    public void createEvent(String eventName, String eventDate, String remark) {
+        // Run database write operation on a background thread
+        new Thread(() -> {
+            try {
+                repository.createEvent(eventName, eventDate, remark);
+                // After creating the event, we need to refresh the list.
+                // We can do this by just calling loadEvents() again.
+                loadEvents();
+            } catch (Exception e) {
+                e.printStackTrace();
+                // Post an error message for the UI to show
+                errorMessage.postValue("Failed to create event: " + e.getMessage());
+            }
+        }).start();
+    }
 }
