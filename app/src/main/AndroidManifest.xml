@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="com.rkm.rkmattendanceapp">
 
-    <!-- Add the android:name attribute to the application tag -->
     <application
         android:name=".AttendanceApplication"
         android:allowBackup="true"
@@ -15,16 +14,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Rkmattendanceapp"
         tools:targetApi="31">
-
+        <activity
+            android:name=".ui.AddEditDevoteeActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.AdminMainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
     </application>
 
 </manifest>
