@@ -91,6 +91,40 @@ The app operates in two distinct modes, determined by user action.
     *   Tapping a devotee opens the `AddEditDevoteeActivity` in "Edit Mode".
 *   **Floating Action Button (FAB):** A `+` button opens the `AddEditDevoteeActivity` in "New Devotee" mode.
 
+### **Revised and Agreed-Upon Design for Devotee Search**
+
+Based on your excellent feedback, here is our new, superior design for the Devotees tab.
+
+#### **Screen B.2: Devotees Tab (Fragment) - Final Design**
+
+*   **Toolbar (Top):**
+    *   Title: "Devotees".
+    *   (No search icon. The search bar is now part of the main content).
+*   **Content Area (Below Toolbar):**
+    *   A permanent, non-scrolling **`EditText` (Search Bar)**.
+        *   When empty, it displays hint text: "Search by name or mobile...".
+        *   As the user types, the list below is filtered in real-time.
+*   **Main Content:**
+    *   A scrolling list (`RecyclerView`) of devotees. The content of this list is controlled by the text in the search bar above.
+*   **Floating Action Button (FAB) (Bottom Right):**
+    *   A `+` button.
+    *   When tapped:
+        *   It reads the current text from the search bar.
+        *   It launches the `AddEditDevoteeActivity`.
+        *   It passes the search text as an "extra" in the `Intent`, so the new activity can use it to pre-populate the name or mobile field.
+
+
+## **Final Agreed-Upon Design for Imports**
+
+*   **On the "Devotees" Tab:**
+    *   The toolbar will have a **three-dot menu icon**.
+    *   Tapping it will reveal one option: **"Import Master Devotee List"**.
+*   **On the "Events" Tab:**
+    *   The toolbar will have a **three-dot menu icon**.
+    *   Tapping it will reveal one option: **"Import Attendance CSV"**.
+
+
+
 #### **Screen B.3: Reports Tab (Fragment/Activity)**
 
 *   **Function:** View and export application data.
