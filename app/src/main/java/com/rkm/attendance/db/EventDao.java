@@ -137,6 +137,26 @@ public class EventDao {
         }
     }
 
+    // For an operator marking a pre-registered person as present.
+    public void markAsAttended(long eventId, long devoteeId) {
+        ContentValues values = new ContentValues();
+        values.put("cnt", 1);
+        db.update("attendance", values, "event_id = ? AND devotee_id = ? AND reg_type = 'PRE_REG'",
+                new String[]{String.valueOf(eventId), String.valueOf(devoteeId)});
+    }
+
+    // Handles both new spot registrations and historical data import.
+    public void upsertAttendance(long eventId, long devoteeId, String regType, int count, String remark) {
+        ContentValues values = new ContentValues();
+        values.put("event_id", eventId);
+        values.put("devotee_id", devoteeId);
+        values.put("reg_type", regType);
+        values.put("cnt", count);
+        values.put("remark", emptyToNull(remark));
+
+        // Use Android's built-in upsert method (INSERT ON CONFLICT DO UPDATE)
+        db.insertWithOnConflict("attendance", null, values, SQLiteDatabase.CONFLICT_REPLACE);
+    }
     public void updateAttendanceCount(long eventId, long devoteeId, int newCnt) {
         ContentValues values = new ContentValues();
         values.put("cnt", newCnt);

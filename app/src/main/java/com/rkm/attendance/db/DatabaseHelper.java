@@ -17,10 +17,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         // This is called only when the database is created for the first time.
-        // We copy the schema creation queries from our old Database.java
-        
+        // We use "IF NOT EXISTS" to make this operation safe even if called unexpectedly.
+
         // 1. Devotee Table
-        db.execSQL("CREATE TABLE devotee (\n" +
+        db.execSQL("CREATE TABLE IF NOT EXISTS devotee (\n" +
                 "  devotee_id   INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
                 "  full_name    TEXT NOT NULL,\n" +
                 "  name_norm    TEXT NOT NULL,\n" +
@@ -35,12 +35,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 ")");
 
         // 2. Devotee Indexes and other related tables
-        db.execSQL("CREATE UNIQUE INDEX ux_devotee_phone_name ON devotee (mobile_e164, name_norm)");
-        db.execSQL("CREATE INDEX ix_devotee_mobile ON devotee (mobile_e164)");
-        db.execSQL("CREATE INDEX ix_devotee_name ON devotee (name_norm)");
-        db.execSQL("CREATE INDEX ix_devotee_email ON devotee (email)");
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS ux_devotee_phone_name ON devotee (mobile_e164, name_norm)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS ix_devotee_mobile ON devotee (mobile_e164)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS ix_devotee_name ON devotee (name_norm)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS ix_devotee_email ON devotee (email)");
 
-        db.execSQL("CREATE TABLE fuzzy_merge_log ( " +
+        db.execSQL("CREATE TABLE IF NOT EXISTS fuzzy_merge_log ( " +
                 "log_id     INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "mobile     TEXT NOT NULL, " +
                 "old_name   TEXT, " +
@@ -50,7 +50,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 ")");
 
         // 3. Events Table
-        db.execSQL("CREATE TABLE event (\n" +
+        db.execSQL("CREATE TABLE IF NOT EXISTS event (\n" +
                 "  event_id    INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
                 "  event_code  TEXT UNIQUE,\n" +
                 "  event_name  TEXT NOT NULL,\n" +
@@ -58,13 +58,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "  remark      TEXT\n" +
                 ")");
 
-        // 4. Attendance Table
-        db.execSQL("CREATE TABLE attendance (\n" +
+        // 4. Attendance Table (Corrected Schema)
+        db.execSQL("CREATE TABLE IF NOT EXISTS attendance (\n" +
                 "  attendance_id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
                 "  event_id      INTEGER NOT NULL,\n" +
                 "  devotee_id    INTEGER,\n" +
-                "  reg_type      TEXT NOT NULL, -- 'PRE_REG' or 'SPOT_REG' \n" +
-                "  attended      INTEGER NOT NULL DEFAULT 0, -- 1 for true, 0 for false \n" +
+                "  reg_type      TEXT NOT NULL, -- 'PRE_REG' or 'SPOT_REG'\n" +
+                "  cnt           INTEGER NOT NULL DEFAULT 0,\n" +
                 "  remark        TEXT,\n" +
                 "  created_at    TEXT DEFAULT CURRENT_TIMESTAMP,\n" +
                 "  updated_at    TEXT DEFAULT CURRENT_TIMESTAMP,\n" +
@@ -73,25 +73,32 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 ")");
 
         // 5. WhatsApp Group Map Table
-        db.execSQL("CREATE TABLE whatsapp_group_map (\n" +
+        db.execSQL("CREATE TABLE IF NOT EXISTS whatsapp_group_map (\n" +
                 "  phone_number_10 TEXT PRIMARY KEY NOT NULL,\n" +
                 "  group_number    INTEGER NOT NULL\n" +
                 ")");
-        
+
         // 6. Attendance Indexes
-        db.execSQL("CREATE UNIQUE INDEX ux_attendance_ev_dev ON attendance(event_id, devotee_id)");
-        db.execSQL("CREATE INDEX ix_attendance_event ON attendance(event_id)");
-        db.execSQL("CREATE INDEX ix_attendance_devotee ON attendance(devotee_id)");
-        db.execSQL("CREATE INDEX ix_whatsapp_group_num ON whatsapp_group_map(group_number)");
-        
-        // Triggers in Android SQLite are often handled in code, but this should work.
-        // The timestamp trigger is less critical as we can manage it programmatically.
+        db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS ux_attendance_ev_dev ON attendance(event_id, devotee_id)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS ix_attendance_event ON attendance(event_id)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS ix_attendance_devotee ON attendance(devotee_id)");
+        db.execSQL("CREATE INDEX IF NOT EXISTS ix_whatsapp_group_num ON whatsapp_group_map(group_number)");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // For a simple app, we can just drop and recreate.
-        // For a production app, you would write migration logic here.
+        // This is the key: Check if we are upgrading from a desktop DB.
+        if (oldVersion == 0) {
+            // This is a database file from the desktop. The schema should
+            // already match what onCreate would do. We just need to let the
+            // helper know the upgrade is "done" without wiping any data.
+            // We do nothing here. The helper will automatically set the
+            // version number to 1 in the file after this method returns.
+            return;
+        }
+
+        // This is the original "destructive" upgrade path for any other
+        // future upgrades during development (e.g., from v1 to v2).
         db.execSQL("DROP TABLE IF EXISTS attendance");
         db.execSQL("DROP TABLE IF EXISTS event");
         db.execSQL("DROP TABLE IF EXISTS devotee");

@@ -44,17 +44,12 @@ public class AttendanceImporter {
                         continue;
                     }
 
-                    Integer cnt = parseCount(rawCount);
-                    if (cnt == null) cnt = 0;
-
                     long devoteeId = devoteeDao.resolveOrCreateDevotee(rawName, mobile10, null, null, null, null);
 
-                    // This part needs to be replaced with a single DAO method in EventDao
-                    // For now, let's assume EventDao has an upsertAttendanceAddCount method.
-                    // We'll need to implement that in the Android version of EventDao.
-                    // Let's create it now for simplicity.
-                    upsertAttendanceAddCount(eventId, devoteeId, cnt, null);
+                    int count = parseCount(rawCount);
+                    String regType = (count > 0) ? "SPOT_REG" : "PRE_REG";
 
+                    eventDao.upsertAttendance(eventId, devoteeId, regType, count, null);
                     st.insertedOrAdded++;
                 }
                 db.setTransactionSuccessful();
@@ -114,16 +109,16 @@ public class AttendanceImporter {
         return x.toLowerCase().replaceAll("\\s+", " ").trim();
     }
 
-    private static Integer parseCount(String s) {
+    private static int parseCount(String s) {
         if (s == null) return 0;
         String t = s.trim();
         if (t.isEmpty()) return 0;
         try {
             String d = t.replaceAll("[^0-9\\-+]", "");
-            if (d.isEmpty()) return 1;
+            if (d.isEmpty()) return 0;
             return Integer.parseInt(d);
         } catch (NumberFormatException ignore) {
-            return 1;
+            return 0; // Default to 0 if parsing fails
         }
     }
 }
