@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".ui.MarkAttendanceActivity">
+
+    <!-- Stats Header -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        app:cardElevation="4dp">
+
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="4"
+            android:padding="12dp">
+
+            <!-- Pre-Registered -->
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Pre-Registered" android:textAppearance="?attr/textAppearanceLabelMedium"/>
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Attended" android:textAppearance="?attr/textAppearanceLabelMedium"/>
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Spot Reg" android:textAppearance="?attr/textAppearanceLabelMedium"/>
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Total" android:textAppearance="?attr/textAppearanceLabelMedium"/>
+
+            <!-- Counts -->
+            <TextView android:id="@+id/text_stat_pre_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="150" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold"/>
+            <TextView android:id="@+id/text_stat_attended" android:layout_columnWeight="1" android:gravity="center" tools:text="125" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold"/>
+            <TextView android:id="@+id/text_stat_spot_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="12" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold"/>
+            <TextView android:id="@+id/text_stat_total" android:layout_columnWeight="1" android:gravity="center" tools:text="137" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold"/>
+
+        </GridLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Search Area -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            app:startIconDrawable="@drawable/ic_search"
+            app:hintEnabled="false">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_text_search_attendee"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Search to mark attendance..."
+                android:inputType="text"
+                android:maxLines="1"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <Button
+            android:id="@+id/button_add_new_spot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Add New"/>
+
+    </LinearLayout>
+
+    <!-- Content Area (with FrameLayout to overlay search results) -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- List of Checked-In Attendees (Visible by default) -->
+        <LinearLayout
+            android:id="@+id/layout_checked_in_list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Checked-In Attendees"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:layout_marginTop="8dp"
+                android:layout_marginStart="16dp"
+                android:layout_marginBottom="4dp"/>
+            
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view_checked_in"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                tools:listitem="@layout/list_item_devotee"/>
+        </LinearLayout>
+
+        <!-- Search Results (Hidden by default, shown on top) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view_search_results"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="?android:attr/colorBackground"
+            android:visibility="gone"
+            tools:visibility="visible"
+            tools:listitem="@layout/list_item_search_result"/>
+
+    </FrameLayout>
+
+</LinearLayout>

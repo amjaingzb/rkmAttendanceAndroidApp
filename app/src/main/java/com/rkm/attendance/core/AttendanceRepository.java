@@ -6,6 +6,7 @@ import com.rkm.attendance.db.*;
 // Add these two explicit imports for the nested classes
 import com.rkm.attendance.db.DevoteeDao.CounterStats;
 import com.rkm.attendance.db.DevoteeDao.EnrichedDevotee;
+import com.rkm.attendance.db.EventDao.EventStats;
 import com.rkm.attendance.importer.*;
 import com.rkm.attendance.model.*;
 
@@ -182,6 +183,16 @@ public class AttendanceRepository {
 
     public List<EnrichedDevotee> getEnrichedAttendeesForEvent(long eventId) {
         return eventDao.getEnrichedAttendeesForEvent(eventId);
+    }
+
+    // NEW METHOD 1: Gets the list of people already checked in for an event.
+    public List<Devotee> getCheckedInAttendeesForEvent(long eventId) {
+        return eventDao.findCheckedInAttendeesForEvent(eventId);
+    }
+
+    // NEW METHOD 2: Gets the statistics for a specific event.
+    public EventStats getEventStats(long eventId) {
+        return eventDao.getEventStats(eventId);
     }
 
     public Event getActiveEvent() {

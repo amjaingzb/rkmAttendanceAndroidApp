@@ -4,6 +4,8 @@ package com.rkm.attendance.db;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
+
 import com.rkm.attendance.model.Devotee;
 import com.rkm.attendance.model.Event;
 
@@ -222,5 +224,62 @@ public class EventDao {
             }
         }
         return results;
+    }
+
+    // 1. Add the new data class for stats
+    public static final class EventStats {
+        public final long preRegistered;
+        public final long attended;
+        public final long spotRegistered;
+        public final long total;
+
+        public EventStats(long preRegistered, long attended, long spotRegistered, long total) {
+            this.preRegistered = preRegistered;
+            this.attended = attended;
+            this.spotRegistered = spotRegistered;
+            this.total = total;
+        }
+    }
+
+    // 2. Add the method to fetch the stats
+    public EventStats getEventStats(long eventId) {
+        String preRegSql = "SELECT COUNT(*) FROM attendance WHERE event_id = ? AND reg_type = 'PRE_REG'";
+        String attendedSql = "SELECT COUNT(*) FROM attendance WHERE event_id = ? AND cnt > 0";
+        String spotRegSql = "SELECT COUNT(*) FROM attendance WHERE event_id = ? AND reg_type = 'SPOT_REG'";
+
+        long preRegistered = simpleCountQuery(preRegSql, new String[]{String.valueOf(eventId)});
+        long attended = simpleCountQuery(attendedSql, new String[]{String.valueOf(eventId)});
+        long spotRegistered = simpleCountQuery(spotRegSql, new String[]{String.valueOf(eventId)});
+
+        return new EventStats(preRegistered, attended, spotRegistered, attended);
+    }
+
+    // 3. Add the method to fetch the list of checked-in attendees
+    public List<Devotee> findCheckedInAttendeesForEvent(long eventId) {
+        List<Devotee> results = new ArrayList<>();
+        String sql = "SELECT d.* FROM devotee d " +
+                "JOIN attendance a ON d.devotee_id = a.devotee_id " +
+                "WHERE a.event_id = ? AND a.cnt > 0 " +
+                "ORDER BY d.full_name COLLATE NOCASE";
+
+        DevoteeDao devoteeDao = new DevoteeDao(db); // Helper to use fromCursor
+        try (Cursor cursor = db.rawQuery(sql, new String[]{String.valueOf(eventId)})) {
+            while (cursor.moveToNext()) {
+                results.add(devoteeDao.fromCursor(cursor));
+            }
+        }
+        return results;
+    }
+
+    // 4. Add a helper for simple count queries
+    private long simpleCountQuery(String sql, String[] args) {
+        try (SQLiteStatement statement = db.compileStatement(sql)) {
+            if (args != null) {
+                for (int i = 0; i < args.length; i++) {
+                    statement.bindString(i + 1, args[i]);
+                }
+            }
+            return statement.simpleQueryForLong();
+        }
     }
 }
