@@ -1,6 +1,7 @@
 // In: src/main/java/com/rkm/rkmattendanceapp/ui/DevoteeListFragment.java
 package com.rkm.rkmattendanceapp.ui;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -13,6 +14,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.MenuHost;
@@ -22,6 +26,7 @@ import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
@@ -32,6 +37,30 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
     private DevoteeListAdapter adapter;
     private EditText searchEditText;
 
+    // 1. Declare the ActivityResultLauncher
+    private ActivityResultLauncher<Intent> addEditDevoteeLauncher;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // 2. Register the launcher. This is where we define what happens when the activity returns.
+        addEditDevoteeLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    // Check if the result code is OK (meaning a save was successful)
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        // A devotee was added or edited. Clear the search and reload the list.
+                        if (searchEditText != null) {
+                            searchEditText.setText("");
+                        }
+                        devoteeListViewModel.loadAllDevotees();
+                    }
+                    // If the result code is anything else (e.g., CANCELED), we do nothing,
+                    // preserving the search term and the filtered list.
+                });
+    }
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
@@ -41,37 +70,37 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-
         setupMenu();
-
         devoteeListViewModel = new ViewModelProvider(this).get(DevoteeListViewModel.class);
         searchEditText = view.findViewById(R.id.edit_text_search);
-
         setupRecyclerView(view);
         observeViewModel();
         setupSearch();
 
         FloatingActionButton fab = view.findViewById(R.id.fab_add_devotee);
         fab.setOnClickListener(v -> {
+            // 3. Use the launcher to start the activity
             Intent intent = new Intent(getActivity(), AddEditDevoteeActivity.class);
             String prefillQuery = searchEditText.getText().toString().trim();
             if (!prefillQuery.isEmpty()) {
                 intent.putExtra(AddEditDevoteeActivity.EXTRA_PREFILL_QUERY, prefillQuery);
             }
-            startActivity(intent);
+            addEditDevoteeLauncher.launch(intent);
         });
 
+        // Load the initial data
         devoteeListViewModel.loadAllDevotees();
     }
 
+    // 4. Update the onDevoteeClick to also use the launcher
     @Override
-    public void onResume() {
-        super.onResume();
-        // This will be called when returning from the AddEditDevoteeActivity,
-        // ensuring the list is always fresh.
-        devoteeListViewModel.loadAllDevotees();
+    public void onDevoteeClick(Devotee devotee) {
+        Intent intent = new Intent(getActivity(), AddEditDevoteeActivity.class);
+        intent.putExtra(AddEditDevoteeActivity.EXTRA_DEVOTEE_ID, devotee.getDevoteeId());
+        addEditDevoteeLauncher.launch(intent);
     }
 
+    // No changes needed for the methods below
     private void setupRecyclerView(View view) {
         RecyclerView recyclerView = view.findViewById(R.id.recycler_view_devotees);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -87,19 +116,11 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
                 adapter.setDevotees(devotees);
             }
         });
-
         devoteeListViewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
             if (message != null && !message.isEmpty()) {
                 Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
             }
         });
-    }
-
-    @Override
-    public void onDevoteeClick(Devotee devotee) {
-        Intent intent = new Intent(getActivity(), AddEditDevoteeActivity.class);
-        intent.putExtra(AddEditDevoteeActivity.EXTRA_DEVOTEE_ID, devotee.getDevoteeId());
-        startActivity(intent);
     }
 
     private void setupSearch() {
@@ -108,9 +129,6 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // Using a Handler to debounce the search input
-                // This is optional but good practice to prevent filtering on every single keystroke
-                // For now, we'll keep it simple and filter directly.
                 devoteeListViewModel.filterDevotees(s.toString());
             }
             @Override
@@ -125,7 +143,6 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
             public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
                 menuInflater.inflate(R.menu.devotee_list_menu, menu);
             }
-
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
                 if (menuItem.getItemId() == R.id.action_import_devotees) {

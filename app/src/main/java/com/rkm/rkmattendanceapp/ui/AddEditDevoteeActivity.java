@@ -98,6 +98,8 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
         viewModel.getSaveFinished().observe(this, finished -> {
             if (finished != null && finished) {
                 Toast.makeText(this, "Devotee saved", Toast.LENGTH_SHORT).show();
+                // Set the result to OK so the calling fragment knows we saved.
+                setResult(RESULT_OK);
                 finish();
             }
         });

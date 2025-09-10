@@ -163,3 +163,14 @@ Based on your excellent feedback, here is our new, superior design for the Devot
     *   **Column 2 (Editable):** A dropdown (Spinner) to select the target database field (e.g., "full_name", "mobile", "DROP").
 
 This document now serves as our comprehensive guide. We can proceed to build the UI, screen by screen, with a clear and shared understanding of the final product.
+
+
+Issue 2 (UX Experience): Search context after adding/canceling.
+This is a fantastic UX question. The current behavior (returning to the filtered list with the search term intact) is a common default, but we can definitely improve it.
+The User's Goal: The user's context changes depending on their action in the "Add/Edit" screen.
+If they SAVE "Amitabh": They have successfully completed their task. Their next task is likely to be completely different. They might want to search for someone else or just see the full list.
+If they CANCEL: Their original task ("find or create a devotee based on 'amit'") was not completed. They are still in that mindset.
+Proposed UX Solution (Refined Behavior):
+On SAVE: The user's task is complete. We should clear the search bar and show the full, unfiltered list. This provides a clean slate for their next task and confirms the new user ("Amitabh") has been added to the main list. This is a much better sense of completion.
+On CANCEL (or pressing Back): The user's task was interrupted. We should preserve the search term ("amit") and the filtered list. This allows them to immediately resume their original task without re-typing, perhaps to select "Amit Jain" this time or to try a different search.
+
