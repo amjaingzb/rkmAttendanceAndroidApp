@@ -1,6 +1,8 @@
 // In: ui/MarkAttendanceActivity.java
 package com.rkm.rkmattendanceapp.ui;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -10,6 +12,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -32,11 +36,31 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     private SearchResultAdapter searchAdapter;
     private DevoteeListAdapter checkedInAdapter;
 
+    private long eventId = -1;
+    private ActivityResultLauncher<Intent> addDevoteeLauncher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mark_attendance);
 
+        eventId = getIntent().getLongExtra(EXTRA_EVENT_ID, -1);
+        if (eventId == -1) {
+            Toast.makeText(this, "Error: No Event ID provided.", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+
+        addDevoteeLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        // The ViewModel now handles the refresh after a successful on-spot reg.
+                        // A manual refresh here is a good fallback.
+                        viewModel.loadEventData(eventId);
+                    }
+                }
+        );
         long eventId = getIntent().getLongExtra(EXTRA_EVENT_ID, -1);
         if (eventId == -1) {
             Toast.makeText(this, "Error: No Event ID provided.", Toast.LENGTH_LONG).show();
@@ -48,7 +72,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
         bindViews();
         setupRecyclerViews();
-        setupSearch();
+        setupSearchAndButtons();
         observeViewModel();
 
         viewModel.loadEventData(eventId);
@@ -82,7 +106,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         checkedInRecyclerView.setAdapter(checkedInAdapter);
     }
 
-    private void setupSearch() {
+    private void setupSearchAndButtons() {
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -95,6 +119,17 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
             @Override
             public void afterTextChanged(Editable s) {}
+        });
+        addNewButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, AddEditDevoteeActivity.class);
+            // Pre-fill the form with the operator's search query
+            String prefillQuery = searchEditText.getText().toString().trim();
+            if (!prefillQuery.isEmpty()) {
+                intent.putExtra(AddEditDevoteeActivity.EXTRA_PREFILL_QUERY, prefillQuery);
+            }
+            intent.putExtra(AddEditDevoteeActivity.EXTRA_IS_ON_SPOT_REG, true);
+            intent.putExtra(AddEditDevoteeActivity.EXTRA_EVENT_ID, eventId); // where eventId is the current event's ID
+            addDevoteeLauncher.launch(intent);
         });
     }
 

@@ -20,8 +20,12 @@ import com.rkm.rkmattendanceapp.R;
 
 public class AddEditDevoteeActivity extends AppCompatActivity {
 
+    // Define ALL the keys this Activity accepts
     public static final String EXTRA_DEVOTEE_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_DEVOTEE_ID";
     public static final String EXTRA_PREFILL_QUERY = "com.rkm.rkmattendanceapp.ui.EXTRA_PREFILL_QUERY";
+    public static final String EXTRA_IS_ON_SPOT_REG = "com.rkm.rkmattendanceapp.ui.EXTRA_IS_ON_SPOT_REG";
+    public static final String EXTRA_EVENT_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_EVENT_ID"; // The key for the event ID
+
     public static final long NEW_DEVOTEE_ID = -1;
 
     private AddEditDevoteeViewModel viewModel;
@@ -34,6 +38,9 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
     private AutoCompleteTextView genderAutoComplete;
 
     private long currentDevoteeId = NEW_DEVOTEE_ID;
+
+    private boolean isOnSpotMode = false;
+    private long eventIdForOnSpot = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,6 +66,10 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
         viewModel = new ViewModelProvider(this).get(AddEditDevoteeViewModel.class);
 
         Intent intent = getIntent();
+        if (intent.hasExtra(EXTRA_IS_ON_SPOT_REG)) {
+            isOnSpotMode = intent.getBooleanExtra(EXTRA_IS_ON_SPOT_REG, false);
+            eventIdForOnSpot = intent.getLongExtra(EXTRA_EVENT_ID, -1);
+        }
         if (intent.hasExtra(EXTRA_DEVOTEE_ID)) {
             currentDevoteeId = intent.getLongExtra(EXTRA_DEVOTEE_ID, NEW_DEVOTEE_ID);
         }
@@ -146,7 +157,7 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
                 null
         );
 
-        viewModel.saveDevotee(devoteeToSave);
+        viewModel.saveDevotee(devoteeToSave, isOnSpotMode, eventIdForOnSpot);
     }
 
     @Override

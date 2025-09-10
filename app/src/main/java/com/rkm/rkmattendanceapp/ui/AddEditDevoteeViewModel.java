@@ -52,17 +52,21 @@ public class AddEditDevoteeViewModel extends AndroidViewModel {
     }
 
     // Save a new or updated devotee
-    public void saveDevotee(Devotee devoteeToSave) {
+    public void saveDevotee(Devotee devoteeToSave, boolean isOnSpotRegistration, long eventId) {
         new Thread(() -> {
             try {
-                if (devoteeToSave.getDevoteeId() == null) {
-                    // This is a new devotee
-                    repository.addNewDevotee(devoteeToSave);
+                if (isOnSpotRegistration) {
+                    // Use the special method that does both actions
+                    repository.onSpotRegisterAndMarkPresent(eventId, devoteeToSave);
                 } else {
-                    // This is an existing devotee being updated
-                    repository.updateDevotee(devoteeToSave);
+                    // Use the original Admin logic
+                    if (devoteeToSave.getDevoteeId() == null) {
+                        repository.addNewDevotee(devoteeToSave);
+                    } else {
+                        repository.updateDevotee(devoteeToSave);
+                    }
                 }
-                saveFinished.postValue(true); // Signal success
+                saveFinished.postValue(true);
             } catch (Exception e) {
                 e.printStackTrace();
                 errorMessage.postValue("Save failed: " + e.getMessage());
