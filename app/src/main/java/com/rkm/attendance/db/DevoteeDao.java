@@ -265,7 +265,7 @@ public class DevoteeDao {
                 "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id " +
                 "WHERE (? IS NOT NULL AND ( d.mobile_e164 LIKE '%' || ? || '%' OR (d.extra_json IS NOT NULL AND d.extra_json LIKE '%' || ? || '%') )) " +
                 "OR (? IS NOT NULL AND d.name_norm LIKE '%' || lower(?) || '%' ) " +
-                "ORDER BY d.full_name";
+                "ORDER BY d.full_name COLLATE NOCASE";
 
         // The GROUP BY is no longer needed because we removed the complex join that could create duplicates.
         // The arguments array also needs to be adjusted slightly.
@@ -296,8 +296,9 @@ public class DevoteeDao {
             "FROM devotee d " +
             "LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 " +
             "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id " +
-            "ORDER BY d.full_name";
-            
+            "ORDER BY d.full_name COLLATE NOCASE";
+
+
         List<EnrichedDevotee> results = new ArrayList<>();
         try (Cursor cursor = db.rawQuery(sql, null)) {
             while (cursor.moveToNext()) {
