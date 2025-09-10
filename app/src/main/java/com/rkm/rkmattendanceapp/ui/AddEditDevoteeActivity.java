@@ -1,6 +1,7 @@
 // In: src/main/java/com/rkm/rkmattendanceapp/ui/AddEditDevoteeActivity.java
 package com.rkm.rkmattendanceapp.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Menu;
@@ -20,7 +21,8 @@ import com.rkm.rkmattendanceapp.R;
 public class AddEditDevoteeActivity extends AppCompatActivity {
 
     public static final String EXTRA_DEVOTEE_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_DEVOTEE_ID";
-    public static final long NEW_DEVOTEE_ID = -1; // Sentinel value for a new devotee
+    public static final String EXTRA_PREFILL_QUERY = "com.rkm.rkmattendanceapp.ui.EXTRA_PREFILL_QUERY";
+    public static final long NEW_DEVOTEE_ID = -1;
 
     private AddEditDevoteeViewModel viewModel;
 
@@ -38,13 +40,11 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_edit_devotee);
 
-        // Setup the back arrow in the toolbar
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_close); // Use a close icon
+            getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_close);
         }
 
-        // Initialize views
         nameEditText = findViewById(R.id.edit_text_name);
         mobileEditText = findViewById(R.id.edit_text_mobile);
         emailEditText = findViewById(R.id.edit_text_email);
@@ -52,32 +52,36 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
         ageEditText = findViewById(R.id.edit_text_age);
         genderAutoComplete = findViewById(R.id.auto_complete_gender);
 
-        // Setup gender dropdown
         String[] genders = new String[]{"", "Male", "Female", "Other"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, genders);
         genderAutoComplete.setAdapter(adapter);
 
-        // Get the ViewModel
         viewModel = new ViewModelProvider(this).get(AddEditDevoteeViewModel.class);
 
-        // Check if we are editing an existing devotee or adding a new one
-        if (getIntent().hasExtra(EXTRA_DEVOTEE_ID)) {
-            currentDevoteeId = getIntent().getLongExtra(EXTRA_DEVOTEE_ID, NEW_DEVOTEE_ID);
+        Intent intent = getIntent();
+        if (intent.hasExtra(EXTRA_DEVOTEE_ID)) {
+            currentDevoteeId = intent.getLongExtra(EXTRA_DEVOTEE_ID, NEW_DEVOTEE_ID);
         }
 
         if (currentDevoteeId == NEW_DEVOTEE_ID) {
             setTitle("New Devotee");
+            if (intent.hasExtra(EXTRA_PREFILL_QUERY)) {
+                String query = intent.getStringExtra(EXTRA_PREFILL_QUERY);
+                if (query != null && query.matches(".*\\d.*")) {
+                    mobileEditText.setText(query);
+                } else {
+                    nameEditText.setText(query);
+                }
+            }
         } else {
             setTitle("Edit Devotee");
             viewModel.loadDevotee(currentDevoteeId);
         }
 
-        // Observe the ViewModel
         observeViewModel();
     }
 
     private void observeViewModel() {
-        // When the devotee data is loaded (for editing), populate the fields
         viewModel.getDevotee().observe(this, devotee -> {
             if (devotee != null) {
                 nameEditText.setText(devotee.getFullName());
@@ -87,19 +91,17 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
                 if (devotee.getAge() != null) {
                     ageEditText.setText(String.valueOf(devotee.getAge()));
                 }
-                genderAutoComplete.setText(devotee.getGender(), false); // false to not filter
+                genderAutoComplete.setText(devotee.getGender(), false);
             }
         });
 
-        // When the save is finished, close the activity
         viewModel.getSaveFinished().observe(this, finished -> {
-            if (finished) {
+            if (finished != null && finished) {
                 Toast.makeText(this, "Devotee saved", Toast.LENGTH_SHORT).show();
-                finish(); // Close the activity and return to the list
+                finish();
             }
         });
 
-        // Show any error messages
         viewModel.getErrorMessage().observe(this, message -> {
             if (!TextUtils.isEmpty(message)) {
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show();
@@ -133,13 +135,13 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
         Devotee devoteeToSave = new Devotee(
                 currentDevoteeId == NEW_DEVOTEE_ID ? null : currentDevoteeId,
                 name,
-                null, // nameNorm is handled by the DAO
+                null,
                 mobile,
                 address,
                 age,
                 email,
                 gender,
-                null // extraJson
+                null
         );
 
         viewModel.saveDevotee(devoteeToSave);
@@ -153,11 +155,11 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.action_save_devotee) {
+        int itemId = item.getItemId();
+        if (itemId == R.id.action_save_devotee) {
             saveDevotee();
             return true;
-        } else if (item.getItemId() == android.R.id.home) {
-            // Handle the back arrow click
+        } else if (itemId == android.R.id.home) {
             finish();
             return true;
         }

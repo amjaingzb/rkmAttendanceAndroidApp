@@ -153,12 +153,21 @@ public class DevoteeDao {
         }
         return deletedRows;
     }
-    
+
+    // In: db/DevoteeDao.java
+
+    /**
+     * Find possible matches by mobile in the primary mobile_e164 column OR by
+     * searching for the number inside the extra_json column as plain text.
+     * This is compatible with all Android API levels.
+     */
     public List<Devotee> findByMobileAny(String mobile10) {
         List<Devotee> out = new ArrayList<>();
-        String sql = "SELECT DISTINCT d.* FROM devotee d " +
-                     "LEFT JOIN json_each(d.extra_json, '$.otherPhones') j ON true " +
-                     "WHERE d.mobile_e164 = ? OR (j.value = ?) ORDER BY d.full_name";
+        // This simplified query uses LIKE to search for the phone number inside the JSON string.
+        // It's less efficient than json_each but is universally compatible.
+        String sql = "SELECT * FROM devotee " +
+                "WHERE mobile_e164 = ? OR (extra_json IS NOT NULL AND extra_json LIKE '%' || ? || '%') " +
+                "ORDER BY full_name";
         try (Cursor cursor = db.rawQuery(sql, new String[]{mobile10, mobile10})) {
             while (cursor.moveToNext()) {
                 out.add(fromCursor(cursor));
@@ -233,6 +242,8 @@ public class DevoteeDao {
         return db.insertOrThrow("devotee", null, values);
     }
 
+    // In: db/DevoteeDao.java
+
     public List<EnrichedDevotee> searchEnrichedDevotees(String mobileInput, String namePart) {
         String mobileDigits = (mobileInput != null) ? mobileInput.replaceAll("[^0-9]", "") : null;
         boolean useMobile = mobileDigits != null && mobileDigits.length() >= 4;
@@ -241,29 +252,31 @@ public class DevoteeDao {
         if (!useMobile && !useName) {
             return Collections.emptyList();
         }
-        
+
+        // CORRECTED QUERY: Removed the "json_each" join and replaced it with a simple LIKE clause.
         String sql = "WITH att_stats AS (" +
                 "SELECT a.devotee_id, SUM(a.cnt) AS total_attendance, MAX(date(e.event_date)) AS last_date " +
                 "FROM attendance a JOIN event e ON a.event_id = e.event_id " +
                 "WHERE e.event_date IS NOT NULL AND e.event_date != '' GROUP BY a.devotee_id" +
-            ") " +
-            "SELECT d.*, MAX(wgm.group_number) AS group_number, MAX(COALESCE(ats.total_attendance, 0)) AS cumulative_attendance, MAX(ats.last_date) AS last_attendance_date " +
-            "FROM devotee d " +
-            "LEFT JOIN json_each(d.extra_json, '$.otherPhones') o ON TRUE " +
-            "LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 " +
-            "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id " +
-            "WHERE (? IS NOT NULL AND ( d.mobile_e164 LIKE '%' || ? || '%' OR o.value LIKE '%' || ? || '%' )) " +
-            "OR (? IS NOT NULL AND d.name_norm LIKE '%' || lower(?) || '%' ) " +
-            "GROUP BY d.devotee_id ORDER BY d.full_name";
+                ") " +
+                "SELECT d.*, wgm.group_number, COALESCE(ats.total_attendance, 0) AS cumulative_attendance, ats.last_date AS last_attendance_date " +
+                "FROM devotee d " +
+                "LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 " +
+                "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id " +
+                "WHERE (? IS NOT NULL AND ( d.mobile_e164 LIKE '%' || ? || '%' OR (d.extra_json IS NOT NULL AND d.extra_json LIKE '%' || ? || '%') )) " +
+                "OR (? IS NOT NULL AND d.name_norm LIKE '%' || lower(?) || '%' ) " +
+                "ORDER BY d.full_name";
 
+        // The GROUP BY is no longer needed because we removed the complex join that could create duplicates.
+        // The arguments array also needs to be adjusted slightly.
         String[] args = {
-            useMobile ? mobileDigits : null,
-            useMobile ? mobileDigits : null,
-            useMobile ? mobileDigits : null,
-            useName ? namePart : null,
-            useName ? namePart : null
+                useMobile ? mobileDigits : null,
+                useMobile ? mobileDigits : null,
+                useMobile ? mobileDigits : null, // This now corresponds to the LIKE clause
+                useName ? namePart : null,
+                useName ? namePart : null
         };
-        
+
         List<EnrichedDevotee> results = new ArrayList<>();
         try (Cursor cursor = db.rawQuery(sql, args)) {
             while (cursor.moveToNext()) {
