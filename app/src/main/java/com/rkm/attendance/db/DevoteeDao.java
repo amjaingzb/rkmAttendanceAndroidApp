@@ -59,15 +59,19 @@ public class DevoteeDao {
         private final Integer whatsAppGroup;
         private final int cumulativeAttendance;
         private final String lastAttendanceDate;
+        private final boolean isPreRegisteredForCurrentEvent;
 
-        public EnrichedDevotee(Devotee devotee, Integer whatsAppGroup, int cumulativeAttendance, String lastAttendanceDate) {
+
+        public EnrichedDevotee(Devotee devotee, Integer whatsAppGroup, int cumulativeAttendance, String lastAttendanceDate, boolean isPreRegistered) {
             this.devotee = devotee;
             this.whatsAppGroup = whatsAppGroup;
             this.cumulativeAttendance = cumulativeAttendance;
             this.lastAttendanceDate = lastAttendanceDate;
+            this.isPreRegisteredForCurrentEvent = isPreRegistered;
         }
 
-        // Add manual "getters"
+        public boolean isPreRegisteredForCurrentEvent() { return isPreRegisteredForCurrentEvent; }
+
         public Devotee devotee() { return devotee; }
         public Integer whatsAppGroup() { return whatsAppGroup; }
         public int cumulativeAttendance() { return cumulativeAttendance; }
@@ -84,7 +88,7 @@ public class DevoteeDao {
 
         @Override
         public int hashCode() {
-            return Objects.hash(devotee, whatsAppGroup, cumulativeAttendance, lastAttendanceDate);
+            return Objects.hash(devotee, whatsAppGroup, cumulativeAttendance, lastAttendanceDate, isPreRegisteredForCurrentEvent);
         }
     }
 
@@ -307,14 +311,24 @@ public class DevoteeDao {
         }
         return results;
     }
-    
+
     private EnrichedDevotee enrichedFromCursor(Cursor cursor) {
         Devotee devotee = fromCursor(cursor);
         int groupCol = cursor.getColumnIndex("group_number");
         Integer group = cursor.isNull(groupCol) ? null : cursor.getInt(groupCol);
         int attendance = cursor.getInt(cursor.getColumnIndexOrThrow("cumulative_attendance"));
         String lastDate = cursor.getString(cursor.getColumnIndexOrThrow("last_attendance_date"));
-        return new EnrichedDevotee(devotee, group, attendance, lastDate);
+
+        // When there is no event context, the "is_prereg" column won't exist.
+        // We default the value to false.
+        boolean isPreReg = false;
+        int preRegCol = cursor.getColumnIndex("is_prereg");
+        if (preRegCol != -1) { // Check if the column exists in the result set
+            isPreReg = cursor.getInt(preRegCol) == 1;
+        }
+
+        // Call the new, 5-argument constructor
+        return new EnrichedDevotee(devotee, group, attendance, lastDate, isPreReg);
     }
 
     public CounterStats getCounterStats() {
@@ -373,5 +387,49 @@ public class DevoteeDao {
         values.put("new_name", newName);
         values.put("similarity", similarity);
         db.insert("fuzzy_merge_log", null, values);
+    }
+
+    public List<EnrichedDevotee> searchDevoteesForEvent(String mobileInput, String namePart, long eventId) {
+        String mobileDigits = (mobileInput != null) ? mobileInput.replaceAll("[^0-9]", "") : null;
+        boolean useMobile = mobileDigits != null && mobileDigits.length() >= 4;
+        boolean useName = (namePart != null && !namePart.trim().isEmpty() && namePart.trim().length() >= 4);
+
+        if (!useMobile && !useName) {
+            return Collections.emptyList();
+        }
+
+        // This query now joins with the attendance table for the specific event
+        // to check for a pre-registration record.
+        String sql = "WITH att_stats AS (" +
+                "SELECT a.devotee_id, SUM(a.cnt) AS total_attendance, MAX(date(e.event_date)) AS last_date " +
+                "FROM attendance a JOIN event e ON a.event_id = e.event_id " +
+                "WHERE e.event_date IS NOT NULL AND e.event_date != '' GROUP BY a.devotee_id" +
+                ") " +
+                "SELECT d.*, wgm.group_number, COALESCE(ats.total_attendance, 0) AS cumulative_attendance, ats.last_date AS last_attendance_date, " +
+                "(current_att.reg_type = 'PRE_REG') AS is_prereg " + // This is the new flag
+                "FROM devotee d " +
+                "LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 " +
+                "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id " +
+                "LEFT JOIN attendance current_att ON d.devotee_id = current_att.devotee_id AND current_att.event_id = ? " + // Join for current event
+                "WHERE (? IS NOT NULL AND ( d.mobile_e164 LIKE '%' || ? || '%' OR (d.extra_json IS NOT NULL AND d.extra_json LIKE '%' || ? || '%') )) " +
+                "OR (? IS NOT NULL AND d.name_norm LIKE '%' || lower(?) || '%' ) " +
+                "ORDER BY d.full_name COLLATE NOCASE";
+
+        String[] args = {
+                String.valueOf(eventId), // For the new LEFT JOIN
+                useMobile ? mobileDigits : null,
+                useMobile ? mobileDigits : null,
+                useMobile ? mobileDigits : null,
+                useName ? namePart : null,
+                useName ? namePart : null
+        };
+
+        List<EnrichedDevotee> results = new ArrayList<>();
+        try (Cursor cursor = db.rawQuery(sql, args)) {
+            while (cursor.moveToNext()) {
+                results.add(enrichedFromCursor(cursor));
+            }
+        }
+        return results;
     }
 }

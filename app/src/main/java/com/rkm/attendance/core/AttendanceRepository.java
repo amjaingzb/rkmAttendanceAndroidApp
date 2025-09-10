@@ -100,10 +100,12 @@ public class AttendanceRepository {
             return false; // Already present
         }
 
-        if (info != null) { // Exists but count is 0
-            eventDao.updateAttendanceCount(eventId, devoteeId, 1);
-        } else { // Does not exist
-            eventDao.insertAttendanceWithCount(eventId, devoteeId, 1, null);
+        if (info != null) { // Exists but count is 0 (must be a pre-registration)
+            eventDao.markAsAttended(eventId, devoteeId);
+        } else {
+            // Does not exist in attendance table at all. This is a WALK-IN.
+            // We must create a new SPOT_REG record.
+            eventDao.insertSpotRegistration(eventId, devoteeId);
         }
         return true;
     }
@@ -198,5 +200,11 @@ public class AttendanceRepository {
     public Event getActiveEvent() {
         // For now, this logic is simple. It could be expanded later.
         return eventDao.findCurrentlyActiveEvent();
+    }
+
+    public List<DevoteeDao.EnrichedDevotee> searchDevoteesForEvent(String query, long eventId) {
+        String mobileInput = (query != null && query.matches(".*\\d.*")) ? query : null;
+        String nameInput = (mobileInput == null) ? query : null;
+        return devoteeDao.searchDevoteesForEvent(mobileInput, nameInput, eventId);
     }
 }

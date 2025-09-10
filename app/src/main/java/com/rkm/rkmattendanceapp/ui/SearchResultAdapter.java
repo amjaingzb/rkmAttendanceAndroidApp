@@ -72,16 +72,14 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
             nameText.setText(result.devotee().getFullName());
             mobileText.setText(result.devotee().getMobileE164());
 
-            // TODO: This is a placeholder. We need a way to know if a search result
-            // is pre-registered or a walk-in from the master DB.
-            // For now, we will simulate this.
-            if (result.cumulativeAttendance() > 5) { // Example logic
+            if (result.isPreRegisteredForCurrentEvent()) {
                 statusText.setText("Pre-Reg");
                 statusText.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_status_prereg));
+                statusText.setVisibility(View.VISIBLE);
             } else {
                 statusText.setText("Walk-in");
-                // TODO: Create a blue background drawable named 'bg_status_walkin.xml'
-                // statusText.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_status_walkin));
+                statusText.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_status_walkin));
+                statusText.setVisibility(View.VISIBLE); // Change to VISIBLE once you have the blue drawable
             }
         }
     }

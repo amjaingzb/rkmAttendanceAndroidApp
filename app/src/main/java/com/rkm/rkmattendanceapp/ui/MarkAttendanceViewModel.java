@@ -62,7 +62,7 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
         }
         new Thread(() -> {
             try {
-                List<DevoteeDao.EnrichedDevotee> results = repository.searchEnrichedDevotees(query);
+                List<DevoteeDao.EnrichedDevotee> results = repository.searchDevoteesForEvent(query,currentEventId);
                 searchResults.postValue(results);
             } catch (Exception e) {
                 e.printStackTrace();

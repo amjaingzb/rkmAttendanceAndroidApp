@@ -193,34 +193,38 @@ public class EventDao {
         values.put("remark", emptyToNull(remark));
         return db.insertOrThrow("attendance", null, values);
     }
-    
+
     public List<DevoteeDao.EnrichedDevotee> getEnrichedAttendeesForEvent(long eventId) {
         List<DevoteeDao.EnrichedDevotee> results = new ArrayList<>();
-        // This query reuses the logic from the main enriched search but is filtered for one event
+        // This query now also selects the registration type to determine the pre-reg status
         String sql = "WITH att_stats AS (" +
                 "SELECT a.devotee_id, SUM(a.cnt) AS total_attendance, MAX(date(e.event_date)) AS last_date " +
                 "FROM attendance a JOIN event e ON a.event_id = e.event_id " +
                 "WHERE e.event_date IS NOT NULL AND e.event_date != '' GROUP BY a.devotee_id" +
-            ") " +
-            "SELECT d.*, wgm.group_number, COALESCE(ats.total_attendance, 0) AS cumulative_attendance, ats.last_date AS last_attendance_date " +
-            "FROM devotee d " +
-            "LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 " +
-            "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id " +
-            "WHERE d.devotee_id IN (SELECT devotee_id FROM attendance WHERE event_id = ?) " +
-            "ORDER BY d.full_name";
+                ") " +
+                "SELECT d.*, wgm.group_number, COALESCE(ats.total_attendance, 0) AS cumulative_attendance, ats.last_date AS last_attendance_date, " +
+                "(att.reg_type = 'PRE_REG') AS is_prereg " + // The new flag
+                "FROM devotee d " +
+                "JOIN attendance att ON d.devotee_id = att.devotee_id " + // Use a JOIN instead of a subquery
+                "LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 " +
+                "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id " +
+                "WHERE att.event_id = ? " + // Filter by the specific event
+                "ORDER BY d.full_name COLLATE NOCASE";
 
-        DevoteeDao devoteeDao = new DevoteeDao(db); // Need an instance to call fromRow
+        DevoteeDao devoteeDao = new DevoteeDao(db);
         try (Cursor cursor = db.rawQuery(sql, new String[]{String.valueOf(eventId)})) {
             while (cursor.moveToNext()) {
-                Devotee devotee = devoteeDao.fromCursor(cursor); // Use the helper from DevoteeDao
-                
+                Devotee devotee = devoteeDao.fromCursor(cursor);
                 int groupCol = cursor.getColumnIndex("group_number");
                 Integer group = cursor.isNull(groupCol) ? null : cursor.getInt(groupCol);
-                
                 int attendance = cursor.getInt(cursor.getColumnIndexOrThrow("cumulative_attendance"));
                 String lastDate = cursor.getString(cursor.getColumnIndexOrThrow("last_attendance_date"));
-                
-                results.add(new DevoteeDao.EnrichedDevotee(devotee, group, attendance, lastDate));
+
+                // Read the new flag from the cursor
+                boolean isPreReg = cursor.getInt(cursor.getColumnIndexOrThrow("is_prereg")) == 1;
+
+                // Call the correct 5-argument constructor
+                results.add(new DevoteeDao.EnrichedDevotee(devotee, group, attendance, lastDate, isPreReg));
             }
         }
         return results;
@@ -281,5 +285,13 @@ public class EventDao {
             }
             return statement.simpleQueryForLong();
         }
+    }
+    public long insertSpotRegistration(long eventId, long devoteeId) {
+        ContentValues values = new ContentValues();
+        values.put("event_id", eventId);
+        values.put("devotee_id", devoteeId);
+        values.put("reg_type", "SPOT_REG"); // Explicitly set the type
+        values.put("cnt", 1);             // Mark as present
+        return db.insertWithOnConflict("attendance", null, values, SQLiteDatabase.CONFLICT_REPLACE);
     }
 }
