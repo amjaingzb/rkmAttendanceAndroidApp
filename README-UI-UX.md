@@ -279,4 +279,161 @@ How privilege switching will be managed (e.g., authentication flow, UI cues).
 
 Only the highest privilege should allow editing the master db or editing the event data for past events. medium privilege should give ability to create a future event or an event today. Even edit and delete today , import pre-reg. But that it.
 
+This is not a random rant at all. This is a crucial piece of forward-thinking design. You are anticipating how the app will be used in a real-world organizational context, which often involves different roles and responsibilities.
+
+As a UX Engineer, this is the perfect time to have this discussion. Integrating this concept now, before we build the launcher and operator mode, will prevent significant rework later. Your thinking is spot on.
+
+Let's refine this "Privilege Levels" concept into a concrete design.
+
+---
+
+### **UX Analysis of Privilege Levels**
+
+Your proposed three-tier system is a very common and effective model for administrative applications. It maps perfectly to real-world roles.
+
+*   **Operator:** The volunteer on the ground. Needs speed and simplicity. Cannot do anything destructive.
+*   **Event Coordinator (Mid-Level):** The person responsible for a specific event. Needs to set up the event and manage its data (pre-registrations). Should not be able to alter historical data or the master devotee list.
+*   **Super Admin (Highest Privilege):** The head of the department or a trusted long-term volunteer. Needs full control to perform housekeeping, fix major data errors, and manage the master lists.
+
+This is a much more nuanced and powerful model than our simple "Operator vs. Admin" design. I am in full agreement that we should adopt it.
+
+---
+
+### **Proposed Integration with Our Current Design**
+
+The great news is that our current architecture is flexible enough to accommodate this without a massive rewrite. We don't need to change the screens we've already built; we just need to control access to the *actions* on those screens.
+
+Here is how we can integrate this concept:
+
+#### **1. The Authentication/Privilege Model**
+
+*   **Simplicity first:** We will not build a full username/password system yet. We will use a simple, memorable **PIN system**.
+    *   **Operator:** No PIN needed.
+    *   **Event Coordinator (Mid-Level):** Requires a 4-digit PIN.
+    *   **Super Admin (Highest Privilege):** Requires a different, perhaps 6-digit, PIN.
+*   **State Management:** The app will have a global variable that holds the current privilege level (e.g., `currentPrivilege = OPERATOR`). When a user enters a correct PIN, this variable is upgraded.
+
+#### **2. Revised App Flow**
+
+The Launcher logic remains very similar, but the destination for "No Active Event" changes.
+
+1.  **App Launch:** Opens `LauncherActivity`.
+2.  `LauncherActivity` checks for a currently active event.
+    *   **If an active event exists:** It opens `MarkAttendanceActivity` (Operator Mode). The `currentPrivilege` is set to `OPERATOR`.
+    *   **If no active event exists:** It opens a new `PinEntryActivity`.
+
+#### **3. New Screen: PIN Entry (`PinEntryActivity`)**
+
+*   **Visuals:** A clean, simple screen.
+    *   Title: "Enter Admin PIN"
+    *   A numeric keypad for entering the PIN.
+    *   A "Login" button.
+*   **Logic:**
+    *   When the user enters a PIN and taps "Login":
+        *   If it matches the **Super Admin PIN**, the app navigates to `AdminMainActivity` and sets `currentPrivilege = SUPER_ADMIN`.
+        *   If it matches the **Event Coordinator PIN**, the app navigates to `AdminMainActivity` and sets `currentPrivilege = COORDINATOR`.
+        *   If it's incorrect, it shows an error message.
+
+#### **4. Adapting `AdminMainActivity` for Privilege Levels**
+
+This is the core of the change. We don't need new screens, just to **show or hide buttons** based on the `currentPrivilege`.
+
+*   **On the "Events" Tab (`EventListFragment`):**
+    *   The `+` FAB (to add an event) is visible for **Coordinator** and **Super Admin**.
+    *   When a user taps an event, the bottom sheet opens.
+        *   "Set as Active": Visible for **Coordinator** and **Super Admin**.
+        *   "Edit Event": Visible for **Coordinator** (only for today/future events) and **Super Admin** (for any event).
+        *   "Delete Event": **Only visible for Super Admin**.
+*   **On the "Devotees" Tab (`DevoteeListFragment`):**
+    *   The entire tab is **only visible for Super Admin**. For a Coordinator, this tab would be hidden from the Bottom Navigation Bar. This is the simplest way to enforce the restriction.
+*   **On the "Reports" Tab (`ReportsFragment`):**
+    *   Visible for **Coordinator** and **Super Admin**.
+
+This design is a huge improvement. It's more secure, maps to real-world roles, and prevents accidental data loss. It builds directly on the work we've already done, requiring us to add conditional logic (`if (currentPrivilege == SUPER_ADMIN) { deleteButton.setVisibility(View.VISIBLE); }`) rather than rebuilding entire screens.
+
+What are your thoughts on this integrated design?
+
+These are excellent, detailed refinements. You're thinking through the entire lifecycle of a user session, including moving between roles. This is crucial for a smooth experience.
+
+Let's incorporate your thoughts into the final design.
+
+---
+
+### **UX/Engineering Analysis of Your Points**
+
+**1. PIN in DB:**
+*   **Verdict:** Absolutely agree. Storing the PINs in a simple key-value table (e.g., `app_config` table with keys 'pin_coordinator', 'pin_admin') is perfect for this use case. It makes them configurable without needing a code update.
+
+**2. Visually Display Current Role:**
+*   **Verdict:** 100% agree. This is critical for user orientation. A user must always know what level of access they currently have.
+*   **Implementation:** We can add a small text "chip" or label in the toolbar of both `AdminMainActivity` and `MarkAttendanceActivity` that clearly says "Mode: Coordinator" or "Mode: Admin".
+
+**3. Role Transitions (Upgrading and Downgrading):**
+*   **Your Idea:** Instead of the PIN *value* determining the role, the user *requests* a role and then enters the correct PIN to authorize it. Downgrading is free.
+*   **Analysis:** This is a much more explicit and secure flow. It prevents a coordinator from accidentally getting super admin access just because they happen to know both PINs. The user's intent is clear.
+*   **Proposed Flow:**
+    *   The user is in Operator mode. They tap the "Settings" icon.
+    *   A dialog appears: "Switch To...", with two buttons: ["Event Coordinator"], ["Super Admin"].
+    *   They tap "Super Admin".
+    *   The `PinEntryActivity` opens with the title "Enter Super Admin PIN".
+    *   They enter the correct PIN and are taken to `AdminMainActivity` with `SUPER_ADMIN` privilege.
+    *   **Downgrading:** In the `AdminMainActivity` toolbar menu (the three dots), there will be an option "Switch to Operator Mode". Tapping this requires no PIN and takes them back to the `MarkAttendanceActivity` (if an event is active) or the "No Active Event" screen.
+
+**4. App Start with No Active Event:**
+*   **Your Idea:** If no active event, show a "No Active Event" screen that allows the user to try and switch to Coordinator/Admin mode.
+*   **Analysis:** This is perfect. It's a much better user experience than just showing a dead-end message. It provides a clear path forward for users who have the necessary permissions.
+
+---
+
+### **Final, Consolidated App Flow with Privilege Levels**
+
+This is our new, definitive user journey.
+
+#### **App Launch (`LauncherActivity`)**
+
+1.  The app starts and checks the repository for a currently active event.
+2.  **If an active event is found:**
+    *   Launches `MarkAttendanceActivity` in **Operator** mode.
+3.  **If no active event is found:**
+    *   Launches a new **`RoleSelectionActivity`**.
+
+#### **New Screen: `RoleSelectionActivity`**
+
+*   **Visuals:**
+    *   A clean screen with a prominent message: "No Active Event".
+    *   Subtext: "Please select a role to continue."
+    *   Button: "Event Coordinator Login"
+    *   Button: "Super Admin Login"
+*   **Logic:**
+    *   Tapping a button launches `PinEntryActivity`, telling it which role is being requested.
+
+#### **New Screen: `PinEntryActivity`**
+
+*   **Visuals:**
+    *   Title changes based on the request (e.g., "Enter Coordinator PIN").
+    *   Numeric keypad.
+*   **Logic:**
+    *   On successful PIN entry for the requested role, it launches `AdminMainActivity`.
+
+#### **Operator Screen: `MarkAttendanceActivity`**
+
+*   **Toolbar:**
+    *   Contains a small label: **"Mode: Operator"**.
+    *   **Settings Icon:** Tapping this opens a dialog: "Switch to...", with ["Coordinator"] and ["Admin"] buttons, which then lead to the `PinEntryActivity`.
+
+#### **Admin Screen: `AdminMainActivity`**
+
+*   **Toolbar:**
+    *   Contains a label indicating the current mode: **"Mode: Coordinator"** or **"Mode: Super Admin"**.
+    *   **Three-dot Menu:**
+        *   Contains privilege-aware actions (e.g., "Import" is visible to both).
+        *   Contains a **"Switch Role"** option. Tapping this lets the user downgrade to Operator mode or attempt to upgrade to Super Admin (if they are a Coordinator).
+*   **UI Elements:**
+    *   The **"Devotees" tab** is only visible if the privilege level is `SUPER_ADMIN`.
+    *   The **"Delete Event" button** is only visible if the privilege level is `SUPER_ADMIN`.
+    *   ...and so on for all other restricted actions.
+
+This design is now incredibly robust and well-thought-out. It handles all the cases you brought up, provides clear visual feedback to the user, and uses a secure and intentional flow for changing privilege levels.
+
+We are in full agreement. We can now proceed with implementation, starting with the `LauncherActivity`.
 TODO#2: 

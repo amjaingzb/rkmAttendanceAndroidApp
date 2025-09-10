@@ -5,12 +5,24 @@ public class Event {
     private String eventCode;
     private String eventName;   // mandatory
     private String eventDate;   // yyyy-MM-dd
+    private String activeFromTs;
+    private String activeUntilTs;
     private String remark;
 
     public Event() {}
-    public Event(Long id, String code, String name, String date, String remark) {
-        this.eventId = id; this.eventCode = code; this.eventName = name; this.eventDate = date; this.remark = remark;
+    public Event(Long id, String code, String name, String date, String activeFrom, String activeUntil, String remark) {
+        this.eventId = id;
+        this.eventCode = code;
+        this.eventName = name;
+        this.eventDate = date;
+        this.activeFromTs = activeFrom;
+        this.activeUntilTs = activeUntil;
+        this.remark = remark;
     }
+    public String getActiveFromTs() { return activeFromTs; }
+    public void setActiveFromTs(String activeFromTs) { this.activeFromTs = activeFromTs; }
+    public String getActiveUntilTs() { return activeUntilTs; }
+    public void setActiveUntilTs(String activeUntilTs) { this.activeUntilTs = activeUntilTs; }
 
     public Long getEventId() { return eventId; }
     public void setEventId(Long eventId) { this.eventId = eventId; }

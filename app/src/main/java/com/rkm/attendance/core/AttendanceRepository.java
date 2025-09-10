@@ -41,24 +41,45 @@ public class AttendanceRepository {
         return eventDao.get(eventId);
     }
 
-    public long createEvent(String name, String date, String remark) {
+    // In: core/AttendanceRepository.java
+
+    public long createEvent(String name, String date, String remark, String activeFrom, String activeUntil) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Event Name is mandatory.");
         }
         if (date == null || date.trim().isEmpty()) {
             throw new IllegalArgumentException("Event Date is mandatory.");
         }
-        Event newEvent = new Event(null, null, name, date, remark);
+
+        // --- SMART DEFAULTS LOGIC ---
+        String finalActiveFrom = activeFrom;
+        String finalActiveUntil = activeUntil;
+
+        // If the times are not provided, create defaults for the whole day.
+        if (finalActiveFrom == null || finalActiveFrom.trim().isEmpty()) {
+            finalActiveFrom = date + " 06:00:00"; // Start at 6 AM
+        }
+        if (finalActiveUntil == null || finalActiveUntil.trim().isEmpty()) {
+            finalActiveUntil = date + " 22:00:00"; // End at 10 PM
+        }
+
+        // Call the new, correct constructor with all 7 arguments
+        Event newEvent = new Event(null, null, name, date, finalActiveFrom, finalActiveUntil, remark);
+
         return eventDao.insert(newEvent);
     }
 
     public void updateEvent(Event event) {
+        if (event == null) {
+            throw new IllegalArgumentException("Event cannot be null.");
+        }
         if (event.getEventName() == null || event.getEventName().trim().isEmpty()) {
             throw new IllegalArgumentException("Event Name is mandatory.");
         }
         if (event.getEventDate() == null || event.getEventDate().trim().isEmpty()) {
             throw new IllegalArgumentException("Event Date is mandatory.");
         }
+        // The DAO will handle the actual database update
         eventDao.update(event);
     }
 
@@ -161,5 +182,10 @@ public class AttendanceRepository {
 
     public List<EnrichedDevotee> getEnrichedAttendeesForEvent(long eventId) {
         return eventDao.getEnrichedAttendeesForEvent(eventId);
+    }
+
+    public Event getActiveEvent() {
+        // For now, this logic is simple. It could be expanded later.
+        return eventDao.findCurrentlyActiveEvent();
     }
 }

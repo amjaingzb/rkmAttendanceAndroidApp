@@ -55,6 +55,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "  event_code  TEXT UNIQUE,\n" +
                 "  event_name  TEXT NOT NULL,\n" +
                 "  event_date  TEXT,\n" +
+                "  active_from_ts  TEXT,\n" +
+                "  active_until_ts TEXT,\n" +
                 "  remark      TEXT\n" +
                 ")");
 

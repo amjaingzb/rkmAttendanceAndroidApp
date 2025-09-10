@@ -37,6 +37,8 @@ public class EventDao {
         values.put("event_code", emptyToNull(e.getEventCode()));
         values.put("event_name", e.getEventName());
         values.put("event_date", emptyToNull(e.getEventDate()));
+        values.put("active_from_ts", e.getActiveFromTs());
+        values.put("active_until_ts", e.getActiveUntilTs());
         values.put("remark", emptyToNull(e.getRemark()));
 
         // The insert method returns the new row ID
@@ -57,9 +59,24 @@ public class EventDao {
         values.put("event_code", emptyToNull(e.getEventCode()));
         values.put("event_name", e.getEventName());
         values.put("event_date", emptyToNull(e.getEventDate()));
+        values.put("active_from_ts", e.getActiveFromTs());
+        values.put("active_until_ts", e.getActiveUntilTs());
         values.put("remark", emptyToNull(e.getRemark()));
 
         db.update("event", values, "event_id = ?", new String[]{String.valueOf(e.getEventId())});
+    }
+
+    public Event findCurrentlyActiveEvent() {
+        // Using strftime for cross-version date/time comparison in SQLite
+        String now = "strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')";
+        String sql = "SELECT * FROM event WHERE " + now + " BETWEEN active_from_ts AND active_until_ts LIMIT 1";
+
+        try (Cursor cursor = db.rawQuery(sql, null)) {
+            if (cursor.moveToFirst()) {
+                return fromCursor(cursor);
+            }
+            return null;
+        }
     }
 
     public Event get(long id) {
@@ -107,6 +124,8 @@ public class EventDao {
                 cursor.getString(cursor.getColumnIndexOrThrow("event_code")),
                 cursor.getString(cursor.getColumnIndexOrThrow("event_name")),
                 cursor.getString(cursor.getColumnIndexOrThrow("event_date")),
+                cursor.getString(cursor.getColumnIndexOrThrow("active_from_ts")),
+                cursor.getString(cursor.getColumnIndexOrThrow("active_until_ts")),
                 cursor.getString(cursor.getColumnIndexOrThrow("remark"))
         );
     }

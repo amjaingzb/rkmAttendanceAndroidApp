@@ -1,14 +1,16 @@
 // In: src/main/java/com/rkm/rkmattendanceapp/ui/EventListFragment.java
 package com.rkm.rkmattendanceapp.ui;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -21,22 +23,34 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.rkm.attendance.model.Event;
 import com.rkm.rkmattendanceapp.R;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-
 public class EventListFragment extends Fragment implements EventListAdapter.OnEventListener {
 
     private EventListViewModel eventListViewModel;
     private EventListAdapter adapter;
 
+    // 1. Declare the ActivityResultLauncher for the Add/Edit screen
+    private ActivityResultLauncher<Intent> addEditEventLauncher;
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Set up the Fragment Result Listener to get data back from the bottom sheet
+
+        // 2. Register the launcher and define its callback
+        addEditEventLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    // If the user saved the event, we get RESULT_OK.
+                    // Then we refresh the list.
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        eventListViewModel.loadEvents();
+                    }
+                    // If they canceled, we do nothing.
+                });
+
+        // Setup listener for results from the bottom sheet
         getParentFragmentManager().setFragmentResultListener(EventActionsBottomSheetFragment.REQUEST_KEY, this, (requestKey, bundle) -> {
             String action = bundle.getString(EventActionsBottomSheetFragment.KEY_ACTION);
             long eventId = bundle.getLong(EventActionsBottomSheetFragment.KEY_EVENT_ID);
-
             handleEventAction(action, eventId);
         });
     }
@@ -57,8 +71,13 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
         observeViewModel();
 
         FloatingActionButton fab = view.findViewById(R.id.fab_add_event);
-        fab.setOnClickListener(v -> showAddEventDialog());
+        // 3. Update FAB to use the launcher
+        fab.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), AddEditEventActivity.class);
+            addEditEventLauncher.launch(intent);
+        });
 
+        // Initial data load
         eventListViewModel.loadEvents();
     }
 
@@ -67,14 +86,15 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setHasFixedSize(true);
         adapter = new EventListAdapter();
-        // Set this fragment as the listener for item clicks
         adapter.setOnEventListener(this);
         recyclerView.setAdapter(adapter);
     }
 
     private void observeViewModel() {
         eventListViewModel.getEventList().observe(getViewLifecycleOwner(), events -> {
-            adapter.setEvents(events);
+            if (events != null) {
+                adapter.setEvents(events);
+            }
         });
 
         eventListViewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
@@ -84,40 +104,8 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
         });
     }
 
-    private void showAddEventDialog() {
-        // Inflate a custom layout for the dialog
-        LayoutInflater inflater = requireActivity().getLayoutInflater();
-        View dialogView = inflater.inflate(R.layout.dialog_add_event, null);
-
-        final EditText eventNameInput = dialogView.findViewById(R.id.edit_text_event_name);
-        final EditText eventDateInput = dialogView.findViewById(R.id.edit_text_event_date);
-        final EditText eventRemarkInput = dialogView.findViewById(R.id.edit_text_event_remark);
-
-        // Pre-fill today's date
-        eventDateInput.setText(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
-
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Create New Event")
-                .setView(dialogView)
-                .setPositiveButton("Create", (dialog, which) -> {
-                    String name = eventNameInput.getText().toString().trim();
-                    String date = eventDateInput.getText().toString().trim();
-                    String remark = eventRemarkInput.getText().toString().trim();
-
-                    if (TextUtils.isEmpty(name) || TextUtils.isEmpty(date)) {
-                        Toast.makeText(getContext(), "Event Name and Date are required.", Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    eventListViewModel.createEvent(name, date, remark);
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
     @Override
     public void onEventClick(Event event) {
-        // When an event is clicked, show the bottom sheet with actions
         EventActionsBottomSheetFragment bottomSheet = EventActionsBottomSheetFragment.newInstance(event.getEventId());
         bottomSheet.show(getParentFragmentManager(), EventActionsBottomSheetFragment.TAG);
     }
@@ -127,7 +115,6 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
 
         switch (action) {
             case "DELETE":
-                // Show a confirmation dialog before deleting
                 new AlertDialog.Builder(requireContext())
                         .setTitle("Delete Event")
                         .setMessage("Are you sure you want to delete this event and all its attendance records?")
@@ -137,10 +124,14 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
                         .setNegativeButton("Cancel", null)
                         .show();
                 break;
+
             case "EDIT":
-                // TODO: Implement the Edit Event dialog/screen
-                Toast.makeText(getContext(), "Edit feature not yet implemented.", Toast.LENGTH_SHORT).show();
+                // 4. Implement the Edit action to use the launcher
+                Intent intent = new Intent(getActivity(), AddEditEventActivity.class);
+                intent.putExtra(AddEditEventActivity.EXTRA_EVENT_ID, eventId);
+                addEditEventLauncher.launch(intent);
                 break;
+
             case "SET_ACTIVE":
                 eventListViewModel.setActiveEvent(eventId);
                 break;

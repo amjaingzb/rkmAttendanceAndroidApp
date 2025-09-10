@@ -56,17 +56,28 @@ public class EventListViewModel extends AndroidViewModel {
     }
 
     public void createEvent(String eventName, String eventDate, String remark) {
-        // Run database write operation on a background thread
         new Thread(() -> {
             try {
-                repository.createEvent(eventName, eventDate, remark);
-                // After creating the event, we need to refresh the list.
-                // We can do this by just calling loadEvents() again.
+                // Call the repository with null for the new fields,
+                // allowing the repository to create the smart defaults.
+                repository.createEvent(eventName, eventDate, remark, null, null);
                 loadEvents();
             } catch (Exception e) {
                 e.printStackTrace();
-                // Post an error message for the UI to show
                 errorMessage.postValue("Failed to create event: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    public void updateEvent(Event event) {
+        new Thread(() -> {
+            try {
+                repository.updateEvent(event);
+                // Refresh the list after the update
+                loadEvents();
+            } catch (Exception e) {
+                e.printStackTrace();
+                errorMessage.postValue("Failed to update event: " + e.getMessage());
             }
         }).start();
     }
