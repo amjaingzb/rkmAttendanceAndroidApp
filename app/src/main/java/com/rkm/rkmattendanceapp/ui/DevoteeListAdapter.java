@@ -7,18 +7,18 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
 import java.util.ArrayList;
 import java.util.List;
 
+// This adapter is now simpler and works with the basic Devotee model.
 public class DevoteeListAdapter extends RecyclerView.Adapter<DevoteeListAdapter.DevoteeViewHolder> {
 
-    private List<DevoteeDao.EnrichedDevotee> devoteeList = new ArrayList<>();
+    // 1. Change the internal list type to List<Devotee>
+    private List<Devotee> devoteeList = new ArrayList<>();
     private OnDevoteeClickListener listener;
 
-    // Interface for click events
     public interface OnDevoteeClickListener {
         void onDevoteeClick(Devotee devotee);
     }
@@ -37,7 +37,7 @@ public class DevoteeListAdapter extends RecyclerView.Adapter<DevoteeListAdapter.
 
     @Override
     public void onBindViewHolder(@NonNull DevoteeViewHolder holder, int position) {
-        DevoteeDao.EnrichedDevotee current = devoteeList.get(position);
+        Devotee current = devoteeList.get(position);
         holder.bind(current);
     }
 
@@ -46,7 +46,8 @@ public class DevoteeListAdapter extends RecyclerView.Adapter<DevoteeListAdapter.
         return devoteeList.size();
     }
 
-    public void setDevotees(List<DevoteeDao.EnrichedDevotee> devotees) {
+    // 2. Change the public setter method's parameter to List<Devotee>
+    public void setDevotees(List<Devotee> devotees) {
         this.devoteeList = devotees;
         notifyDataSetChanged();
     }
@@ -55,9 +56,9 @@ public class DevoteeListAdapter extends RecyclerView.Adapter<DevoteeListAdapter.
         private final TextView devoteeNameTextView;
         private final TextView devoteeMobileTextView;
 
-        // Functional interface to get the current list from the adapter
+        // 3. Update the provider interface
         interface DevoteeListProvider {
-            List<DevoteeDao.EnrichedDevotee> getList();
+            List<Devotee> getList();
         }
 
         public DevoteeViewHolder(@NonNull View itemView, OnDevoteeClickListener listener, DevoteeListProvider listProvider) {
@@ -68,15 +69,16 @@ public class DevoteeListAdapter extends RecyclerView.Adapter<DevoteeListAdapter.
             itemView.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (listener != null && position != RecyclerView.NO_POSITION) {
-                    // Pass the plain Devotee object to the listener
-                    listener.onDevoteeClick(listProvider.getList().get(position).devotee());
+                    // 4. This now passes the Devotee object directly
+                    listener.onDevoteeClick(listProvider.getList().get(position));
                 }
             });
         }
 
-        public void bind(DevoteeDao.EnrichedDevotee enrichedDevotee) {
-            devoteeNameTextView.setText(enrichedDevotee.devotee().getFullName());
-            devoteeMobileTextView.setText(enrichedDevotee.devotee().getMobileE164());
+        // 5. Update the bind method to accept a Devotee
+        public void bind(Devotee devotee) {
+            devoteeNameTextView.setText(devotee.getFullName());
+            devoteeMobileTextView.setText(devotee.getMobileE164());
         }
     }
 }

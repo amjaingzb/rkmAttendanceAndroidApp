@@ -84,6 +84,26 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
         }).start();
     }
 
+    public void onSpotRegisterAndMarkPresent(Devotee newDevotee) {
+        if (currentEventId == -1) {
+            errorMessage.postValue("Error: No active event to register for.");
+            return;
+        }
+        new Thread(() -> {
+            try {
+                // This single repository call handles everything:
+                // creates the devotee (or finds a fuzzy match) AND marks them present.
+                repository.onSpotRegisterAndMarkPresent(currentEventId, newDevotee);
+
+                // After success, refresh the stats and checked-in list
+                refreshStatsAndCheckedInList();
+            } catch (Exception e) {
+                e.printStackTrace();
+                errorMessage.postValue("On-spot registration failed: " + e.getMessage());
+            }
+        }).start();
+    }
+
     // --- Private Helper ---
     private void refreshStatsAndCheckedInList() {
         try {

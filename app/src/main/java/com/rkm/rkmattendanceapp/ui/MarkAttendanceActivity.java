@@ -118,10 +118,9 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         });
 
         viewModel.getCheckedInList().observe(this, devotees -> {
-            // The checkedInAdapter expects EnrichedDevotee, but we have Devotee.
-            // For now, we cannot populate this list. We will fix this.
-            // checkedInAdapter.setDevotees(devotees);
-            Toast.makeText(this, "Checked-in list updated.", Toast.LENGTH_SHORT).show();
+            if (devotees != null) {
+                checkedInAdapter.setDevotees(devotees);
+            }
         });
 
         viewModel.getSearchResults().observe(this, results -> {

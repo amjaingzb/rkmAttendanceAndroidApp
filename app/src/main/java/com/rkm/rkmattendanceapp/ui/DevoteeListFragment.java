@@ -28,8 +28,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.ArrayList; // Also add this for the transformation
 
 public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.OnDevoteeClickListener {
 
@@ -111,9 +116,14 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
     }
 
     private void observeViewModel() {
-        devoteeListViewModel.getDevoteeList().observe(getViewLifecycleOwner(), devotees -> {
-            if (devotees != null) {
-                adapter.setDevotees(devotees);
+        devoteeListViewModel.getDevoteeList().observe(getViewLifecycleOwner(), enrichedDevotees -> {
+            if (enrichedDevotees != null) {
+                // Transform the List<EnrichedDevotee> into a List<Devotee>
+                // before passing it to the adapter.
+                List<Devotee> simpleDevotees = enrichedDevotees.stream()
+                        .map(DevoteeDao.EnrichedDevotee::devotee)
+                        .collect(Collectors.toList());
+                adapter.setDevotees(simpleDevotees);
             }
         });
         devoteeListViewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
