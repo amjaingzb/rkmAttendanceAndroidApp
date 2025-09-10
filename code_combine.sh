@@ -9,57 +9,73 @@ skipped_log_file="delme-skipped-files.log"
 > "$output_file"
 > "$skipped_log_file"
 
-# 1. Define files and directories to explicitly ignore.
-ignore_dirs=("./build" "./.gradle" "./.idea")
-ignore_patterns="-name $output_file -o -name $skipped_log_file"
+# --- Argument arrays for the find command ---
+# This is safer than building a single string for eval.
+declare -a ignore_args
+declare -a include_args
 
-# Add standard directories to the find command's exclusion list
+# --- Populate Ignore Arguments ---
+# 1. Add our own output files to the ignore list first.
+# The first pattern doesn't need a preceding "-o".
+ignore_args+=('-name' "$output_file")
+ignore_args+=('-o' '-name' "$skipped_log_file")
+
+# 2. Add standard directories to ignore.
+ignore_dirs=("./build" "./.gradle" "./.idea")
 for dir in "${ignore_dirs[@]}"; do
-    ignore_patterns+=" -o -path $dir/*"
+    ignore_args+=('-o' '-path' "$dir/*")
 done
 
-# 2. Read .gitignore and add its patterns to the ignore list
+# 3. Read .gitignore and add its patterns to the ignore list.
 if [ -f ".gitignore" ]; then
-    gitignore_patterns=$(awk '!/^#|^$/ {
-        pattern = $0
-        if (substr(pattern, length(pattern)) == "/") {
-            sub(/\/$/, "", pattern);
-            printf "-o -path \"./%s/*\" ", pattern
-        } else {
-            printf "-o -name \"%s\" ", pattern
-        }
-    }' .gitignore)
-    ignore_patterns+=" $gitignore_patterns"
+    # Use grep to filter out comments and blank lines, then read each pattern.
+    while IFS= read -r pattern; do
+        # Trim leading/trailing whitespace
+        pattern=$(echo "$pattern" | xargs)
+        if [ -z "$pattern" ]; then continue; fi
+
+        # If gitignore pattern ends with a slash, treat it as a directory path.
+        if [[ "$pattern" == */ ]]; then
+            pattern="${pattern%/}" # remove trailing slash
+            ignore_args+=('-o' '-path' "./$pattern/*")
+        else
+            # Otherwise, treat it as a file name pattern.
+            ignore_args+=('-o' '-name' "$pattern")
+        fi
+    done < <(grep -vE '^\s*#|^\s*$' .gitignore)
 fi
 
-# 3. Define the file types we WANT to include for code and build logic.
-# This is the comprehensive list.
-include_patterns="\
-    -name \"*.java\" \
--o -name \"*.kt\" \
--o -name \"*.xml\" \
--o -name \"AndroidManifest.xml\" \
--o -name \"*.gradle\" \
--o -name \"*.gradle.kts\" \
--o -name \"gradle.properties\" \
--o -name \"settings.gradle\" \
--o -name \"*.pro\" \
--o -name \"*.c\" \
--o -name \"*.cpp\" \
--o -name \"*.h\" \
--o -name \"*.glsl\""
+# --- Populate Include Arguments ---
+# This is the comprehensive list of file types we want to include.
+include_args=(
+    '-name' '*.java'
+    '-o' '-name' '*.kt'
+    '-o' '-name' '*.xml'
+    '-o' '-name' 'AndroidManifest.xml'
+    '-o' '-name' '*.gradle'
+    '-o' '-name' '*.gradle.kts'
+    '-o' '-name' 'gradle.properties'
+    '-o' '-name' 'settings.gradle'
+    '-o' '-name' '*.pro'
+    '-o' '-name' '*.c'
+    '-o' '-name' '*.cpp'
+    '-o' '-name' '*.h'
+    '-o' '-name' '*.glsl'
+)
 
-# 4. Construct and run the find command with logging for skipped files.
-# The logic is: prune ignored paths, then for everything else, either print it for inclusion
-# OR print it to the skipped log file.
-eval find . -type f \
-    \( $ignore_patterns \) -prune \
--o \( \
-    \( $include_patterns \) -print0 \
-    -o -fprintf \"$skipped_log_file\" \"%p\\n\" \
-\) | while IFS= read -r -d $'\0' file; do
+# --- Execute the find Command ---
+# Construct the full command using the arrays.
+# This is safe and robust, avoiding 'eval'.
+find . -type f \
+    '(' "${ignore_args[@]}" ')' -prune \
+-o \
+    '(' \
+        '(' "${include_args[@]}" ')' -print0 \
+        -o -fprintf "$skipped_log_file" "%p\n" \
+    ')' \
+| while IFS= read -r -d $'\0' file; do
     
-    # 5. Check if the file (from the include list) is text-based before appending it.
+    # Check if the file (from the include list) is text-based before appending it.
     if [[ "$(file -b --mime-type "$file")" == text/* ]]; then
         # Print a header with the path to the file
         echo "==================== FILE: $file ====================" >> "$output_file"
