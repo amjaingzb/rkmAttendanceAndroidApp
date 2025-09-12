@@ -460,33 +460,8 @@ Ready to create the PinViewModel and the PIN entry screen?
 TEMp BUFER AREA
 
 
-DO THESE TESTS ASAP
-#### 2. On-Spot Registration (From Operator Mode)
 
-*   **Likely Desktop Logic (`ui/swing`):** The operator's "Add New" button likely followed a similar multi-step merge process as the admin panel, but with an additional final step to call `markDevoteeAsPresent`.
-*   **Current Android Logic (`rkmattendanceapp/ui`):** The `MarkAttendanceViewModel` calls `repository.onSpotRegisterAndMarkPresent`. Inside the repository, this method was just updated to call our new `saveOrMergeDevoteeFromAdmin` method before marking attendance.
-*   **GAP/RISK:** This is a **high-risk area**. We just changed the underlying repository method (`onSpotRegisterAndMarkPresent`) as part of our last fix. We need to explicitly test this specific workflow to ensure it didn't break and that the merge logic works correctly here too.
-*   **TEST SCENARIO:**
-    1.  Start the app in Operator Mode (by creating an active event).
-    2.  Use the "Add New" button. Enter data for a devotee that is a fuzzy match of an existing one (e.g., existing is "Amit Jain", you enter "Amit" with the same phone number but a new address).
-    3.  **Expected:** The app should merge the data (update the address), mark them as present, and the "Spot Reg" and "Total" stats should both increment by 1.
-
-#### 3. Admin Search -> Create Workflow
-
-*   **Likely Desktop Logic (`ui/swing`):** Unknown. We don't know if the desktop app had the feature of pre-populating the "Add New" form from a failed search query.
-*   **Current Android Logic (`rkmattendanceapp/ui`):** This is a **brand-new feature** we designed. The `DevoteeListFragment` passes the search query via an Intent Extra to `AddEditDevoteeActivity`.
-*   **GAP/RISK:** The risk is not a "missed port," but a potential bug in a brand-new workflow. We need to test it thoroughly.
-*   **TEST SCENARIO:**
-    1.  Go to the Devotees tab.
-    2.  Search for a name that doesn't exist (e.g., "New Devotee").
-    3.  Tap the `+` FAB.
-    4.  **Expected:** The "Add New Devotee" screen should appear, and the "Full Name" field should be pre-filled with "New Devotee".
-    5.  Go back. Search for a phone number that doesn't exist (e.g., "5555555555").
-    6.  Tap the `+` FAB.
-    7.  **Expected:** The "Add New Devotee" screen should appear, and the "Mobile Number" field should be pre-filled with "5555555555".
-
----
-
+======================
 
 
 MARKERS 
@@ -496,7 +471,4 @@ m1,...m9 : for bugs
 
 
 
-Ok, i have taken a note of these 2 test cases. But before that I need to finish a small feature which is marring my ability to easily test anything
-
-recall we had a requirement/discussion around a toolbar/icon/some visual indicating current role and ability to switch the role . 
 
