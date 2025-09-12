@@ -13,7 +13,7 @@
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
         app:cardElevation="4dp"
-        app:cardBackgroundColor="#3C3C3C"> <!-- MODIFIED: Added a darker background for contrast -->
+        app:cardBackgroundColor="#3C3C3C">
 
         <GridLayout
             android:layout_width="match_parent"
@@ -22,16 +22,16 @@
             android:padding="12dp">
 
             <!-- Labels -->
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Pre-Registered" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/> <!-- MODIFIED: Set text color -->
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Attended" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/> <!-- MODIFIED: Set text color -->
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Spot Reg" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/> <!-- MODIFIED: Set text color -->
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Total" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/> <!-- MODIFIED: Set text color -->
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Pre-Registered" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/>
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Attended" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/>
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Spot Reg" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/>
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Total" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/>
 
             <!-- Counts -->
-            <TextView android:id="@+id/text_stat_pre_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="150" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/> <!-- MODIFIED: Set text color -->
-            <TextView android:id="@+id/text_stat_attended" android:layout_columnWeight="1" android:gravity="center" tools:text="125" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/> <!-- MODIFIED: Set text color -->
-            <TextView android:id="@+id/text_stat_spot_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="12" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/> <!-- MODIFIED: Set text color -->
-            <TextView android:id="@+id/text_stat_total" android:layout_columnWeight="1" android:gravity="center" tools:text="137" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/> <!-- MODIFIED: Set text color -->
+            <TextView android:id="@+id/text_stat_pre_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="150" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/>
+            <TextView android:id="@+id/text_stat_attended" android:layout_columnWeight="1" android:gravity="center" tools:text="125" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/>
+            <TextView android:id="@+id/text_stat_spot_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="12" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/>
+            <TextView android:id="@+id/text_stat_total" android:layout_columnWeight="1" android:gravity="center" tools:text="137" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/>
 
         </GridLayout>
     </com.google.android.material.card.MaterialCardView>
@@ -52,7 +52,8 @@
             android:layout_weight="1"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             app:startIconDrawable="@drawable/ic_search"
-            app:hintEnabled="false">
+            app:hintEnabled="false"
+            app:helperTextEnabled="true"> <!-- MODIFIED: Enabled helper text -->
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/edit_text_search_attendee"
@@ -85,7 +86,6 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <!-- MODIFIED: Added this TextView as a title for the list -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -112,12 +112,21 @@
             tools:visibility="visible"
             tools:listitem="@layout/list_item_search_result"/>
 
-        <!-- MODIFIED: Added a ProgressBar for search feedback -->
         <ProgressBar
             android:id="@+id/progress_bar_search"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
+            android:visibility="gone"/>
+
+        <!-- NEW: Added a TextView for the "No results" message -->
+        <TextView
+            android:id="@+id/text_no_results"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="No results found."
+            android:textAppearance="?attr/textAppearanceBody1"
             android:visibility="gone"
             tools:visibility="visible"/>
 
