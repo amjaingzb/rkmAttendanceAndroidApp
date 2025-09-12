@@ -61,26 +61,40 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
 
             itemView.setOnClickListener(v -> {
                 int pos = getAdapterPosition();
-                if (listener != null && pos != RecyclerView.NO_POSITION) {
+                // We only call the listener if the item is enabled (i.e., not already 'Present')
+                if (listener != null && pos != RecyclerView.NO_POSITION && itemView.isEnabled()) {
                     listener.onSearchResultClick(provider.getList().get(pos));
                 }
             });
         }
 
+        // MODIFIED: This is the new bind logic that handles all three states.
         void bind(DevoteeDao.EnrichedDevotee result) {
             Context context = itemView.getContext();
             nameText.setText(result.devotee().getFullName());
             mobileText.setText(result.devotee().getMobileE164());
 
-            if (result.isPreRegisteredForCurrentEvent()) {
-                statusText.setText("Pre-Reg");
-                statusText.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_status_prereg));
-                statusText.setVisibility(View.VISIBLE);
-            } else {
-                statusText.setText("Walk-in");
-                statusText.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_status_walkin));
-                statusText.setVisibility(View.VISIBLE); // Change to VISIBLE once you have the blue drawable
+            // Use a switch on the enum for clarity and safety
+            switch (result.getEventStatus()) {
+                case PRESENT:
+                    statusText.setText("Present");
+                    statusText.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_status_present));
+                    itemView.setEnabled(false); // Make the item not clickable
+                    break;
+
+                case PRE_REGISTERED:
+                    statusText.setText("Pre-Reg");
+                    statusText.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_status_prereg));
+                    itemView.setEnabled(true); // Ensure item is clickable
+                    break;
+
+                case WALK_IN:
+                    statusText.setText("Walk-in");
+                    statusText.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_status_walkin));
+                    itemView.setEnabled(true); // Ensure item is clickable
+                    break;
             }
+            statusText.setVisibility(View.VISIBLE);
         }
     }
 }

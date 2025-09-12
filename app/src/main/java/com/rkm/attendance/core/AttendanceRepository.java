@@ -3,13 +3,17 @@ package com.rkm.attendance.core;
 
 import android.database.sqlite.SQLiteDatabase;
 import com.rkm.attendance.db.*;
-import com.rkm.attendance.db.DevoteeDao.CounterStats;
 import com.rkm.attendance.db.DevoteeDao.EnrichedDevotee;
-import com.rkm.attendance.db.EventDao.EventStats;
-import com.rkm.attendance.importer.*;
 import com.rkm.attendance.model.*;
+import com.rkm.rkmattendanceapp.ui.EventStatus;
+// NEW: Added missing imports
+import com.rkm.attendance.importer.AttendanceImporter;
+import com.rkm.attendance.importer.CsvImporter;
+import com.rkm.attendance.importer.ImportMapping;
+import com.rkm.attendance.importer.WhatsAppGroupImporter;
 
 import java.io.File;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,7 +36,7 @@ public class AttendanceRepository {
         this.configDao = new ConfigDao(database);
     }
 
-    // ... (All other methods remain the same until searchDevoteesForEvent) ...
+    // ... (unchanged until markDevoteeAsPresent)
     public boolean checkSuperAdminPin(String pin) { return configDao.checkSuperAdminPin(pin); }
     public boolean checkEventCoordinatorPin(String pin) { return configDao.checkEventCoordinatorPin(pin); }
     public List<Event> getAllEvents() { return eventDao.listAll(); }
@@ -55,13 +59,29 @@ public class AttendanceRepository {
     }
     public void deleteEvent(long eventId) { eventDao.delete(eventId); }
     public List<String[]> getAttendanceRowsForEvent(long eventId) { return eventDao.listAttendanceRows(eventId); }
+
+    // MODIFIED: This is the corrected logic for marking attendance.
     public boolean markDevoteeAsPresent(long eventId, long devoteeId) {
-        EventDao.AttendanceInfo info = eventDao.findAttendance(eventId, devoteeId);
-        if (info != null && info.cnt > 0) { return false; }
-        if (info != null) { eventDao.markAsAttended(eventId, devoteeId); }
-        else { eventDao.insertSpotRegistration(eventId, devoteeId); }
-        return true;
+        EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devoteeId, eventId);
+
+        // Case 1: Already present. Do nothing.
+        if (status != null && status.count > 0) {
+            return false;
+        }
+
+        // Case 2: Has a record (must be pre-reg with cnt=0). Update it.
+        if (status != null) {
+            eventDao.markAsAttended(eventId, devoteeId);
+            return true;
+        }
+        // Case 3: No record (walk-in). Insert a new spot registration.
+        else {
+            eventDao.insertSpotRegistration(eventId, devoteeId);
+            return true;
+        }
     }
+
+    // ... (unchanged until searchDevoteesForEvent) ...
     public long onSpotRegisterAndMarkPresent(long eventId, Devotee newDevoteeData) {
         Devotee mergedDevotee = saveOrMergeDevoteeFromAdmin(newDevoteeData);
         markDevoteeAsPresent(eventId, mergedDevotee.getDevoteeId());
@@ -103,38 +123,38 @@ public class AttendanceRepository {
         WhatsAppGroupImporter importer = new WhatsAppGroupImporter(database);
         return importer.importCsv(csvFile, mapping);
     }
-    public CounterStats getCounterStats() { return devoteeDao.getCounterStats(); }
+    public DevoteeDao.CounterStats getCounterStats() { return devoteeDao.getCounterStats(); }
     public List<EnrichedDevotee> getAllEnrichedDevotees() { return devoteeDao.getAllEnrichedDevotees(); }
     public List<EnrichedDevotee> getEnrichedAttendeesForEvent(long eventId) { return eventDao.getEnrichedAttendeesForEvent(eventId); }
     public List<Devotee> getCheckedInAttendeesForEvent(long eventId) { return eventDao.findCheckedInAttendeesForEvent(eventId); }
-    public EventStats getEventStats(long eventId) { return eventDao.getEventStats(eventId); }
+    public EventDao.EventStats getEventStats(long eventId) { return eventDao.getEventStats(eventId); }
     public Event getActiveEvent() { return eventDao.findCurrentlyActiveEvent(); }
 
 
-    // MODIFIED: This is the new, correct implementation that fixes the bug.
-    public List<DevoteeDao.EnrichedDevotee> searchDevoteesForEvent(String query, long eventId) {
-        // 1. Get a simple list of matching devotees from the master table using the new, reliable DAO method.
+    // MODIFIED: This is the corrected version with the stream pipeline to fix the compiler error.
+    public List<EnrichedDevotee> searchDevoteesForEvent(String query, long eventId) {
         List<Devotee> allMatches = devoteeDao.searchSimpleDevotees(query);
 
-        // 2. Now, enrich these simple results with the status for the CURRENT event.
-        return allMatches.stream()
+        List<EnrichedDevotee> enrichedList = allMatches.stream()
                 .map(devotee -> {
-                    // Check if this devotee has a PRE_REG record for this specific event.
-                    boolean isPreReg = eventDao.isDevoteePreRegisteredForEvent(
-                            devotee.getDevoteeId(),
-                            eventId
-                    );
-
-                    // Create the rich EnrichedDevotee object for the search result list.
-                    // We pass 0s and nulls for stats not needed in the search UI.
-                    return new EnrichedDevotee(
-                            devotee,
-                            null, // WhatsApp group not needed here
-                            0,    // Cumulative attendance not needed here
-                            null, // Last attendance date not needed here
-                            isPreReg // This is the critical, event-specific flag
-                    );
+                    EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devotee.getDevoteeId(), eventId);
+                    EventStatus eventStatus;
+                    if (status == null) {
+                        eventStatus = EventStatus.WALK_IN;
+                    } else if (status.count > 0) {
+                        eventStatus = EventStatus.PRESENT;
+                    } else {
+                        eventStatus = EventStatus.PRE_REGISTERED;
+                    }
+                    return new EnrichedDevotee(devotee, null, 0, null, eventStatus);
                 })
+                .collect(Collectors.toList());
+
+        // Use a stream().sorted() pipeline which is clearer for the compiler.
+        return enrichedList.stream()
+                // MODIFIED: Explicitly cast the lambda parameter 'e' to the correct type.
+                .sorted(Comparator.comparingInt((EnrichedDevotee e) -> e.getEventStatus() == EventStatus.PRESENT ? 1 : 0)
+                        .thenComparing(e -> e.devotee().getFullName(), String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
     }
 }
