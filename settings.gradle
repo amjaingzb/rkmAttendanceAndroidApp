@@ -1,3 +1,4 @@
+// In: ./settings.gradle
 pluginManagement {
     repositories {
         gradlePluginPortal()
@@ -10,6 +11,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // The JitPack repository has been removed as it is no longer needed.
     }
 }
 rootProject.name = "rkmattendanceapp"

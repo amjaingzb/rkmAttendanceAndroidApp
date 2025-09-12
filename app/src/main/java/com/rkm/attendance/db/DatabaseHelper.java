@@ -1,6 +1,7 @@
 // In: src/main/java/com/rkm/attendance/db/DatabaseHelper.java
 package com.rkm.attendance.db;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -85,6 +86,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX IF NOT EXISTS ix_attendance_event ON attendance(event_id)");
         db.execSQL("CREATE INDEX IF NOT EXISTS ix_attendance_devotee ON attendance(devotee_id)");
         db.execSQL("CREATE INDEX IF NOT EXISTS ix_whatsapp_group_num ON whatsapp_group_map(group_number)");
+
+        // 7. NEW: App Configuration Table
+        db.execSQL("CREATE TABLE IF NOT EXISTS app_config (\n" +
+                "  config_key   TEXT PRIMARY KEY NOT NULL,\n" +
+                "  config_value TEXT\n" +
+                ")");
+        // 8. NEW: Insert default PINs
+        insertDefaultPin(db, "SUPER_ADMIN_PIN", "2222");
+        insertDefaultPin(db, "EVENT_COORDINATOR_PIN", "1111");
+    }
+
+    private void insertDefaultPin(SQLiteDatabase db, String key, String value) {
+        ContentValues values = new ContentValues();
+        values.put("config_key", key);
+        values.put("config_value", value);
+        db.insert("app_config", null, values);
     }
 
     @Override
@@ -106,6 +123,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS devotee");
         db.execSQL("DROP TABLE IF EXISTS fuzzy_merge_log");
         db.execSQL("DROP TABLE IF EXISTS whatsapp_group_map");
+        db.execSQL("DROP TABLE IF EXISTS app_config"); // Also drop the new table
         onCreate(db);
     }
     

@@ -15,6 +15,9 @@ import java.util.Set;
 
 public class AdminMainActivity extends AppCompatActivity {
 
+    // NEW: Define the key for receiving the user's privilege level from another activity.
+    public static final String EXTRA_PRIVILEGE = "com.rkm.rkmattendanceapp.ui.EXTRA_PRIVILEGE";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,7 +39,7 @@ public class AdminMainActivity extends AppCompatActivity {
 
         // Set up the ActionBar to work with the NavController
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-        
+
         // Set up the BottomNavigationView to work with the NavController
         NavigationUI.setupWithNavController(navView, navController);
     }

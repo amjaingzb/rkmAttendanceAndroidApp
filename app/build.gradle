@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-	namespace 'com.rkm.rkmattendanceapp'
+    namespace 'com.rkm.rkmattendanceapp'
     compileSdk 34
 
     defaultConfig {
@@ -44,12 +44,12 @@ dependencies {
     // Core logic dependencies
     implementation 'com.opencsv:opencsv:5.9'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
-    
+
     // We also need the navigation libraries for our Admin UI
     def nav_version = "2.5.3"
     implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
     implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
-    
+
     // And the viewmodel libraries
     def lifecycle_version = "2.5.1"
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"

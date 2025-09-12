@@ -93,3 +93,50 @@ Our very next task is to implement the **Privilege System's entry point**.
 1.  **Create the `PinEntryActivity`:** Build the UI and logic for the PIN screen that will act as the gateway to the Coordinator and Super Admin modes.
 2.  **Update `LauncherActivity`:** Modify the launcher so that if no active event is found, it directs the user to our new PIN screen instead of directly to the `AdminMainActivity`.
 3.  **Implement Privilege-Aware UI:** Begin hiding/showing UI elements (like the "Delete" button or the "Devotees" tab) based on the current privilege level.
+
+
+Of course. Reviewing the pending items is a perfect way to ensure nothing gets lost. I have scrubbed our entire discussion history.
+
+Here is a comprehensive list of every feature, design element, and `TODO` that we have discussed but have not yet fully implemented in the Android application code.
+
+---
+
+### **List of Pending Requirements & `TODO` Items**
+
+#### **High Priority / Core App Flow:**
+
+1.  **Privilege System (The Main Pending Feature):** This is the biggest piece we just discussed.
+    *   **Create `PinEntryActivity`:** The gateway screen for entering Coordinator and Super Admin modes.
+    *   **Create `RoleSelectionActivity`:** The screen shown on launch when no active event is found, prompting the user to log in.
+    *   **Update `LauncherActivity`:** Modify it to launch `RoleSelectionActivity` instead of `AdminMainActivity` when no active event is found.
+    *   **Implement Privilege-Aware UI:**
+        *   Hide the **"Devotees" tab** from the Bottom Navigation Bar if the user is an Event Coordinator.
+        *   Hide the **"Delete Event"** option in the `EventListFragment`'s bottom sheet if the user is an Event Coordinator.
+        *   Implement the logic for the **"Switch Role"** and **"Logout"** options in the Admin toolbar menu.
+    *   **Store PINs:** Create the `app_config` table in the database to securely store the PINs.
+
+#### **Admin Mode Features (Incomplete):**
+
+2.  **CSV Imports:** The menu buttons exist, but the functionality is not yet implemented in the Android UI.
+    *   Implement the **"Import Master Devotee List"** action in `DevoteeListFragment`.
+    *   Implement the **"Import Attendance CSV"** action in `EventListFragment`.
+    *   This requires creating the native Android **`MappingActivity`** screen (`Screen D` from our design doc) to allow dynamic column mapping, just like the desktop app.
+
+3.  **Reports Tab Expansion:** The tab only shows basic stats. The other designed reports are not implemented.
+    *   Implement the UI and logic to view/export the **"Full Devotee List"**.
+    *   Implement the UI and logic to view/export the **"Active Devotees"**.
+    *   Implement the UI and logic for the **"Attendance by Event"** report (which will require an event selection step).
+
+#### **Operator Mode Polish & `TODO`s:**
+
+4.  **"Walk-in" Status Background:** In `SearchResultAdapter`, the `TODO` to create and apply the blue `bg_status_walkin.xml` drawable is still pending.
+
+5.  **Event Schedule Screen (Deferred Design):** We decided to defer this, but it's worth listing. If the launcher finds multiple events scheduled for today, it currently does nothing. The enhanced design was to show a "Today's Schedule" screen where the currently active event is highlighted and others are grayed out.
+
+#### **Minor UX & Housekeeping:**
+
+6.  **Toolbar Titles:** In `AdminMainActivity`, the toolbar title is static. It needs to be updated dynamically to "Events", "Devotees", or "Reports" when the user switches tabs.
+
+7.  **Search Debounce:** We've mentioned that adding a small delay (debounce) to the search bars in `DevoteeListFragment` and `MarkAttendanceActivity` is a good practice to prevent excessive filtering on every single keystroke. This is a minor performance polish.
+
+This list represents the complete set of remaining work based on our discussions. The highest priority is clearly **Item #1**, as the Privilege System is the gateway to all administrative functions.

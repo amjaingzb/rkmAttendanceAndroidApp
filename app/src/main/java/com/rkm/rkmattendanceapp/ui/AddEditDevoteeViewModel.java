@@ -16,7 +16,7 @@ public class AddEditDevoteeViewModel extends AndroidViewModel {
 
     // To hold the devotee being edited
     private final MutableLiveData<Devotee> devotee = new MutableLiveData<>();
-    
+
     // To signal when the save operation is complete
     private final MutableLiveData<Boolean> saveFinished = new MutableLiveData<>(false);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
@@ -56,13 +56,15 @@ public class AddEditDevoteeViewModel extends AndroidViewModel {
         new Thread(() -> {
             try {
                 if (isOnSpotRegistration) {
-                    // Use the special method that does both actions
+                    // This now correctly uses the merge logic for on-spot registrations as well.
                     repository.onSpotRegisterAndMarkPresent(eventId, devoteeToSave);
                 } else {
-                    // Use the original Admin logic
+                    // This is the Admin logic path
                     if (devoteeToSave.getDevoteeId() == null) {
-                        repository.addNewDevotee(devoteeToSave);
+                        // This is a NEW devotee from the form. Use the new merge logic.
+                        repository.saveOrMergeDevoteeFromAdmin(devoteeToSave);
                     } else {
+                        // This is an EDIT of an existing devotee. Standard update is correct.
                         repository.updateDevotee(devoteeToSave);
                     }
                 }

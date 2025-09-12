@@ -34,8 +34,8 @@ public class LauncherActivity extends AppCompatActivity {
                         // Active event found, eventually go to Operator Mode
                         launchMarkAttendance(activeEvent.getEventId());
                     } else {
-                        // No active event, go to Admin Mode
-                        launchAdmin();
+                        // MODIFIED: No active event, go to the Role Selection screen
+                        launchRoleSelection();
                     }
                 });
             }).start();
@@ -50,8 +50,9 @@ public class LauncherActivity extends AppCompatActivity {
         finish();
     }
 
-    private void launchAdmin() {
-        Intent intent = new Intent(this, AdminMainActivity.class);
+    // MODIFIED: This method now launches the role selection gateway
+    private void launchRoleSelection() {
+        Intent intent = new Intent(this, RoleSelectionActivity.class);
         startActivity(intent);
         finish();
     }

@@ -1,6 +1,4 @@
-// =============================
-// com/rkm/attendance/model/Devotee.java
-// =============================
+// In: com/rkm/attendance/model/Devotee.java
 package com.rkm.attendance.model;
 
 import java.util.Objects;
@@ -30,6 +28,45 @@ public class Devotee {
         this.gender = gender;     // NEW
         this.extraJson = extraJson;
     }
+
+    // NEW: A helper method to merge data from another Devotee object.
+    /**
+     * Merges non-null and non-blank fields from the 'other' devotee into this one.
+     * This is used to enrich an existing record with new data from an import or form.
+     * @param other The devotee object containing the new data.
+     */
+    public void mergeWith(Devotee other) {
+        if (other == null) return;
+
+        // Never merge the ID.
+        // We prefer the new name if it's longer (e.g., "Amit" -> "Amit Jain")
+        if (isNotBlank(other.fullName) && (this.fullName == null || other.fullName.length() > this.fullName.length())) {
+            this.fullName = other.fullName;
+        }
+        // The mobile number should already match, but we can be safe.
+        if (isNotBlank(other.mobileE164)) {
+            this.mobileE164 = other.mobileE164;
+        }
+        if (isNotBlank(other.address)) {
+            this.address = other.address;
+        }
+        if (isNotBlank(other.email)) {
+            this.email = other.email;
+        }
+        if (isNotBlank(other.gender)) {
+            this.gender = other.gender;
+        }
+        if (other.age != null && other.age > 0) {
+            this.age = other.age;
+        }
+        // Note: extraJson is not merged for simplicity in this model.
+    }
+
+    // NEW: Helper for the merge logic
+    private boolean isNotBlank(String s) {
+        return s != null && !s.trim().isEmpty();
+    }
+
 
     public Long getDevoteeId() { return devoteeId; }
     public void setDevoteeId(Long devoteeId) { this.devoteeId = devoteeId; }
@@ -76,4 +113,3 @@ public class Devotee {
 
     @Override public int hashCode() { return Objects.hash(mobileE164, nameNorm); }
 }
-

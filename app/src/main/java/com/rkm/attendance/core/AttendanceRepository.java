@@ -22,6 +22,7 @@ public class AttendanceRepository {
     private final DevoteeDao devoteeDao;
     private final EventDao eventDao;
     private final WhatsAppGroupDao whatsAppGroupDao;
+    private final ConfigDao configDao;
     private final SQLiteDatabase database; // Use the Android SQLiteDatabase object
 
     public AttendanceRepository(SQLiteDatabase database) {
@@ -30,6 +31,17 @@ public class AttendanceRepository {
         this.devoteeDao = new DevoteeDao(database);
         this.eventDao = new EventDao(database);
         this.whatsAppGroupDao = new WhatsAppGroupDao(database);
+        this.configDao = new ConfigDao(database);
+    }
+
+    // --- Privilege & PIN Management Methods ---
+
+    public boolean checkSuperAdminPin(String pin) {
+        return configDao.checkSuperAdminPin(pin);
+    }
+
+    public boolean checkEventCoordinatorPin(String pin) {
+        return configDao.checkEventCoordinatorPin(pin);
     }
 
     // --- Event Management Methods ---
@@ -41,8 +53,6 @@ public class AttendanceRepository {
     public Event getEventById(long eventId) {
         return eventDao.get(eventId);
     }
-
-    // In: core/AttendanceRepository.java
 
     public long createEvent(String name, String date, String remark, String activeFrom, String activeUntil) {
         if (name == null || name.trim().isEmpty()) {
@@ -56,7 +66,6 @@ public class AttendanceRepository {
         String finalActiveFrom = activeFrom;
         String finalActiveUntil = activeUntil;
 
-        // If the times are not provided, create defaults for the whole day.
         if (finalActiveFrom == null || finalActiveFrom.trim().isEmpty()) {
             finalActiveFrom = date + " 06:00:00"; // Start at 6 AM
         }
@@ -64,9 +73,7 @@ public class AttendanceRepository {
             finalActiveUntil = date + " 22:00:00"; // End at 10 PM
         }
 
-        // Call the new, correct constructor with all 7 arguments
         Event newEvent = new Event(null, null, name, date, finalActiveFrom, finalActiveUntil, remark);
-
         return eventDao.insert(newEvent);
     }
 
@@ -80,7 +87,6 @@ public class AttendanceRepository {
         if (event.getEventDate() == null || event.getEventDate().trim().isEmpty()) {
             throw new IllegalArgumentException("Event Date is mandatory.");
         }
-        // The DAO will handle the actual database update
         eventDao.update(event);
     }
 
@@ -103,25 +109,16 @@ public class AttendanceRepository {
         if (info != null) { // Exists but count is 0 (must be a pre-registration)
             eventDao.markAsAttended(eventId, devoteeId);
         } else {
-            // Does not exist in attendance table at all. This is a WALK-IN.
-            // We must create a new SPOT_REG record.
             eventDao.insertSpotRegistration(eventId, devoteeId);
         }
         return true;
     }
 
     public long onSpotRegisterAndMarkPresent(long eventId, Devotee newDevoteeData) {
-        long devoteeId = devoteeDao.resolveOrCreateDevotee(
-                newDevoteeData.getFullName(),
-                newDevoteeData.getMobileE164(),
-                newDevoteeData.getAddress(),
-                newDevoteeData.getAge(),
-                newDevoteeData.getEmail(),
-                newDevoteeData.getGender()
-        );
-
-        markDevoteeAsPresent(eventId, devoteeId);
-        return devoteeId;
+        // MODIFIED: This now calls our new, more powerful saveOrMerge method.
+        Devotee mergedDevotee = saveOrMergeDevoteeFromAdmin(newDevoteeData);
+        markDevoteeAsPresent(eventId, mergedDevotee.getDevoteeId());
+        return mergedDevotee.getDevoteeId();
     }
 
     // --- Devotee Search and Management ---
@@ -132,16 +129,48 @@ public class AttendanceRepository {
         return devoteeDao.searchEnrichedDevotees(mobileInput, nameInput);
     }
 
+    // MODIFIED: Deprecating the simple addNewDevotee in favor of the merge logic.
+    // We now use saveOrMergeDevoteeFromAdmin instead.
     public long addNewDevotee(Devotee newDevoteeData) {
-        return devoteeDao.resolveOrCreateDevotee(
-                newDevoteeData.getFullName(),
-                newDevoteeData.getMobileE164(),
-                newDevoteeData.getAddress(),
-                newDevoteeData.getAge(),
-                newDevoteeData.getEmail(),
-                newDevoteeData.getGender()
-        );
+        Devotee finalDevotee = saveOrMergeDevoteeFromAdmin(newDevoteeData);
+        return finalDevotee.getDevoteeId();
     }
+
+
+    // NEW: The core logic to fix the bug.
+    /**
+     * Handles saving a devotee from the Admin panel.
+     * It performs a fuzzy match. If a match is found, it enriches the existing
+     * record with the new data. If no match is found, it creates a new record.
+     * @param devoteeFromForm The data entered by the user in the form.
+     * @return The final, saved Devotee object (either new or merged).
+     */
+    public Devotee saveOrMergeDevoteeFromAdmin(Devotee devoteeFromForm) {
+        // Use the DAO to find out if this devotee is new or a fuzzy match of an existing one.
+        // This will also log the fuzzy match if one occurs.
+        long finalId = devoteeDao.resolveOrCreateDevotee(
+                devoteeFromForm.getFullName(),
+                devoteeFromForm.getMobileE164(),
+                devoteeFromForm.getAddress(),
+                devoteeFromForm.getAge(),
+                devoteeFromForm.getEmail(),
+                devoteeFromForm.getGender()
+        );
+
+        // Now, get the definitive record from the database.
+        Devotee definitiveRecord = devoteeDao.getById(finalId);
+
+        // Use our new helper method in the model to merge the form data.
+        // This will update the definitiveRecord in memory with any new, non-blank info.
+        definitiveRecord.mergeWith(devoteeFromForm);
+
+        // Save the updated/merged record back to the database.
+        devoteeDao.update(definitiveRecord);
+
+        // Return the final, complete record.
+        return definitiveRecord;
+    }
+
 
     public Devotee getDevoteeById(long devoteeId) {
         return devoteeDao.getById(devoteeId);
@@ -187,18 +216,15 @@ public class AttendanceRepository {
         return eventDao.getEnrichedAttendeesForEvent(eventId);
     }
 
-    // NEW METHOD 1: Gets the list of people already checked in for an event.
     public List<Devotee> getCheckedInAttendeesForEvent(long eventId) {
         return eventDao.findCheckedInAttendeesForEvent(eventId);
     }
 
-    // NEW METHOD 2: Gets the statistics for a specific event.
     public EventStats getEventStats(long eventId) {
         return eventDao.getEventStats(eventId);
     }
 
     public Event getActiveEvent() {
-        // For now, this logic is simple. It could be expanded later.
         return eventDao.findCurrentlyActiveEvent();
     }
 

@@ -40,6 +40,16 @@
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
 
+        <!-- NEW: Declare the RoleSelectionActivity -->
+        <activity
+            android:name=".ui.RoleSelectionActivity"
+            android:exported="false" />
+
+        <!-- NEW: Declare the PinEntryActivity -->
+        <activity
+            android:name=".ui.PinEntryActivity"
+            android:exported="false" />
+
     </application>
 
 </manifest>
