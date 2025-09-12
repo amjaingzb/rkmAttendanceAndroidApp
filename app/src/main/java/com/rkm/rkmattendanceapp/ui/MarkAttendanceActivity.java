@@ -55,18 +55,17 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK) {
-                        // The ViewModel now handles the refresh after a successful on-spot reg.
-                        // A manual refresh here is a good fallback.
+                        // MODIFIED: This is the refined UX logic.
+                        // 1. Clear the search text to provide a clean slate.
+                        if (searchEditText != null) {
+                            searchEditText.setText("");
+                        }
+                        // 2. Refresh the stats and the checked-in list.
                         viewModel.loadEventData(eventId);
                     }
+                    // On cancel, we do nothing, preserving the user's search context.
                 }
         );
-        long eventId = getIntent().getLongExtra(EXTRA_EVENT_ID, -1);
-        if (eventId == -1) {
-            Toast.makeText(this, "Error: No Event ID provided.", Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
 
         viewModel = new ViewModelProvider(this).get(MarkAttendanceViewModel.class);
 
@@ -113,7 +112,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // Using a Handler/debounce is better, but this is fine for now
                 viewModel.searchDevotees(s.toString());
             }
 
@@ -122,13 +120,12 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         });
         addNewButton.setOnClickListener(v -> {
             Intent intent = new Intent(this, AddEditDevoteeActivity.class);
-            // Pre-fill the form with the operator's search query
             String prefillQuery = searchEditText.getText().toString().trim();
             if (!prefillQuery.isEmpty()) {
                 intent.putExtra(AddEditDevoteeActivity.EXTRA_PREFILL_QUERY, prefillQuery);
             }
             intent.putExtra(AddEditDevoteeActivity.EXTRA_IS_ON_SPOT_REG, true);
-            intent.putExtra(AddEditDevoteeActivity.EXTRA_EVENT_ID, eventId); // where eventId is the current event's ID
+            intent.putExtra(AddEditDevoteeActivity.EXTRA_EVENT_ID, eventId);
             addDevoteeLauncher.launch(intent);
         });
     }
@@ -164,6 +161,8 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 checkedInLayout.setVisibility(View.GONE);
                 searchAdapter.setSearchResults(results);
             } else {
+                // When the search results are empty or null, hide the results view
+                // and show the main checked-in list.
                 searchResultsRecyclerView.setVisibility(View.GONE);
                 checkedInLayout.setVisibility(View.VISIBLE);
             }
