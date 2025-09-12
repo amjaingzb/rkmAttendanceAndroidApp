@@ -25,7 +25,6 @@ public class EventDao {
         List<Event> out = new ArrayList<>();
         String sql = "SELECT * FROM event ORDER BY COALESCE(event_date,'9999-12-31') DESC, event_id DESC";
 
-        // Use rawQuery for selects, which returns a Cursor
         try (Cursor cursor = db.rawQuery(sql, null)) {
             while (cursor.moveToNext()) {
                 out.add(fromCursor(cursor));
@@ -43,7 +42,6 @@ public class EventDao {
         values.put("active_until_ts", e.getActiveUntilTs());
         values.put("remark", emptyToNull(e.getRemark()));
 
-        // The insert method returns the new row ID
         long id = db.insertOrThrow("event", null, values);
 
         if (e.getEventCode() == null || e.getEventCode().trim().isEmpty()) {
@@ -51,7 +49,7 @@ public class EventDao {
             ContentValues updateValues = new ContentValues();
             updateValues.put("event_code", code);
             db.update("event", updateValues, "event_id = ?", new String[]{String.valueOf(id)});
-            e.setEventCode(code); // Update the model object as well
+            e.setEventCode(code);
         }
         return id;
     }
@@ -69,7 +67,6 @@ public class EventDao {
     }
 
     public Event findCurrentlyActiveEvent() {
-        // Using strftime for cross-version date/time comparison in SQLite
         String now = "strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')";
         String sql = "SELECT * FROM event WHERE " + now + " BETWEEN active_from_ts AND active_until_ts LIMIT 1";
 
@@ -88,24 +85,22 @@ public class EventDao {
     }
 
     public int delete(long id) {
-        // The delete method returns the number of rows affected
         return db.delete("event", "event_id = ?", new String[]{String.valueOf(id)});
     }
 
     public List<String[]> listAttendanceRows(long eventId) {
         ArrayList<String[]> out = new ArrayList<>();
         String sql = "SELECT a.attendance_id, a.cnt, d.mobile_e164 AS mobile, d.full_name AS name, a.remark " +
-                     "FROM attendance a LEFT JOIN devotee d ON d.devotee_id = a.devotee_id " +
-                     "WHERE a.event_id = ? ORDER BY a.attendance_id DESC";
+                "FROM attendance a LEFT JOIN devotee d ON d.devotee_id = a.devotee_id " +
+                "WHERE a.event_id = ? ORDER BY a.attendance_id DESC";
 
         try (Cursor cursor = db.rawQuery(sql, new String[]{String.valueOf(eventId)})) {
-            // Get column indices once for efficiency
             int idCol = cursor.getColumnIndex("attendance_id");
             int cntCol = cursor.getColumnIndex("cnt");
             int mobileCol = cursor.getColumnIndex("mobile");
             int nameCol = cursor.getColumnIndex("name");
             int remarkCol = cursor.getColumnIndex("remark");
-            
+
             while (cursor.moveToNext()) {
                 out.add(new String[]{
                         cursor.getString(idCol),
@@ -118,8 +113,7 @@ public class EventDao {
         }
         return out;
     }
-    
-    // Helper to create an Event from a Cursor
+
     private Event fromCursor(Cursor cursor) {
         return new Event(
                 cursor.getLong(cursor.getColumnIndexOrThrow("event_id")),
@@ -132,7 +126,6 @@ public class EventDao {
         );
     }
 
-    // A simple helper for ContentValues
     private static String emptyToNull(String s) {
         return (s == null || s.trim().isEmpty()) ? null : s;
     }
@@ -158,7 +151,15 @@ public class EventDao {
         }
     }
 
-    // For an operator marking a pre-registered person as present.
+    // NEW: A simple, fast query to check for a pre-registration record.
+    public boolean isDevoteePreRegisteredForEvent(long devoteeId, long eventId) {
+        String sql = "SELECT 1 FROM attendance WHERE devotee_id = ? AND event_id = ? AND reg_type = 'PRE_REG' LIMIT 1";
+        try (Cursor cursor = db.rawQuery(sql, new String[]{String.valueOf(devoteeId), String.valueOf(eventId)})) {
+            return cursor.moveToFirst();
+        }
+    }
+
+
     public void markAsAttended(long eventId, long devoteeId) {
         ContentValues values = new ContentValues();
         values.put("cnt", 1);
@@ -166,7 +167,6 @@ public class EventDao {
                 new String[]{String.valueOf(eventId), String.valueOf(devoteeId)});
     }
 
-    // Handles both new spot registrations and historical data import.
     public void upsertAttendance(long eventId, long devoteeId, String regType, int count, String remark) {
         ContentValues values = new ContentValues();
         values.put("event_id", eventId);
@@ -174,8 +174,6 @@ public class EventDao {
         values.put("reg_type", regType);
         values.put("cnt", count);
         values.put("remark", emptyToNull(remark));
-
-        // Use Android's built-in upsert method (INSERT ON CONFLICT DO UPDATE)
         db.insertWithOnConflict("attendance", null, values, SQLiteDatabase.CONFLICT_REPLACE);
     }
     public void updateAttendanceCount(long eventId, long devoteeId, int newCnt) {
@@ -196,19 +194,18 @@ public class EventDao {
 
     public List<DevoteeDao.EnrichedDevotee> getEnrichedAttendeesForEvent(long eventId) {
         List<DevoteeDao.EnrichedDevotee> results = new ArrayList<>();
-        // This query now also selects the registration type to determine the pre-reg status
         String sql = "WITH att_stats AS (" +
                 "SELECT a.devotee_id, SUM(a.cnt) AS total_attendance, MAX(date(e.event_date)) AS last_date " +
                 "FROM attendance a JOIN event e ON a.event_id = e.event_id " +
                 "WHERE e.event_date IS NOT NULL AND e.event_date != '' GROUP BY a.devotee_id" +
                 ") " +
                 "SELECT d.*, wgm.group_number, COALESCE(ats.total_attendance, 0) AS cumulative_attendance, ats.last_date AS last_attendance_date, " +
-                "(att.reg_type = 'PRE_REG') AS is_prereg " + // The new flag
+                "(att.reg_type = 'PRE_REG') AS is_prereg " +
                 "FROM devotee d " +
-                "JOIN attendance att ON d.devotee_id = att.devotee_id " + // Use a JOIN instead of a subquery
+                "JOIN attendance att ON d.devotee_id = att.devotee_id " +
                 "LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 " +
                 "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id " +
-                "WHERE att.event_id = ? " + // Filter by the specific event
+                "WHERE att.event_id = ? " +
                 "ORDER BY d.full_name COLLATE NOCASE";
 
         DevoteeDao devoteeDao = new DevoteeDao(db);
@@ -219,18 +216,13 @@ public class EventDao {
                 Integer group = cursor.isNull(groupCol) ? null : cursor.getInt(groupCol);
                 int attendance = cursor.getInt(cursor.getColumnIndexOrThrow("cumulative_attendance"));
                 String lastDate = cursor.getString(cursor.getColumnIndexOrThrow("last_attendance_date"));
-
-                // Read the new flag from the cursor
                 boolean isPreReg = cursor.getInt(cursor.getColumnIndexOrThrow("is_prereg")) == 1;
-
-                // Call the correct 5-argument constructor
                 results.add(new DevoteeDao.EnrichedDevotee(devotee, group, attendance, lastDate, isPreReg));
             }
         }
         return results;
     }
 
-    // 1. Add the new data class for stats
     public static final class EventStats {
         public final long preRegistered;
         public final long attended;
@@ -245,7 +237,6 @@ public class EventDao {
         }
     }
 
-    // 2. Add the method to fetch the stats
     public EventStats getEventStats(long eventId) {
         String preRegSql = "SELECT COUNT(*) FROM attendance WHERE event_id = ? AND reg_type = 'PRE_REG'";
         String attendedSql = "SELECT COUNT(*) FROM attendance WHERE event_id = ? AND cnt > 0";
@@ -258,7 +249,6 @@ public class EventDao {
         return new EventStats(preRegistered, attended, spotRegistered, attended);
     }
 
-    // 3. Add the method to fetch the list of checked-in attendees
     public List<Devotee> findCheckedInAttendeesForEvent(long eventId) {
         List<Devotee> results = new ArrayList<>();
         String sql = "SELECT d.* FROM devotee d " +
@@ -266,7 +256,7 @@ public class EventDao {
                 "WHERE a.event_id = ? AND a.cnt > 0 " +
                 "ORDER BY d.full_name COLLATE NOCASE";
 
-        DevoteeDao devoteeDao = new DevoteeDao(db); // Helper to use fromCursor
+        DevoteeDao devoteeDao = new DevoteeDao(db);
         try (Cursor cursor = db.rawQuery(sql, new String[]{String.valueOf(eventId)})) {
             while (cursor.moveToNext()) {
                 results.add(devoteeDao.fromCursor(cursor));
@@ -275,7 +265,6 @@ public class EventDao {
         return results;
     }
 
-    // 4. Add a helper for simple count queries
     private long simpleCountQuery(String sql, String[] args) {
         try (SQLiteStatement statement = db.compileStatement(sql)) {
             if (args != null) {
@@ -290,8 +279,8 @@ public class EventDao {
         ContentValues values = new ContentValues();
         values.put("event_id", eventId);
         values.put("devotee_id", devoteeId);
-        values.put("reg_type", "SPOT_REG"); // Explicitly set the type
-        values.put("cnt", 1);             // Mark as present
+        values.put("reg_type", "SPOT_REG");
+        values.put("cnt", 1);
         return db.insertWithOnConflict("attendance", null, values, SQLiteDatabase.CONFLICT_REPLACE);
     }
 }

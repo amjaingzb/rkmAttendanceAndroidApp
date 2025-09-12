@@ -13,12 +13,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects; // Import for Objects.hash
+import java.util.Objects;
 
 public class DevoteeDao {
     private final SQLiteDatabase db;
 
-    // ========== 1. CONVERT 'record' to 'class' ==========
+    // ... (CounterStats and EnrichedDevotee classes remain unchanged) ...
     public static final class CounterStats {
         private final long totalDevotees;
         private final long totalMappedWhatsAppNumbers;
@@ -31,14 +31,10 @@ public class DevoteeDao {
             this.registeredDevoteesInWhatsApp = registeredDevoteesInWhatsApp;
             this.devoteesWithAttendance = devoteesWithAttendance;
         }
-
-        // Add manual "getters"
         public long totalDevotees() { return totalDevotees; }
         public long totalMappedWhatsAppNumbers() { return totalMappedWhatsAppNumbers; }
         public long registeredDevoteesInWhatsApp() { return registeredDevoteesInWhatsApp; }
         public long devoteesWithAttendance() { return devoteesWithAttendance; }
-
-        // Optional: Add equals, hashCode, toString for completeness
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -46,21 +42,15 @@ public class DevoteeDao {
             CounterStats that = (CounterStats) o;
             return totalDevotees == that.totalDevotees && totalMappedWhatsAppNumbers == that.totalMappedWhatsAppNumbers && registeredDevoteesInWhatsApp == that.registeredDevoteesInWhatsApp && devoteesWithAttendance == that.devoteesWithAttendance;
         }
-
         @Override
-        public int hashCode() {
-            return Objects.hash(totalDevotees, totalMappedWhatsAppNumbers, registeredDevoteesInWhatsApp, devoteesWithAttendance);
-        }
+        public int hashCode() { return Objects.hash(totalDevotees, totalMappedWhatsAppNumbers, registeredDevoteesInWhatsApp, devoteesWithAttendance); }
     }
-    
-    // ========== 2. CONVERT 'record' to 'class' ==========
     public static final class EnrichedDevotee {
         private final Devotee devotee;
         private final Integer whatsAppGroup;
         private final int cumulativeAttendance;
         private final String lastAttendanceDate;
         private final boolean isPreRegisteredForCurrentEvent;
-
 
         public EnrichedDevotee(Devotee devotee, Integer whatsAppGroup, int cumulativeAttendance, String lastAttendanceDate, boolean isPreRegistered) {
             this.devotee = devotee;
@@ -69,15 +59,11 @@ public class DevoteeDao {
             this.lastAttendanceDate = lastAttendanceDate;
             this.isPreRegisteredForCurrentEvent = isPreRegistered;
         }
-
         public boolean isPreRegisteredForCurrentEvent() { return isPreRegisteredForCurrentEvent; }
-
         public Devotee devotee() { return devotee; }
         public Integer whatsAppGroup() { return whatsAppGroup; }
         public int cumulativeAttendance() { return cumulativeAttendance; }
         public String lastAttendanceDate() { return lastAttendanceDate; }
-
-        // Optional: Add equals, hashCode, toString for completeness
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -85,11 +71,8 @@ public class DevoteeDao {
             EnrichedDevotee that = (EnrichedDevotee) o;
             return cumulativeAttendance == that.cumulativeAttendance && Objects.equals(devotee, that.devotee) && Objects.equals(whatsAppGroup, that.whatsAppGroup) && Objects.equals(lastAttendanceDate, that.lastAttendanceDate);
         }
-
         @Override
-        public int hashCode() {
-            return Objects.hash(devotee, whatsAppGroup, cumulativeAttendance, lastAttendanceDate, isPreRegisteredForCurrentEvent);
-        }
+        public int hashCode() { return Objects.hash(devotee, whatsAppGroup, cumulativeAttendance, lastAttendanceDate, isPreRegisteredForCurrentEvent); }
     }
 
 
@@ -97,9 +80,7 @@ public class DevoteeDao {
         this.db = db;
     }
 
-    // Helper method to create a Devotee object from a Cursor.
     public Devotee fromCursor(Cursor cursor) {
-        // Get column indices once for efficiency
         int idCol = cursor.getColumnIndexOrThrow("devotee_id");
         int fullNameCol = cursor.getColumnIndexOrThrow("full_name");
         int nameNormCol = cursor.getColumnIndexOrThrow("name_norm");
@@ -139,7 +120,6 @@ public class DevoteeDao {
         values.put("email", d.getEmail());
         values.put("gender", d.getGender());
         values.put("extra_json", d.getExtraJson());
-
         db.update("devotee", values, "devotee_id = ?", new String[]{String.valueOf(d.getDevoteeId())});
     }
 
@@ -158,17 +138,8 @@ public class DevoteeDao {
         return deletedRows;
     }
 
-    // In: db/DevoteeDao.java
-
-    /**
-     * Find possible matches by mobile in the primary mobile_e164 column OR by
-     * searching for the number inside the extra_json column as plain text.
-     * This is compatible with all Android API levels.
-     */
     public List<Devotee> findByMobileAny(String mobile10) {
         List<Devotee> out = new ArrayList<>();
-        // This simplified query uses LIKE to search for the phone number inside the JSON string.
-        // It's less efficient than json_each but is universally compatible.
         String sql = "SELECT * FROM devotee " +
                 "WHERE mobile_e164 = ? OR (extra_json IS NOT NULL AND extra_json LIKE '%' || ? || '%') " +
                 "ORDER BY full_name";
@@ -182,18 +153,14 @@ public class DevoteeDao {
 
     public long resolveOrCreateDevotee(String rawName, String rawMobile,
                                        String address, Integer age, String email, String gender) {
-
         String nameNorm  = normalizeName(rawName);
         String mobile10  = normalizePhone(rawMobile);
         if (nameNorm == null || nameNorm.trim().isEmpty() || mobile10 == null || mobile10.length() != 10) {
             throw new IllegalArgumentException("resolveOrCreateDevotee: missing/invalid name or mobile");
         }
-
         List<Devotee> sameMobile = findByMobileAny(mobile10);
         Devotee best = null;
         double bestSim = 0.0;
-        
-        // Fuzzy matching logic remains exactly the same
         for (Devotee cand : sameMobile) {
             if (CsvImporter.normName(rawName).equals(CsvImporter.normName(cand.getFullName()))) {
                 best = cand; bestSim = 1.0; break;
@@ -208,8 +175,7 @@ public class DevoteeDao {
         }
         if (best == null) {
             for (Devotee cand : sameMobile) {
-                if (CsvImporter.isSubsetName(rawName, cand.getFullName()) ||
-                        CsvImporter.isSubsetName(cand.getFullName(), rawName)) {
+                if (CsvImporter.isSubsetName(rawName, cand.getFullName()) || CsvImporter.isSubsetName(cand.getFullName(), rawName)) {
                     best = cand; bestSim = 0.95; break;
                 }
             }
@@ -221,18 +187,16 @@ public class DevoteeDao {
             }
             if (bestSim < 0.92) best = null;
         }
-
         if (best != null) {
             if (bestSim < 0.999) {
                 logFuzzyMerge(mobile10, rawName, best.getFullName(), bestSim);
             }
             return best.getDevoteeId();
         }
-
         Devotee fresh = new Devotee(null, rawName, nameNorm, mobile10, address, age, email, gender, null);
         return insertAndGetId(fresh);
     }
-    
+
     private long insertAndGetId(Devotee d) {
         ContentValues values = new ContentValues();
         values.put("full_name", d.getFullName());
@@ -246,18 +210,11 @@ public class DevoteeDao {
         return db.insertOrThrow("devotee", null, values);
     }
 
-    // In: db/DevoteeDao.java
-
     public List<EnrichedDevotee> searchEnrichedDevotees(String mobileInput, String namePart) {
         String mobileDigits = (mobileInput != null) ? mobileInput.replaceAll("[^0-9]", "") : null;
         boolean useMobile = mobileDigits != null && mobileDigits.length() >= 4;
-        boolean useName   = (namePart != null && !namePart.trim().isEmpty() && namePart.trim().length() >= 4);
-
-        if (!useMobile && !useName) {
-            return Collections.emptyList();
-        }
-
-        // CORRECTED QUERY: Removed the "json_each" join and replaced it with a simple LIKE clause.
+        boolean useName   = (namePart != null && !namePart.trim().isEmpty() && namePart.trim().length() >= 3);
+        if (!useMobile && !useName) { return Collections.emptyList(); }
         String sql = "WITH att_stats AS (" +
                 "SELECT a.devotee_id, SUM(a.cnt) AS total_attendance, MAX(date(e.event_date)) AS last_date " +
                 "FROM attendance a JOIN event e ON a.event_id = e.event_id " +
@@ -270,21 +227,45 @@ public class DevoteeDao {
                 "WHERE (? IS NOT NULL AND ( d.mobile_e164 LIKE '%' || ? || '%' OR (d.extra_json IS NOT NULL AND d.extra_json LIKE '%' || ? || '%') )) " +
                 "OR (? IS NOT NULL AND d.name_norm LIKE '%' || lower(?) || '%' ) " +
                 "ORDER BY d.full_name COLLATE NOCASE";
-
-        // The GROUP BY is no longer needed because we removed the complex join that could create duplicates.
-        // The arguments array also needs to be adjusted slightly.
         String[] args = {
-                useMobile ? mobileDigits : null,
-                useMobile ? mobileDigits : null,
-                useMobile ? mobileDigits : null, // This now corresponds to the LIKE clause
-                useName ? namePart : null,
-                useName ? namePart : null
+                useMobile ? mobileDigits : null, useMobile ? mobileDigits : null, useMobile ? mobileDigits : null,
+                useName ? namePart : null, useName ? namePart : null
         };
-
         List<EnrichedDevotee> results = new ArrayList<>();
         try (Cursor cursor = db.rawQuery(sql, args)) {
             while (cursor.moveToNext()) {
-                results.add(enrichedFromCursor(cursor));
+                results.add(enrichedFromCursor(cursor, false));
+            }
+        }
+        return results;
+    }
+
+    // NEW / MODIFIED: This is the simple, correct search method for the operator.
+    public List<Devotee> searchSimpleDevotees(String query) {
+        if (query == null || query.trim().length() < 3) {
+            return Collections.emptyList();
+        }
+        String searchTerm = query.trim().toLowerCase();
+        String digitsOnly = searchTerm.replaceAll("[^0-9]", "");
+
+        List<Devotee> results = new ArrayList<>();
+        StringBuilder sql = new StringBuilder("SELECT * FROM devotee WHERE ");
+        List<String> args = new ArrayList<>();
+
+        // Search by name is always performed
+        sql.append("name_norm LIKE ?");
+        args.add("%" + searchTerm + "%");
+
+        // If there are digits, also search by mobile
+        if (!digitsOnly.isEmpty()) {
+            sql.append(" OR mobile_e164 LIKE ?");
+            args.add("%" + digitsOnly + "%");
+        }
+        sql.append(" ORDER BY full_name COLLATE NOCASE");
+
+        try (Cursor cursor = db.rawQuery(sql.toString(), args.toArray(new String[0]))) {
+            while (cursor.moveToNext()) {
+                results.add(fromCursor(cursor));
             }
         }
         return results;
@@ -295,40 +276,28 @@ public class DevoteeDao {
                 "SELECT a.devotee_id, SUM(a.cnt) AS total_attendance, MAX(date(e.event_date)) AS last_date " +
                 "FROM attendance a JOIN event e ON a.event_id = e.event_id " +
                 "WHERE e.event_date IS NOT NULL AND e.event_date != '' GROUP BY a.devotee_id" +
-            ") " +
-            "SELECT d.*, wgm.group_number, COALESCE(ats.total_attendance, 0) AS cumulative_attendance, ats.last_date AS last_attendance_date " +
-            "FROM devotee d " +
-            "LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 " +
-            "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id " +
-            "ORDER BY d.full_name COLLATE NOCASE";
-
-
+                ") " +
+                "SELECT d.*, wgm.group_number, COALESCE(ats.total_attendance, 0) AS cumulative_attendance, ats.last_date AS last_attendance_date " +
+                "FROM devotee d " +
+                "LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 " +
+                "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id " +
+                "ORDER BY d.full_name COLLATE NOCASE";
         List<EnrichedDevotee> results = new ArrayList<>();
         try (Cursor cursor = db.rawQuery(sql, null)) {
             while (cursor.moveToNext()) {
-                results.add(enrichedFromCursor(cursor));
+                results.add(enrichedFromCursor(cursor, false));
             }
         }
         return results;
     }
 
-    private EnrichedDevotee enrichedFromCursor(Cursor cursor) {
+    private EnrichedDevotee enrichedFromCursor(Cursor cursor, boolean isPreRegisteredForEvent) {
         Devotee devotee = fromCursor(cursor);
         int groupCol = cursor.getColumnIndex("group_number");
         Integer group = cursor.isNull(groupCol) ? null : cursor.getInt(groupCol);
         int attendance = cursor.getInt(cursor.getColumnIndexOrThrow("cumulative_attendance"));
         String lastDate = cursor.getString(cursor.getColumnIndexOrThrow("last_attendance_date"));
-
-        // When there is no event context, the "is_prereg" column won't exist.
-        // We default the value to false.
-        boolean isPreReg = false;
-        int preRegCol = cursor.getColumnIndex("is_prereg");
-        if (preRegCol != -1) { // Check if the column exists in the result set
-            isPreReg = cursor.getInt(preRegCol) == 1;
-        }
-
-        // Call the new, 5-argument constructor
-        return new EnrichedDevotee(devotee, group, attendance, lastDate, isPreReg);
+        return new EnrichedDevotee(devotee, group, attendance, lastDate, isPreRegisteredForEvent);
     }
 
     public CounterStats getCounterStats() {
@@ -338,13 +307,13 @@ public class DevoteeDao {
         long devoteesWithAttendance = simpleCountQuery("SELECT COUNT(DISTINCT devotee_id) FROM attendance WHERE cnt > 0");
         return new CounterStats(totalDevotees, mappedWhatsApp, registeredInWhatsApp, devoteesWithAttendance);
     }
-    
+
     private long simpleCountQuery(String sql) {
         try (SQLiteStatement statement = db.compileStatement(sql)) {
             return statement.simpleQueryForLong();
         }
     }
-    
+
     public static String normalizeName(String s) {
         if (s == null) return null;
         String t = s.trim().toLowerCase();
@@ -379,7 +348,7 @@ public class DevoteeDao {
         }
         return new ArrayList<>(set);
     }
-    
+
     private void logFuzzyMerge(String mobile, String oldName, String newName, double similarity) {
         ContentValues values = new ContentValues();
         values.put("mobile", mobile);
@@ -387,49 +356,5 @@ public class DevoteeDao {
         values.put("new_name", newName);
         values.put("similarity", similarity);
         db.insert("fuzzy_merge_log", null, values);
-    }
-
-    public List<EnrichedDevotee> searchDevoteesForEvent(String mobileInput, String namePart, long eventId) {
-        String mobileDigits = (mobileInput != null) ? mobileInput.replaceAll("[^0-9]", "") : null;
-        boolean useMobile = mobileDigits != null && mobileDigits.length() >= 4;
-        boolean useName = (namePart != null && !namePart.trim().isEmpty() && namePart.trim().length() >= 4);
-
-        if (!useMobile && !useName) {
-            return Collections.emptyList();
-        }
-
-        // This query now joins with the attendance table for the specific event
-        // to check for a pre-registration record.
-        String sql = "WITH att_stats AS (" +
-                "SELECT a.devotee_id, SUM(a.cnt) AS total_attendance, MAX(date(e.event_date)) AS last_date " +
-                "FROM attendance a JOIN event e ON a.event_id = e.event_id " +
-                "WHERE e.event_date IS NOT NULL AND e.event_date != '' GROUP BY a.devotee_id" +
-                ") " +
-                "SELECT d.*, wgm.group_number, COALESCE(ats.total_attendance, 0) AS cumulative_attendance, ats.last_date AS last_attendance_date, " +
-                "(current_att.reg_type = 'PRE_REG') AS is_prereg " + // This is the new flag
-                "FROM devotee d " +
-                "LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 " +
-                "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id " +
-                "LEFT JOIN attendance current_att ON d.devotee_id = current_att.devotee_id AND current_att.event_id = ? " + // Join for current event
-                "WHERE (? IS NOT NULL AND ( d.mobile_e164 LIKE '%' || ? || '%' OR (d.extra_json IS NOT NULL AND d.extra_json LIKE '%' || ? || '%') )) " +
-                "OR (? IS NOT NULL AND d.name_norm LIKE '%' || lower(?) || '%' ) " +
-                "ORDER BY d.full_name COLLATE NOCASE";
-
-        String[] args = {
-                String.valueOf(eventId), // For the new LEFT JOIN
-                useMobile ? mobileDigits : null,
-                useMobile ? mobileDigits : null,
-                useMobile ? mobileDigits : null,
-                useName ? namePart : null,
-                useName ? namePart : null
-        };
-
-        List<EnrichedDevotee> results = new ArrayList<>();
-        try (Cursor cursor = db.rawQuery(sql, args)) {
-            while (cursor.moveToNext()) {
-                results.add(enrichedFromCursor(cursor));
-            }
-        }
-        return results;
     }
 }
