@@ -23,8 +23,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout; // NEW: Import
+import com.google.android.material.textfield.TextInputLayout;
 import com.rkm.rkmattendanceapp.R;
+
+import java.util.ArrayList;
 
 public class MarkAttendanceActivity extends AppCompatActivity {
 
@@ -34,7 +36,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
     private MarkAttendanceViewModel viewModel;
     private TextView statPreReg, statAttended, statSpotReg, statTotal;
-    private TextInputLayout searchInputLayout; // NEW: Reference to the layout
+    private TextInputLayout searchInputLayout;
     private TextInputEditText searchEditText;
     private Button addNewButton;
     private RecyclerView searchResultsRecyclerView;
@@ -42,15 +44,17 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     private LinearLayout checkedInLayout;
     private SearchResultAdapter searchAdapter;
     private DevoteeListAdapter checkedInAdapter;
-    private ProgressBar searchProgressBar; // NEW
-    private TextView noResultsTextView;   // NEW
+    private ProgressBar searchProgressBar;
+    private TextView noResultsTextView;
 
     private long eventId = -1;
     private ActivityResultLauncher<Intent> addDevoteeLauncher;
 
-    // NEW: For debounce logic
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
+
+    // NEW: The flag to control the observer during a search.
+    private boolean isSearching = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,14 +95,14 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         statAttended = findViewById(R.id.text_stat_attended);
         statSpotReg = findViewById(R.id.text_stat_spot_reg);
         statTotal = findViewById(R.id.text_stat_total);
-        searchInputLayout = findViewById(R.id.text_input_layout_search); // NEW
+        searchInputLayout = findViewById(R.id.text_input_layout_search);
         searchEditText = findViewById(R.id.edit_text_search_attendee);
         addNewButton = findViewById(R.id.button_add_new_spot);
         searchResultsRecyclerView = findViewById(R.id.recycler_view_search_results);
         checkedInRecyclerView = findViewById(R.id.recycler_view_checked_in);
         checkedInLayout = findViewById(R.id.layout_checked_in_list);
-        searchProgressBar = findViewById(R.id.progress_bar_search); // NEW
-        noResultsTextView = findViewById(R.id.text_no_results);   // NEW
+        searchProgressBar = findViewById(R.id.progress_bar_search);
+        noResultsTextView = findViewById(R.id.text_no_results);
     }
 
     private void setupRecyclerViews() {
@@ -122,25 +126,20 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // MODIFIED: This now contains the full state machine logic
                 final String query = s.toString();
-
-                // Always remove any pending search actions
                 searchHandler.removeCallbacks(searchRunnable);
 
                 if (query.length() >= SEARCH_TRIGGER_LENGTH) {
-                    // State 3: Searching
+                    // MODIFIED: Set the searching flag to true
+                    isSearching = true;
                     showSearchingState();
-
                     searchRunnable = () -> viewModel.searchDevotees(query);
                     searchHandler.postDelayed(searchRunnable, SEARCH_DEBOUNCE_DELAY_MS);
-
                 } else if (query.length() > 0) {
-                    // State 2: Insufficient Input
+                    isSearching = false; // Not searching if input is insufficient
                     showInsufficientInputState();
-
                 } else {
-                    // State 1: Pristine (no input)
+                    isSearching = false; // Not searching if input is empty
                     showPristineState();
                 }
             }
@@ -161,6 +160,9 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     }
 
     private void observeViewModel() {
+        viewModel.getEventDetails().observe(this, event -> { /* ... unchanged ... */ });
+        viewModel.getEventStats().observe(this, stats -> { /* ... unchanged ... */ });
+        viewModel.getCheckedInList().observe(this, devotees -> { /* ... unchanged ... */ });
         viewModel.getEventDetails().observe(this, event -> {
             if (event != null) {
                 setTitle(event.getEventName());
@@ -169,7 +171,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 }
             }
         });
-
         viewModel.getEventStats().observe(this, stats -> {
             if (stats != null) {
                 statPreReg.setText(String.valueOf(stats.preRegistered));
@@ -178,7 +179,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 statTotal.setText(String.valueOf(stats.total));
             }
         });
-
         viewModel.getCheckedInList().observe(this, devotees -> {
             if (devotees != null) {
                 checkedInAdapter.setDevotees(devotees);
@@ -186,30 +186,28 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         });
 
         viewModel.getSearchResults().observe(this, results -> {
-            // MODIFIED: This observer now handles the final "Results" state
-            searchProgressBar.setVisibility(View.GONE); // Always hide progress when results arrive
-
-            String currentQuery = searchEditText.getText().toString();
-            if (currentQuery.length() < SEARCH_TRIGGER_LENGTH) {
-                // If user deleted text while search was running, revert to pristine state
-                showPristineState();
+            // MODIFIED: The observer is now controlled by the isSearching flag.
+            if (!isSearching) {
+                // If we are not in a searching state, we shouldn't process any lingering results.
+                // This can happen if the user deletes text quickly.
                 return;
             }
 
+            // We have received results, so the search is over.
+            isSearching = false;
+            searchProgressBar.setVisibility(View.GONE);
+
             if (results != null && !results.isEmpty()) {
-                // Results found
                 noResultsTextView.setVisibility(View.GONE);
-                checkedInLayout.setVisibility(View.GONE);
                 searchResultsRecyclerView.setVisibility(View.VISIBLE);
                 searchAdapter.setSearchResults(results);
             } else {
-                // No results found for a valid query
                 searchResultsRecyclerView.setVisibility(View.GONE);
-                checkedInLayout.setVisibility(View.GONE);
                 noResultsTextView.setVisibility(View.VISIBLE);
             }
         });
 
+        viewModel.getErrorMessage().observe(this, error -> { /* ... unchanged ... */ });
         viewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
                 Toast.makeText(this, error, Toast.LENGTH_LONG).show();
@@ -217,15 +215,14 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         });
     }
 
-    // --- NEW: UI State Management Methods ---
-
     private void showPristineState() {
-        searchInputLayout.setHelperText(null); // Clear helper text
+        searchInputLayout.setHelperText(null);
         searchProgressBar.setVisibility(View.GONE);
         noResultsTextView.setVisibility(View.GONE);
         searchResultsRecyclerView.setVisibility(View.GONE);
         checkedInLayout.setVisibility(View.VISIBLE);
-        viewModel.searchDevotees(null); // Clear previous results
+        // Clear the adapter directly for an instant UI update
+        searchAdapter.setSearchResults(new ArrayList<>());
     }
 
     private void showInsufficientInputState() {
@@ -233,12 +230,12 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         searchProgressBar.setVisibility(View.GONE);
         noResultsTextView.setVisibility(View.GONE);
         searchResultsRecyclerView.setVisibility(View.GONE);
-        checkedInLayout.setVisibility(View.VISIBLE);
-        viewModel.searchDevotees(null); // Clear previous results
+        checkedInLayout.setVisibility(View.GONE);
+        searchAdapter.setSearchResults(new ArrayList<>());
     }
 
     private void showSearchingState() {
-        searchInputLayout.setHelperText(null); // Clear helper text
+        searchInputLayout.setHelperText(null);
         noResultsTextView.setVisibility(View.GONE);
         searchResultsRecyclerView.setVisibility(View.GONE);
         checkedInLayout.setVisibility(View.GONE);
