@@ -23,7 +23,6 @@ public class AdminMainActivity extends AppCompatActivity {
     public static final String EXTRA_PRIVILEGE = "com.rkm.rkmattendanceapp.ui.EXTRA_PRIVILEGE";
 
     private Privilege currentPrivilege;
-    // NEW: Add fields needed for navigation handling
     private NavController navController;
     private AppBarConfiguration appBarConfiguration;
 
@@ -53,7 +52,6 @@ public class AdminMainActivity extends AppCompatActivity {
             topLevelDestinations.remove(R.id.nav_devotees);
         }
 
-        // MODIFIED: Store these as member variables
         appBarConfiguration = new AppBarConfiguration.Builder(topLevelDestinations).build();
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.nav_host_fragment);
@@ -72,20 +70,19 @@ public class AdminMainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.action_switch_role) {
-            Intent intent = new Intent(this, RoleSelectionActivity.class);
+            // MODIFIED: This now performs a clean logout by restarting the app's flow
+            // via the LauncherActivity.
+            Intent intent = new Intent(this, LauncherActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             finish();
             return true;
         }
-        // REMOVED: The incorrect navigation handling code was here.
         return super.onOptionsItemSelected(item);
     }
 
-    // NEW: This is the correct way to handle the "Up" button with the Navigation Component.
     @Override
     public boolean onSupportNavigateUp() {
-        // This ensures the Up button (<-) works correctly within your navigation graph.
         return NavigationUI.navigateUp(navController, appBarConfiguration)
                 || super.onSupportNavigateUp();
     }
