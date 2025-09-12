@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    
+    <!-- This will be used for high-level actions like Import/Export on specific fragments -->
+
+    <item
+        android:id="@+id/action_switch_role"
+        android:title="Switch Role / Logout"
+        app:showAsAction="never" />
+
+</menu>

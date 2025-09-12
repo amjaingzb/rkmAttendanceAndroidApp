@@ -34,6 +34,7 @@ public class PinEntryActivity extends AppCompatActivity {
         setContentView(R.layout.activity_pin_entry);
 
         repository = ((AttendanceApplication) getApplication()).repository;
+
         currentPrivilege = (Privilege) getIntent().getSerializableExtra(EXTRA_PRIVILEGE);
         if (currentPrivilege == null) {
             Toast.makeText(this, "Error: No role specified.", Toast.LENGTH_LONG).show();
@@ -68,7 +69,7 @@ public class PinEntryActivity extends AppCompatActivity {
         pin1.addTextChangedListener(new PinTextWatcher(pin1, pin2));
         pin2.addTextChangedListener(new PinTextWatcher(pin2, pin3));
         pin3.addTextChangedListener(new PinTextWatcher(pin3, pin4));
-        pin4.addTextChangedListener(new PinTextWatcher(pin4, null)); // Last one
+        pin4.addTextChangedListener(new PinTextWatcher(pin4, null));
     }
 
     private String getPinFromInput() {
@@ -100,6 +101,7 @@ public class PinEntryActivity extends AppCompatActivity {
     private void onPinSuccess() {
         Toast.makeText(this, "Login Successful", Toast.LENGTH_SHORT).show();
         Intent intent = new Intent(this, AdminMainActivity.class);
+        // MODIFIED: Pass the privilege to the AdminMainActivity
         intent.putExtra(AdminMainActivity.EXTRA_PRIVILEGE, currentPrivilege);
         startActivity(intent);
         finish();
@@ -115,7 +117,6 @@ public class PinEntryActivity extends AppCompatActivity {
         submitButton.setEnabled(false);
     }
 
-    // Inner class to handle moving focus between EditTexts
     private class PinTextWatcher implements TextWatcher {
         private final View currentView;
         private final View nextView;
@@ -135,7 +136,6 @@ public class PinEntryActivity extends AppCompatActivity {
                     nextView.requestFocus();
                 }
             }
-            // Check if all fields are filled
             submitButton.setEnabled(getPinFromInput().length() == 4);
         }
 

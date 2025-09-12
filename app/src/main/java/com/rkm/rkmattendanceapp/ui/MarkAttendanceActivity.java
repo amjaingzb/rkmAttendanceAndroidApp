@@ -8,6 +8,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -17,6 +19,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -52,8 +55,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
-
-    // NEW: The flag to control the observer during a search.
     private boolean isSearching = false;
 
     @Override
@@ -88,6 +89,29 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         observeViewModel();
 
         viewModel.loadEventData(eventId);
+    }
+
+    // NEW: Menu inflation for Operator Mode
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.operator_main_menu, menu);
+        return true;
+    }
+
+    // NEW: Menu click handling for Operator Mode
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_admin_login) {
+            // Admin Login action: exit operator mode and go to role selection screen
+            Intent intent = new Intent(this, RoleSelectionActivity.class);
+            // This flag sequence ensures that when the user logs in, the new AdminMainActivity
+            // replaces this one, clearing the task stack below.
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private void bindViews() {
@@ -130,16 +154,16 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 searchHandler.removeCallbacks(searchRunnable);
 
                 if (query.length() >= SEARCH_TRIGGER_LENGTH) {
-                    // MODIFIED: Set the searching flag to true
                     isSearching = true;
+                    viewModel.searchDevotees(null);
                     showSearchingState();
                     searchRunnable = () -> viewModel.searchDevotees(query);
                     searchHandler.postDelayed(searchRunnable, SEARCH_DEBOUNCE_DELAY_MS);
                 } else if (query.length() > 0) {
-                    isSearching = false; // Not searching if input is insufficient
+                    isSearching = false;
                     showInsufficientInputState();
                 } else {
-                    isSearching = false; // Not searching if input is empty
+                    isSearching = false;
                     showPristineState();
                 }
             }
@@ -160,9 +184,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     }
 
     private void observeViewModel() {
-        viewModel.getEventDetails().observe(this, event -> { /* ... unchanged ... */ });
-        viewModel.getEventStats().observe(this, stats -> { /* ... unchanged ... */ });
-        viewModel.getCheckedInList().observe(this, devotees -> { /* ... unchanged ... */ });
         viewModel.getEventDetails().observe(this, event -> {
             if (event != null) {
                 setTitle(event.getEventName());
@@ -171,6 +192,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 }
             }
         });
+
         viewModel.getEventStats().observe(this, stats -> {
             if (stats != null) {
                 statPreReg.setText(String.valueOf(stats.preRegistered));
@@ -179,6 +201,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 statTotal.setText(String.valueOf(stats.total));
             }
         });
+
         viewModel.getCheckedInList().observe(this, devotees -> {
             if (devotees != null) {
                 checkedInAdapter.setDevotees(devotees);
@@ -186,14 +209,10 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         });
 
         viewModel.getSearchResults().observe(this, results -> {
-            // MODIFIED: The observer is now controlled by the isSearching flag.
             if (!isSearching) {
-                // If we are not in a searching state, we shouldn't process any lingering results.
-                // This can happen if the user deletes text quickly.
                 return;
             }
 
-            // We have received results, so the search is over.
             isSearching = false;
             searchProgressBar.setVisibility(View.GONE);
 
@@ -207,7 +226,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             }
         });
 
-        viewModel.getErrorMessage().observe(this, error -> { /* ... unchanged ... */ });
         viewModel.getErrorMessage().observe(this, error -> {
             if (error != null && !error.isEmpty()) {
                 Toast.makeText(this, error, Toast.LENGTH_LONG).show();
@@ -221,7 +239,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         noResultsTextView.setVisibility(View.GONE);
         searchResultsRecyclerView.setVisibility(View.GONE);
         checkedInLayout.setVisibility(View.VISIBLE);
-        // Clear the adapter directly for an instant UI update
         searchAdapter.setSearchResults(new ArrayList<>());
     }
 

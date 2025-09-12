@@ -1,7 +1,12 @@
 // In: src/main/java/com/.../ui/AdminMainActivity.java
 package com.rkm.rkmattendanceapp.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
@@ -15,32 +20,84 @@ import java.util.Set;
 
 public class AdminMainActivity extends AppCompatActivity {
 
-    // NEW: Define the key for receiving the user's privilege level from another activity.
     public static final String EXTRA_PRIVILEGE = "com.rkm.rkmattendanceapp.ui.EXTRA_PRIVILEGE";
+
+    private Privilege currentPrivilege;
+    // NEW: Add fields needed for navigation handling
+    private NavController navController;
+    private AppBarConfiguration appBarConfiguration;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin_main);
 
+        currentPrivilege = (Privilege) getIntent().getSerializableExtra(EXTRA_PRIVILEGE);
+        if (currentPrivilege == null) {
+            currentPrivilege = Privilege.EVENT_COORDINATOR;
+        }
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setSubtitle(getRoleSubtitle(currentPrivilege));
+        }
+
         BottomNavigationView navView = findViewById(R.id.bottom_nav_view);
 
-        // Define the top-level destinations. The Up button will not be shown for these.
         Set<Integer> topLevelDestinations = new HashSet<>();
         topLevelDestinations.add(R.id.nav_events);
         topLevelDestinations.add(R.id.nav_devotees);
         topLevelDestinations.add(R.id.nav_reports);
-        AppBarConfiguration appBarConfiguration = new AppBarConfiguration.Builder(topLevelDestinations).build();
 
-        // Find the NavController
+        if (currentPrivilege == Privilege.EVENT_COORDINATOR) {
+            navView.getMenu().findItem(R.id.nav_devotees).setVisible(false);
+            topLevelDestinations.remove(R.id.nav_devotees);
+        }
+
+        // MODIFIED: Store these as member variables
+        appBarConfiguration = new AppBarConfiguration.Builder(topLevelDestinations).build();
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.nav_host_fragment);
-        NavController navController = navHostFragment.getNavController();
+        navController = navHostFragment.getNavController();
 
-        // Set up the ActionBar to work with the NavController
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-
-        // Set up the BottomNavigationView to work with the NavController
         NavigationUI.setupWithNavController(navView, navController);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.admin_main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_switch_role) {
+            Intent intent = new Intent(this, RoleSelectionActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
+            return true;
+        }
+        // REMOVED: The incorrect navigation handling code was here.
+        return super.onOptionsItemSelected(item);
+    }
+
+    // NEW: This is the correct way to handle the "Up" button with the Navigation Component.
+    @Override
+    public boolean onSupportNavigateUp() {
+        // This ensures the Up button (<-) works correctly within your navigation graph.
+        return NavigationUI.navigateUp(navController, appBarConfiguration)
+                || super.onSupportNavigateUp();
+    }
+
+    private String getRoleSubtitle(Privilege privilege) {
+        switch (privilege) {
+            case SUPER_ADMIN:
+                return "Super Admin Mode";
+            case EVENT_COORDINATOR:
+                return "Coordinator Mode";
+            default:
+                return "Admin Panel";
+        }
     }
 }
