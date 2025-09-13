@@ -97,4 +97,8 @@ public class AdminMainActivity extends AppCompatActivity {
                 return "Admin Panel";
         }
     }
+    // NEW: Add a public getter so child fragments can access the current privilege level.
+    public Privilege getCurrentPrivilege() {
+        return currentPrivilege;
+    }
 }

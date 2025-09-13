@@ -27,27 +27,29 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
 
     private EventListViewModel eventListViewModel;
     private EventListAdapter adapter;
-
-    // 1. Declare the ActivityResultLauncher for the Add/Edit screen
     private ActivityResultLauncher<Intent> addEditEventLauncher;
+    private Privilege currentPrivilege; // NEW: Field to store the privilege level
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 2. Register the launcher and define its callback
+        // NEW: Get the privilege level from the parent activity.
+        if (getActivity() instanceof AdminMainActivity) {
+            currentPrivilege = ((AdminMainActivity) getActivity()).getCurrentPrivilege();
+        } else {
+            // Fallback for safety, though this should not happen in the normal flow.
+            currentPrivilege = Privilege.SUPER_ADMIN;
+        }
+
         addEditEventLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
-                    // If the user saved the event, we get RESULT_OK.
-                    // Then we refresh the list.
                     if (result.getResultCode() == Activity.RESULT_OK) {
                         eventListViewModel.loadEvents();
                     }
-                    // If they canceled, we do nothing.
                 });
 
-        // Setup listener for results from the bottom sheet
         getParentFragmentManager().setFragmentResultListener(EventActionsBottomSheetFragment.REQUEST_KEY, this, (requestKey, bundle) -> {
             String action = bundle.getString(EventActionsBottomSheetFragment.KEY_ACTION);
             long eventId = bundle.getLong(EventActionsBottomSheetFragment.KEY_EVENT_ID);
@@ -66,18 +68,14 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
         super.onViewCreated(view, savedInstanceState);
 
         eventListViewModel = new ViewModelProvider(this).get(EventListViewModel.class);
-
         setupRecyclerView(view);
         observeViewModel();
-
         FloatingActionButton fab = view.findViewById(R.id.fab_add_event);
-        // 3. Update FAB to use the launcher
         fab.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), AddEditEventActivity.class);
             addEditEventLauncher.launch(intent);
         });
 
-        // Initial data load
         eventListViewModel.loadEvents();
     }
 
@@ -106,7 +104,12 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
 
     @Override
     public void onEventClick(Event event) {
-        EventActionsBottomSheetFragment bottomSheet = EventActionsBottomSheetFragment.newInstance(event.getEventId());
+        // MODIFIED: Pass all the required data to the bottom sheet.
+        EventActionsBottomSheetFragment bottomSheet = EventActionsBottomSheetFragment.newInstance(
+                event.getEventId(),
+                event.getEventDate(),
+                currentPrivilege
+        );
         bottomSheet.show(getParentFragmentManager(), EventActionsBottomSheetFragment.TAG);
     }
 
@@ -126,7 +129,6 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
                 break;
 
             case "EDIT":
-                // 4. Implement the Edit action to use the launcher
                 Intent intent = new Intent(getActivity(), AddEditEventActivity.class);
                 intent.putExtra(AddEditEventActivity.EXTRA_EVENT_ID, eventId);
                 addEditEventLauncher.launch(intent);
