@@ -12,14 +12,15 @@ import com.rkm.attendance.model.Devotee;
 import com.rkm.attendance.model.Event;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
 import java.util.List;
-import com.rkm.attendance.db.EventDao; // Make sure this is imported
+import com.rkm.attendance.db.EventDao;
 
 public class MarkAttendanceViewModel extends AndroidViewModel {
 
     private final AttendanceRepository repository;
     private long currentEventId = -1;
+    // NEW: A variable to remember the last valid search query.
+    private String lastSearchQuery = null;
 
-    // Data for the UI to observe
     private final MutableLiveData<Event> eventDetails = new MutableLiveData<>();
     private final MutableLiveData<EventDao.EventStats> eventStats = new MutableLiveData<>();
     private final MutableLiveData<List<Devotee>> checkedInList = new MutableLiveData<>();
@@ -31,20 +32,16 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
         this.repository = ((AttendanceApplication) application).repository;
     }
 
-    // --- Getters for the UI ---
     public LiveData<Event> getEventDetails() { return eventDetails; }
     public LiveData<EventDao.EventStats> getEventStats() { return eventStats; }
     public LiveData<List<Devotee>> getCheckedInList() { return checkedInList; }
     public LiveData<List<DevoteeDao.EnrichedDevotee>> getSearchResults() { return searchResults; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
 
-    // --- Public Methods for the UI to call ---
-
     public void loadEventData(long eventId) {
         this.currentEventId = eventId;
         new Thread(() -> {
             try {
-                // Load everything at once
                 Event event = repository.getEventById(eventId);
                 eventDetails.postValue(event);
                 refreshStatsAndCheckedInList();
@@ -56,13 +53,16 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
     }
 
     public void searchDevotees(String query) {
+        // NEW: Store the latest query.
+        this.lastSearchQuery = query;
+
         if (query == null || query.length() < 3) {
-            searchResults.postValue(null); // Clear results if query is too short
+            searchResults.postValue(null);
             return;
         }
         new Thread(() -> {
             try {
-                List<DevoteeDao.EnrichedDevotee> results = repository.searchDevoteesForEvent(query,currentEventId);
+                List<DevoteeDao.EnrichedDevotee> results = repository.searchDevoteesForEvent(query, currentEventId);
                 searchResults.postValue(results);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -70,13 +70,21 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
             }
         }).start();
     }
-    
+
+    // MODIFIED: This method now re-runs the search after marking attendance.
     public void markAttendance(long devoteeId) {
         new Thread(() -> {
             try {
                 repository.markDevoteeAsPresent(currentEventId, devoteeId);
-                // After marking, refresh the stats and the checked-in list
+                // First, refresh the stats and the main checked-in list as before.
                 refreshStatsAndCheckedInList();
+
+                // NEW: Now, re-run the last search to update the search results UI in place.
+                if (lastSearchQuery != null && lastSearchQuery.length() >= 3) {
+                    List<DevoteeDao.EnrichedDevotee> updatedResults = repository.searchDevoteesForEvent(lastSearchQuery, currentEventId);
+                    searchResults.postValue(updatedResults);
+                }
+
             } catch (Exception e) {
                 e.printStackTrace();
                 errorMessage.postValue("Failed to mark attendance.");
@@ -91,11 +99,7 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
         }
         new Thread(() -> {
             try {
-                // This single repository call handles everything:
-                // creates the devotee (or finds a fuzzy match) AND marks them present.
                 repository.onSpotRegisterAndMarkPresent(currentEventId, newDevotee);
-
-                // After success, refresh the stats and checked-in list
                 refreshStatsAndCheckedInList();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -104,7 +108,6 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
         }).start();
     }
 
-    // --- Private Helper ---
     private void refreshStatsAndCheckedInList() {
         try {
             EventDao.EventStats stats = repository.getEventStats(currentEventId);

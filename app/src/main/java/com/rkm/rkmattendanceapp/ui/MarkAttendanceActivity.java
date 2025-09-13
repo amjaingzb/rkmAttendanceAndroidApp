@@ -91,21 +91,16 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         viewModel.loadEventData(eventId);
     }
 
-    // NEW: Menu inflation for Operator Mode
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.operator_main_menu, menu);
         return true;
     }
 
-    // NEW: Menu click handling for Operator Mode
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.action_admin_login) {
-            // Admin Login action: exit operator mode and go to role selection screen
             Intent intent = new Intent(this, RoleSelectionActivity.class);
-            // This flag sequence ensures that when the user logs in, the new AdminMainActivity
-            // replaces this one, clearing the task stack below.
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             finish();
@@ -134,8 +129,8 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         searchAdapter = new SearchResultAdapter();
         searchResultsRecyclerView.setAdapter(searchAdapter);
         searchAdapter.setOnSearchResultClickListener(devotee -> {
+            // MODIFIED: The line that cleared the search text has been removed from here.
             viewModel.markAttendance(devotee.devotee().getDevoteeId());
-            searchEditText.setText("");
         });
 
         checkedInRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -155,7 +150,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
                 if (query.length() >= SEARCH_TRIGGER_LENGTH) {
                     isSearching = true;
-                    viewModel.searchDevotees(null);
                     showSearchingState();
                     searchRunnable = () -> viewModel.searchDevotees(query);
                     searchHandler.postDelayed(searchRunnable, SEARCH_DEBOUNCE_DELAY_MS);
