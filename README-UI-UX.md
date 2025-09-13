@@ -492,4 +492,6 @@ m1,...m9 : for bugs
 
 
 
+modified:   app/src/main/java/com/rkm/rkmattendanceapp/ui/AddEditEventActivity.java
+        modified:   app/src/main/java/com/rkm/rkmattendanceapp/ui/EventListFragment.java
 
