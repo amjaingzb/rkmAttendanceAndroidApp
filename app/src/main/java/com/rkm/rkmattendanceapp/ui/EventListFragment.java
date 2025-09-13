@@ -26,21 +26,18 @@ import com.rkm.rkmattendanceapp.R;
 public class EventListFragment extends Fragment implements EventListAdapter.OnEventListener {
 
     private EventListViewModel eventListViewModel;
+    private AdminViewModel adminViewModel; // NEW: Reference to the Shared ViewModel
     private EventListAdapter adapter;
     private ActivityResultLauncher<Intent> addEditEventLauncher;
-    private Privilege currentPrivilege; // NEW: Field to store the privilege level
+    // REMOVED: The fragile instance variable is gone.
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // NEW: Get the privilege level from the parent activity.
-        if (getActivity() instanceof AdminMainActivity) {
-            currentPrivilege = ((AdminMainActivity) getActivity()).getCurrentPrivilege();
-        } else {
-            // Fallback for safety, though this should not happen in the normal flow.
-            currentPrivilege = Privilege.SUPER_ADMIN;
-        }
+        // NEW: Get the ViewModel scoped to the parent Activity.
+        // This ensures we get the same instance as the Activity.
+        adminViewModel = new ViewModelProvider(requireActivity()).get(AdminViewModel.class);
 
         addEditEventLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -73,6 +70,8 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
         FloatingActionButton fab = view.findViewById(R.id.fab_add_event);
         fab.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), AddEditEventActivity.class);
+            // NEW: Get the privilege directly from the ViewModel's stable LiveData.
+            intent.putExtra(AddEditEventActivity.EXTRA_PRIVILEGE, adminViewModel.currentPrivilege.getValue());
             addEditEventLauncher.launch(intent);
         });
 
@@ -104,7 +103,9 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
 
     @Override
     public void onEventClick(Event event) {
-        // MODIFIED: Pass all the required data to the bottom sheet.
+        // NEW: Get the privilege directly from the ViewModel's stable LiveData.
+        Privilege currentPrivilege = adminViewModel.currentPrivilege.getValue();
+        
         EventActionsBottomSheetFragment bottomSheet = EventActionsBottomSheetFragment.newInstance(
                 event.getEventId(),
                 event.getEventDate(),
@@ -131,11 +132,13 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
             case "EDIT":
                 Intent intent = new Intent(getActivity(), AddEditEventActivity.class);
                 intent.putExtra(AddEditEventActivity.EXTRA_EVENT_ID, eventId);
+                // NEW: Get the privilege directly from the ViewModel's stable LiveData.
+                intent.putExtra(AddEditEventActivity.EXTRA_PRIVILEGE, adminViewModel.currentPrivilege.getValue());
                 addEditEventLauncher.launch(intent);
                 break;
 
-            case "SET_ACTIVE":
-                eventListViewModel.setActiveEvent(eventId);
+            case "IMPORT_ATTENDANCE":
+                Toast.makeText(getContext(), "Import Attendance (not implemented yet)", Toast.LENGTH_SHORT).show();
                 break;
         }
     }

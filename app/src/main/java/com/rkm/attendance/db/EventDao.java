@@ -10,10 +10,15 @@ import com.rkm.attendance.model.Devotee;
 import com.rkm.attendance.model.Event;
 import com.rkm.rkmattendanceapp.ui.EventStatus;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class EventDao {
     private final SQLiteDatabase db;
@@ -22,16 +27,51 @@ public class EventDao {
         this.db = db;
     }
 
-    // ... (All methods are unchanged until markAsAttended) ...
+    // MODIFIED: This is the new, powerful sorting logic.
     public List<Event> listAll() {
         List<Event> out = new ArrayList<>();
-        String sql = "SELECT * FROM event ORDER BY COALESCE(event_date,'9999-12-31') DESC, event_id DESC";
-        try (Cursor cursor = db.rawQuery(sql, null)) {
-            while (cursor.moveToNext()) { out.add(fromCursor(cursor)); }
+        // Get today's date in the required yyyy-MM-dd format for the query
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+
+        // This query implements the three-stage temporal sorting
+        String sql = "SELECT *, " +
+                "  CASE " +
+                "    WHEN event_date > ? THEN 1 " + // Future events
+                "    WHEN event_date = ? THEN 2 " + // Present events
+                "    ELSE 3 " +                     // Past events
+                "  END as date_group " +
+                "FROM event " +
+                "ORDER BY " +
+                "  date_group ASC, " +                                          // Group by status
+                "  CASE WHEN date_group = 1 THEN event_date END ASC, " +      // Sort future events soonest first
+                "  CASE WHEN date_group = 3 THEN event_date END DESC, " +     // Sort past events most recent first
+                "  event_name COLLATE NOCASE ASC";                            // Sort by name as a tie-breaker
+
+        try (Cursor cursor = db.rawQuery(sql, new String[]{today, today})) {
+            while (cursor.moveToNext()) {
+                out.add(fromCursor(cursor));
+            }
         }
         return out;
     }
+
+    // NEW: The method to check for overlapping time windows.
+    public boolean hasOverlap(String fromTs, String untilTs, Long excludeEventId) {
+        String sql = "SELECT 1 FROM event WHERE " +
+                "(? < active_until_ts) AND (? > active_from_ts) " +
+                "AND (? IS NULL OR event_id != ?)";
+
+        String excludeIdStr = (excludeEventId == null) ? null : String.valueOf(excludeEventId);
+
+        try (Cursor cursor = db.rawQuery(sql, new String[]{fromTs, untilTs, excludeIdStr, excludeIdStr})) {
+            // If the cursor has any rows, it means we found an overlap.
+            return cursor.moveToFirst();
+        }
+    }
+
+
     public long insert(Event e) {
+        // ... (rest of the file is unchanged, including the other DAOs and helpers) ...
         ContentValues values = new ContentValues();
         values.put("event_code", emptyToNull(e.getEventCode()));
         values.put("event_name", e.getEventName());
@@ -41,7 +81,7 @@ public class EventDao {
         values.put("remark", emptyToNull(e.getRemark()));
         long id = db.insertOrThrow("event", null, values);
         if (e.getEventCode() == null || e.getEventCode().trim().isEmpty()) {
-            String code = "EVT-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd")) + "-" + id;
+            String code = "EVT-" + new SimpleDateFormat("yyyyMMdd", Locale.US).format(new Date()) + "-" + id;
             ContentValues updateValues = new ContentValues();
             updateValues.put("event_code", code);
             db.update("event", updateValues, "event_id = ?", new String[]{String.valueOf(id)});
@@ -143,17 +183,12 @@ public class EventDao {
             return null;
         }
     }
-
-    // MODIFIED: This is the corrected, more general version.
-    // It now correctly updates any existing attendance record, regardless of reg_type.
     public void markAsAttended(long eventId, long devoteeId) {
         ContentValues values = new ContentValues();
         values.put("cnt", 1);
         db.update("attendance", values, "event_id = ? AND devotee_id = ?",
                 new String[]{String.valueOf(eventId), String.valueOf(devoteeId)});
     }
-
-    // ... (rest of the file is unchanged) ...
     public void upsertAttendance(long eventId, long devoteeId, String regType, int count, String remark) {
         ContentValues values = new ContentValues();
         values.put("event_id", eventId);

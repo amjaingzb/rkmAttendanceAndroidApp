@@ -6,16 +6,16 @@
     android:paddingTop="8dp"
     android:paddingBottom="8dp">
 
-    <!-- Each option is a TextView styled to look like a list item -->
+    <!-- MODIFIED: "Set Active" is replaced with "Import Attendance" -->
     <TextView
-        android:id="@+id/action_set_active"
+        android:id="@+id/action_import_attendance"
         style="@style/Widget.AppCompat.TextView.SpinnerItem"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:drawablePadding="16dp"
         android:gravity="center_vertical"
         android:padding="16dp"
-        android:text="Set as Active Event"
+        android:text="Import Attendance"
         android:background="?android:attr/selectableItemBackground"/>
 
     <TextView

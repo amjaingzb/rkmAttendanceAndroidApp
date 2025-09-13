@@ -452,7 +452,27 @@ Update the LauncherActivity: Change the "else" branch to launch our new PinEntry
 This will properly secure the admin section and fully implement the user flow we designed.
 Ready to create the PinViewModel and the PIN entry screen?
 
-
+===
+Final, Consolidated Plan (Version 2.0)
+Let's update our master plan with this final, excellent refinement.
+I. Core Business Rules & Data Integrity
+Prevent Overlapping Events: (Unchanged) The system will block the creation/saving of events with overlapping active time windows.
+II. Event List Screen (EventListFragment)
+Smart Temporal Sorting: (Unchanged) The list will be sorted by Future (soonest first), Present, and Past (most recent first).
+III. Event Actions (EventActionsBottomSheetFragment)
+This is the updated section incorporating all our recent decisions.
+The "Set Active" Option:
+Action: This button will be completely removed as it is redundant.
+The "Import Attendance" Option:
+Action: A new "Import Attendance" button will be added in its place.
+Rule: This will be visible to both Super Admins and Event Coordinators.
+Note: For now, we are only adding the button to the UI. The actual file-picking and import logic will be implemented as our next major feature.
+The "Delete Event" Option:
+Rule: Visible only to Super Admins.
+UI Behavior: The button will be hidden for Event Coordinators.
+The "Edit Event" Option:
+Rule: Super Admins can edit any event. Event Coordinators can only edit events scheduled for today or in the future.
+UI Behavior: The button will be always be visible, but will be disabled and greyed out for a Coordinator viewing a past event.
 
 
 
@@ -467,6 +487,7 @@ TEMp BUFER AREA
 MARKERS 
 ma , mb 
 m1,...m9 : for bugs
+
 
 
 

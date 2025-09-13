@@ -18,15 +18,20 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.rkm.attendance.model.Event;
 import com.rkm.rkmattendanceapp.R;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 
 public class AddEditEventActivity extends AppCompatActivity {
 
     public static final String EXTRA_EVENT_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_EVENT_ID";
+    public static final String EXTRA_PRIVILEGE = "com.rkm.rkmattendanceapp.ui.EXTRA_PRIVILEGE";
     public static final long NEW_EVENT_ID = -1;
 
     private AddEditEventViewModel viewModel;
@@ -35,6 +40,7 @@ public class AddEditEventActivity extends AppCompatActivity {
     private LocalDate selectedDate = LocalDate.now();
     private LocalTime selectedFromTime = LocalTime.of(6, 0);
     private LocalTime selectedUntilTime = LocalTime.of(22, 0);
+    private Privilege currentPrivilege;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
@@ -56,13 +62,18 @@ public class AddEditEventActivity extends AppCompatActivity {
         viewModel = new ViewModelProvider(this).get(AddEditEventViewModel.class);
 
         Intent intent = getIntent();
+        currentPrivilege = (Privilege) intent.getSerializableExtra(EXTRA_PRIVILEGE);
+        if (currentPrivilege == null) {
+            currentPrivilege = Privilege.EVENT_COORDINATOR;
+        }
+
         if (intent.hasExtra(EXTRA_EVENT_ID)) {
             currentEventId = intent.getLongExtra(EXTRA_EVENT_ID, NEW_EVENT_ID);
         }
 
         if (currentEventId == NEW_EVENT_ID) {
             setTitle("New Event");
-            updateDateAndTimeViews(); // Show defaults for a new event
+            updateDateAndTimeViews();
         } else {
             setTitle("Edit Event");
             viewModel.loadEvent(currentEventId);
@@ -84,7 +95,7 @@ public class AddEditEventActivity extends AppCompatActivity {
         fromTimeEditText.setOnClickListener(v -> showTimePicker(true));
         untilTimeEditText.setOnClickListener(v -> showTimePicker(false));
     }
-    
+
     private void observeViewModel() {
         viewModel.getEvent().observe(this, this::populateUI);
         viewModel.getSaveFinished().observe(this, finished -> {
@@ -113,7 +124,6 @@ public class AddEditEventActivity extends AppCompatActivity {
             selectedFromTime = fromDateTime.toLocalTime();
             selectedUntilTime = untilDateTime.toLocalTime();
         } catch (Exception e) {
-            // Fallback to defaults if parsing fails
             e.printStackTrace();
         }
         updateDateAndTimeViews();
@@ -127,6 +137,11 @@ public class AddEditEventActivity extends AppCompatActivity {
             return;
         }
 
+        if (currentPrivilege == Privilege.EVENT_COORDINATOR && isDateInPast(date)) {
+            Toast.makeText(this, "Coordinators cannot create or edit events in the past.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
         String remark = remarkEditText.getText().toString().trim();
         String activeFrom = LocalDateTime.of(selectedDate, selectedFromTime).format(DATETIME_FORMATTER);
         String activeUntil = LocalDateTime.of(selectedDate, selectedUntilTime).format(DATETIME_FORMATTER);
@@ -136,6 +151,24 @@ public class AddEditEventActivity extends AppCompatActivity {
                 null, name, date, activeFrom, activeUntil, remark
         );
         viewModel.saveEvent(eventToSave);
+    }
+
+    private boolean isDateInPast(String dateStr) {
+        if (dateStr == null || dateStr.trim().isEmpty()) return false;
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
+            Date eventDate = sdf.parse(dateStr);
+            Calendar todayCal = Calendar.getInstance();
+            todayCal.set(Calendar.HOUR_OF_DAY, 0);
+            todayCal.set(Calendar.MINUTE, 0);
+            todayCal.set(Calendar.SECOND, 0);
+            todayCal.set(Calendar.MILLISECOND, 0);
+            Date today = todayCal.getTime();
+            return eventDate.before(today);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     private void updateDateAndTimeViews() {
@@ -153,7 +186,7 @@ public class AddEditEventActivity extends AppCompatActivity {
                 selectedDate.getYear(), selectedDate.getMonthValue() - 1, selectedDate.getDayOfMonth());
         dialog.show();
     }
-    
+
     private void showTimePicker(boolean isFromTime) {
         LocalTime timeToShow = isFromTime ? selectedFromTime : selectedUntilTime;
         TimePickerDialog dialog = new TimePickerDialog(this,
@@ -165,14 +198,14 @@ public class AddEditEventActivity extends AppCompatActivity {
                     }
                     updateDateAndTimeViews();
                 },
-                timeToShow.getHour(), timeToShow.getMinute(), true // 24-hour format
+                timeToShow.getHour(), timeToShow.getMinute(), true
         );
         dialog.show();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.add_edit_devotee_menu, menu); // Re-use the save menu
+        getMenuInflater().inflate(R.menu.add_edit_devotee_menu, menu);
         return true;
     }
 

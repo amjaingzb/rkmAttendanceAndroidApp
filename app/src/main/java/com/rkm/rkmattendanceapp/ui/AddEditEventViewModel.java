@@ -6,6 +6,8 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+// NEW: Import the custom exception
+import com.rkm.attendance.core.OverlapException;
 import com.rkm.attendance.core.AttendanceRepository;
 import com.rkm.attendance.model.Event;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
@@ -38,6 +40,7 @@ public class AddEditEventViewModel extends AndroidViewModel {
         }).start();
     }
 
+    // MODIFIED: This method now handles the OverlapException.
     public void saveEvent(Event eventToSave) {
         new Thread(() -> {
             try {
@@ -53,7 +56,11 @@ public class AddEditEventViewModel extends AndroidViewModel {
                     repository.updateEvent(eventToSave);
                 }
                 saveFinished.postValue(true);
+            } catch (OverlapException e) {
+                // This is the specific error for our business rule
+                errorMessage.postValue(e.getMessage());
             } catch (Exception e) {
+                // This is for all other generic errors
                 e.printStackTrace();
                 errorMessage.postValue("Save failed: " + e.getMessage());
             }

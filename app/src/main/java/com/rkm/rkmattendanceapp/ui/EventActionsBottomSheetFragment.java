@@ -11,7 +11,6 @@ import androidx.annotation.Nullable;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.rkm.rkmattendanceapp.R;
 
-// MODIFIED: Import the old, reliable date/time classes
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -55,16 +54,34 @@ public class EventActionsBottomSheetFragment extends BottomSheetDialogFragment {
         View deleteAction = view.findViewById(R.id.action_delete_event);
         View editAction = view.findViewById(R.id.action_edit_event);
 
-        if (privilege != Privilege.SUPER_ADMIN) {
+        // --- MODIFIED: This is the corrected, more explicit logic ---
+
+        // Rule 1: The "Delete" button is ONLY visible if the privilege is SUPER_ADMIN.
+        // For all other cases (Coordinator, null, etc.), it is hidden.
+        if (privilege == Privilege.SUPER_ADMIN) {
+            deleteAction.setVisibility(View.VISIBLE);
+        } else {
             deleteAction.setVisibility(View.GONE);
         }
 
+        // Rule 2: The "Edit" button is DISABLED if the privilege is EVENT_COORDINATOR
+        // AND the event is in the past. It's enabled in all other scenarios.
         if (privilege == Privilege.EVENT_COORDINATOR && isDateInPast(eventDate)) {
-            editAction.setVisibility(View.GONE);
+            editAction.setEnabled(false);
+            editAction.setAlpha(0.5f);
+        } else {
+            editAction.setEnabled(true);
+            editAction.setAlpha(1.0f);
         }
 
-        view.findViewById(R.id.action_set_active).setOnClickListener(v -> sendResult("SET_ACTIVE", eventId));
-        editAction.setOnClickListener(v -> sendResult("EDIT", eventId));
+        // --- End of Privilege Logic ---
+
+        view.findViewById(R.id.action_import_attendance).setOnClickListener(v -> sendResult("IMPORT_ATTENDANCE", eventId));
+        editAction.setOnClickListener(v -> {
+            if(editAction.isEnabled()) {
+                sendResult("EDIT", eventId);
+            }
+        });
         deleteAction.setOnClickListener(v -> sendResult("DELETE", eventId));
     }
 
@@ -76,31 +93,21 @@ public class EventActionsBottomSheetFragment extends BottomSheetDialogFragment {
         dismiss();
     }
 
-    // MODIFIED: This is the new, more compatible implementation using Calendar.
     private boolean isDateInPast(String dateStr) {
-        if (dateStr == null || dateStr.trim().isEmpty()) {
-            return false; // Fail safe
-        }
+        if (dateStr == null || dateStr.trim().isEmpty()) return false;
         try {
-            // Define the format that matches our database string
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
             Date eventDate = sdf.parse(dateStr);
-
-            // Get today's date, but stripped of its time component
             Calendar todayCal = Calendar.getInstance();
             todayCal.set(Calendar.HOUR_OF_DAY, 0);
             todayCal.set(Calendar.MINUTE, 0);
             todayCal.set(Calendar.SECOND, 0);
             todayCal.set(Calendar.MILLISECOND, 0);
             Date today = todayCal.getTime();
-
-            // The isBefore() check is what we need.
-            // If the event date is before today (stripped of time), it's in the past.
             return eventDate.before(today);
-
         } catch (ParseException e) {
             e.printStackTrace();
-            return false; // Fail safe on parsing error
+            return false;
         }
     }
 }
