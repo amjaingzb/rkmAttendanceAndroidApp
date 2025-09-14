@@ -261,9 +261,44 @@ This plan directly addresses all the points you raised and provides a clear, rob
 
 
 
+###TAG-CONVERSATION-2025-09-14 21:10:02
+Excellent. With the master devotee import feature now robust and complete, we're in a great position to tackle the next item.
+
+Let's review the pending `TODO` list again:
+
+1.  **PIN Management:** (Previously deferred).
+2.  **CSV Imports:** The second part of this is implementing the **per-event Attendance List import**.
+3.  **Reports Tab Expansion:** Building out the full reporting suite with CSV exports.
+4.  **Deferred UI/UX Polish:** Smaller visual improvements.
+5.  **Dynamic Toolbar Titles:** A minor UI polish item.
+
+### Recommendation
+
+The most logical and efficient next step is to **complete the CSV Imports feature by implementing the "Import Attendance" functionality.**
+
+**Why this is the best next step:**
+
+*   **High Momentum:** We have just built the entire framework for this. The `MappingActivity`, the file picker logic, and the background processing are all fresh in our minds and ready to be reused.
+*   **High Value:** This is the other half of the core data entry workflow. It allows an Event Coordinator to quickly pre-register a list of specific devotees for an upcoming event, which is a critical function.
+*   **Reusability:** We can reuse the `MappingActivity` almost entirely. The primary work will be in creating the `AttendanceImporter` logic in the backend and hooking it up to the correct UI entry point.
+
+### The Plan
+
+Here's how we would approach it:
+
+1.  **Activate the UI Entry Point:** The "Import Attendance" option already exists in the `EventActionsBottomSheetFragment`. We will make it functional.
+2.  **Launch the Flow:** Clicking it will launch the same file picker we used for the master list.
+3.  **Reuse `MappingActivity`:** After a file is selected, we will launch the same `MappingActivity`, but this time we will pass it an extra piece of information: the `eventId` for which the attendance is being imported.
+4.  **Implement Backend Logic:** We will build out the `AttendanceImporter.java` class to take the mapped CSV data and create `PRE_REG` records in the `attendance` table, linking them to the correct devotees and the specific event.
+
+Alternatively, if you'd prefer a smaller, quicker task to change the pace, tackling the **Dynamic Toolbar Titles** or the other **UI/UX Polish** items would be great "quick wins."
+
+What would you like to do? Shall we proceed with **Import Attendance**?
 
 
 ================== Extra features not yet self refined ===========
 1. Log data base changes 
 2. sync with gdrive 
-3. 
+3. Report of which active devotes are not in whatsApp group 
+4. report of which whatsapp devotees are not active 
+
