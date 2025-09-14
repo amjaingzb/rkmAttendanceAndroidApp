@@ -9,6 +9,8 @@ import com.rkm.attendance.model.Devotee;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -38,40 +40,55 @@ public class CsvImporter {
         this.db = db;
         this.dao = new DevoteeDao(db);
     }
+    
+    // NEW: Overloaded method to handle an InputStream
+    public ImportStats importCsv(InputStream inputStream, ImportMapping mapping) throws Exception {
+        // This method simply wraps the InputStream in a Reader and calls the main logic.
+        try (InputStreamReader reader = new InputStreamReader(inputStream)) {
+            return doImport(new CSVReaderHeaderAware(reader), mapping);
+        }
+    }
 
     public ImportStats importCsv(File file, ImportMapping mapping) throws Exception {
-        ImportStats stats = new ImportStats();
-
         try (CSVReaderHeaderAware reader = new CSVReaderHeaderAware(new FileReader(file))) {
-            Map<String, String> row;
-            db.beginTransaction();
-            try {
-                while ((row = reader.readMap()) != null) {
-                    stats.processed++;
+            return doImport(reader, mapping);
+        }
+    }
 
-                    Devotee d = toDevotee(row, mapping);
-                    if (d == null) {
-                        stats.skipped++;
-                        continue;
-                    }
-                    
-                    Devotee existing = getDevoteeByKey(d.getMobileE164(), d.getNameNorm());
-                    
-                    dao.resolveOrCreateDevotee(
-                        d.getFullName(), d.getMobileE164(), d.getAddress(),
-                        d.getAge(), d.getEmail(), d.getGender()
-                    );
-                    
-                    if (existing == null) {
-                        stats.inserted++;
-                    } else {
-                        stats.updatedChanged++;
-                    }
+    // This new private method contains the actual import logic, shared by both public methods.
+    private ImportStats doImport(CSVReaderHeaderAware reader, ImportMapping mapping) throws Exception {
+        ImportStats stats = new ImportStats();
+        Map<String, String> row;
+        db.beginTransaction();
+        try {
+            while ((row = reader.readMap()) != null) {
+                stats.processed++;
+
+                Devotee d = toDevotee(row, mapping);
+                if (d == null) {
+                    stats.skipped++;
+                    continue;
                 }
-                db.setTransactionSuccessful();
-            } finally {
-                db.endTransaction();
+
+                Devotee existing = getDevoteeByKey(d.getMobileE164(), d.getNameNorm());
+
+                // The repository's resolve method handles the core logic of insert/merge/update
+                dao.resolveOrCreateDevotee(
+                    d.getFullName(), d.getMobileE164(), d.getAddress(),
+                    d.getAge(), d.getEmail(), d.getGender()
+                );
+
+                if (existing == null) {
+                    stats.inserted++;
+                } else {
+                    // For simplicity, we'll count all non-inserts as updates.
+                    // A more detailed diff is possible but adds complexity.
+                    stats.updatedChanged++;
+                }
             }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
         }
         return stats;
     }
@@ -137,9 +154,6 @@ public class CsvImporter {
 
         return new Devotee(null, fullName, nameNorm, mobileNorm, address, age, email, gender, extraJson);
     }
-
-    // --- Start of Pure Java Helper Methods ---
-
     private static boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }
@@ -194,10 +208,7 @@ public class CsvImporter {
     private static boolean isInitial(String t) {
         return t.length()==1 || (t.length()==2 && t.charAt(1)=='.');
     }
-
-    // ========== CORRECTED METHOD ==========
     private static Set<String> tokensNoInitials(String s) {
-        // The original KeySetView is not available. This is the Java 8 equivalent.
         return tokens(s).stream()
                 .filter(t -> !isInitial(t))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
@@ -230,7 +241,6 @@ public class CsvImporter {
                 .replaceAll("\\s+", " ").trim();
         String[] parts = t.split(" ");
         Arrays.sort(parts);
-        // Use a StringBuilder for older Android compatibility, it's safer than String.join
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < parts.length; i++) {
             sb.append(parts[i]);
@@ -242,7 +252,6 @@ public class CsvImporter {
     }
     
     public static double jaroWinklerSim(String s1, String s2) {
-        // This method is pure math and standard Java, no changes needed.
         if (s1 == null || s2 == null) return 0.0;
         if (s1.equals(s2)) return 1.0;
         int len1 = s1.length(), len2 = s2.length();
@@ -301,11 +310,8 @@ public class CsvImporter {
         Set<String> lTokens = new HashSet<>(Arrays.asList(l.split("\\s+")));
         return lTokens.containsAll(sTokens);
     }
-
-    // ========== ADDED MISSING HELPER METHODS ==========
     private static String normHeader(String s) {
         if (s == null) return "";
-        // BOM and NBSP characters
         String x = s.replace("\uFEFF", "").replace('\u00A0', ' ');
         return x.toLowerCase().replaceAll("\\s+", " ").trim();
     }

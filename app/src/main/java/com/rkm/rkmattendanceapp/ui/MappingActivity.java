@@ -1,0 +1,117 @@
+// In: app/src/main/java/com/rkm/rkmattendanceapp/ui/MappingActivity.java
+package com.rkm.rkmattendanceapp.ui;
+
+import android.net.Uri;
+import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.rkm.attendance.importer.CsvImporter;
+import com.rkm.rkmattendanceapp.R;
+
+import java.util.ArrayList;
+
+public class MappingActivity extends AppCompatActivity {
+
+    public static final String EXTRA_FILE_URI = "com.rkm.rkmattendanceapp.ui.EXTRA_FILE_URI";
+    public static final String EXTRA_CSV_HEADERS = "com.rkm.rkmattendanceapp.ui.EXTRA_CSV_HEADERS";
+
+    private MappingViewModel viewModel;
+    private MappingAdapter adapter;
+    private Uri fileUri;
+    private ProgressBar progressBar;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_mapping);
+        setTitle(R.string.mapping_activity_title);
+
+        fileUri = getIntent().getParcelableExtra(EXTRA_FILE_URI);
+        ArrayList<String> headers = getIntent().getStringArrayListExtra(EXTRA_CSV_HEADERS);
+
+        if (fileUri == null || headers == null || headers.isEmpty()) {
+            Toast.makeText(this, "Error: Invalid file or headers.", Toast.LENGTH_LONG).show();
+            finish();
+            return;
+        }
+
+        progressBar = findViewById(R.id.progress_bar_import);
+        viewModel = new ViewModelProvider(this).get(MappingViewModel.class);
+        setupRecyclerView(headers);
+        observeViewModel();
+    }
+
+    private void setupRecyclerView(ArrayList<String> headers) {
+        RecyclerView recyclerView = findViewById(R.id.recycler_view_mapping);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new MappingAdapter(this, headers);
+        recyclerView.setAdapter(adapter);
+    }
+
+    private void observeViewModel() {
+        viewModel.getIsLoading().observe(this, isLoading -> {
+            progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        });
+
+        viewModel.getImportStats().observe(this, stats -> {
+            if (stats != null) {
+                showSuccessDialog(stats);
+            }
+        });
+
+        viewModel.getErrorMessage().observe(this, error -> {
+            if (error != null && !error.isEmpty()) {
+                showErrorDialog(error);
+            }
+        });
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.mapping_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_start_import) {
+            viewModel.startImport(fileUri, adapter.getFinalMapping());
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void showSuccessDialog(CsvImporter.ImportStats stats) {
+        String message = getString(R.string.import_stats_message,
+                stats.processed, stats.inserted, stats.updatedChanged, stats.skipped);
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.import_success_title)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    setResult(RESULT_OK); // Signal success to the calling fragment
+                    finish();
+                })
+                .setCancelable(false)
+                .show();
+    }
+
+    private void showErrorDialog(String errorMessage) {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.import_error_title)
+                .setMessage(errorMessage)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
+    }
+}

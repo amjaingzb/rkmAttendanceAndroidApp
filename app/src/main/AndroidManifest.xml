@@ -49,6 +49,12 @@
         <activity
             android:name=".ui.PinEntryActivity"
             android:exported="false" />
+            
+        <!-- NEW: Declare the MappingActivity -->
+        <activity
+            android:name=".ui.MappingActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.AdminMainActivity" />
 
     </application>
 

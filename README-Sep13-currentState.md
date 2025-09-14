@@ -166,3 +166,94 @@ Would you like to start there, or would you prefer to tackle another item first?
 I would like to defer PIN management . I can always change via sqlite browser directly. Lets start with csv
 
 
+Excellent. This is a crucial clarification. Thank you for providing these details. It brings the full vision of the feature into sharp focus, and my memory of the desktop application's logic is now fully refreshed. You are correct on all points.
+
+Let's build the comprehensive plan based on this complete understanding.
+
+---
+
+### **Comprehensive Plan: CSV Import Feature**
+
+This plan outlines the user experience and the technical implementation required to build the CSV import feature exactly as designed, incorporating `DROP`/`RETAIN`, the `extra_json` field, the toggle for unmapped fields, and mandatory field validation.
+
+#### **Objective**
+
+To create an intuitive and powerful import screen (`MappingActivity`) that allows an admin to select a CSV file, intelligently map its columns to the app's database fields, and import the data, with full control over how each column is handled.
+
+#### **1. Recap of Core Logic (The "How It Works")**
+
+Before detailing the UI, let's confirm the backend logic that will support it. My review of the codebase confirms that the foundation for this is already in place:
+
+*   **`extra_json` Field:** The `devotee` table in the database correctly has an `extra_json` text column. The `Devotee.java` model object also has a corresponding `extraJson` string property.
+*   **`CsvImporter.java`:** This class is designed to handle this exact scenario.
+    *   It can create a map of "extra" data from the CSV row.
+    *   It uses a JSON library (`ObjectMapper`) to convert this map into a JSON string.
+    *   It saves this JSON string into the `extraJson` field of the `Devotee` object before it's saved to the database.
+*   **`includeUnmappedAsExtras` Flag:** The `CsvImporter` class already contains a boolean flag, `includeUnmappedAsExtras`. This is the perfect mechanism to control the default behavior of unmapped fields.
+
+Our goal is to build the UI that correctly utilizes this powerful backend.
+
+#### **2. Detailed UI/UX Plan for `MappingActivity` (The "What It Looks Like")**
+
+The screen will be composed of four distinct components:
+
+**Component A: The Instructions Banner**
+*   **Appearance:** A simple banner at the top of the screen.
+*   **Content:** "Please map the columns from your CSV file to the app's database fields. Select 'Drop' to ignore a column or 'Retain' to save it as extra information."
+
+**Component B: The Mapping List (RecyclerView)**
+This is the interactive core of the screen.
+
+*   **Left Side (CSV Headers):** This will display the actual column headers read from the CSV file (e.g., "Devotee Name", "Phone", "City"). **This is the primary bug we need to fix.**
+*   **Right Side (The Spinner):** For each header, a spinner will allow the user to select the destination field.
+*   **Spinner Options:** The spinner list will now be:
+    1.  `Drop` (Default for unknown columns) - This column will be ignored completely.
+    2.  `Retain` - This column will be saved into the `extra_json` field.
+    3.  `---` (A visual separator)
+    4.  `full_name`
+    5.  `mobile`
+    6.  `address`
+    7.  `age`
+    8.  `email`
+    9.  `gender`
+*   **Auto-Mapping:** The system will still intelligently guess the best mapping. "Devotee Name" will map to `full_name`, "Phone" will map to `mobile`, etc.
+
+**Component C: The Unmapped Fields Toggle (New UI Element)**
+*   **Appearance:** A labeled switch, placed between the instructions banner and the mapping list. A `SwitchMaterial` component is ideal.
+*   **Label:** "Save unmapped columns as extra info"
+*   **Behavior:**
+    *   **When OFF (Default):** Any CSV column whose spinner is still set to its initial, un-mapped state will be treated as if the user selected `Drop`. They will be ignored.
+    *   **When ON:** Any CSV column whose spinner is still un-mapped will be treated as if the user explicitly selected `Retain`. Their data will be saved into the `extra_json` field. This provides a powerful "save everything" option.
+
+**Component D: The "Start Import" Button & Validation**
+*   **Appearance:** The save icon in the toolbar.
+*   **Validation Logic:** The button will be **disabled** by default. It will only become **enabled** when the user has explicitly mapped a CSV column to **both** `full_name` and `mobile`.
+*   **User Feedback:** If a user tries to import without mapping the mandatory fields (which they won't be able to do if the button is disabled), a `Toast` message will appear stating: "Please map columns for 'full_name' and 'mobile' before importing." This check will be performed when the user clicks the import button.
+
+#### **3. Step-by-Step Implementation Roadmap**
+
+Here is the precise order of operations to build this feature correctly:
+
+1.  **Fix the Header Bug (High Priority):**
+    *   **Problem:** The current code is reading the first row of *data* from the CSV inside the `onFileSelected` method *after* the `CSVReader` has already been used, causing it to read the wrong line.
+    *   **Solution:** Modify `DevoteeListFragment.onFileSelected`. We must read the header row *immediately* after creating the `CSVReader` and pass that array of headers to the `MappingActivity`.
+
+2.  **Enhance the Mapping UI:**
+    *   **`activity_mapping.xml`:** Add a `SwitchMaterial` widget for the "Unmapped fields" toggle.
+    *   **`MappingAdapter.java`:** Update the `TARGET_FIELDS` array to include `Retain` and a separator. Update the logic to handle these new options.
+
+3.  **Implement the Validation Logic:**
+    *   **`MappingActivity.java`:**
+        *   Create a `validateMapping()` method that checks if the adapter's final mapping contains values for both `full_name` and `mobile`.
+        *   In `onCreateOptionsMenu`, store a reference to the "Start Import" menu item.
+        *   Add a listener to the adapter (or a simple callback) that notifies the activity whenever the user changes a mapping.
+        *   Inside this listener, call `validateMapping()` and enable/disable the "Start Import" menu item accordingly.
+        *   When the "Start Import" button is clicked, perform one final validation check before calling the ViewModel.
+
+4.  **Connect the Toggle to the Backend:**
+    *   **`MappingActivity.java`:** When the "Start Import" button is clicked, get the `isChecked()` state of the new switch.
+    *   **`MappingViewModel.java`:** Modify the `startImport` method to accept the new boolean flag (`saveUnmapped`).
+    *   **`AttendanceRepository.java`:** Modify the `importMasterDevoteeList` method to accept the `saveUnmapped` flag.
+    *   **`CsvImporter.java`:** The existing `setIncludeUnmappedAsExtras()` method is the final destination. The repository will call this method on the importer instance based on the flag's value before starting the import process.
+
+This plan directly addresses all the points you raised and provides a clear, robust path to a fully functional and user-friendly CSV import feature. Once you review and approve this plan, I can proceed with generating the necessary code changes.

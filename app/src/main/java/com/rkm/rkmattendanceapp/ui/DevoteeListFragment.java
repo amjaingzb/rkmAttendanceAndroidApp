@@ -3,6 +3,7 @@ package com.rkm.rkmattendanceapp.ui;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -28,13 +29,17 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.opencsv.CSVReader;
 import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
 
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.ArrayList; // Also add this for the transformation
 
 public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.OnDevoteeClickListener {
 
@@ -42,29 +47,75 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
     private DevoteeListAdapter adapter;
     private EditText searchEditText;
 
-    // 1. Declare the ActivityResultLauncher
     private ActivityResultLauncher<Intent> addEditDevoteeLauncher;
+    // NEW: Launcher for the file picker
+    private ActivityResultLauncher<String> filePickerLauncher;
+    // NEW: Launcher for the mapping activity
+    private ActivityResultLauncher<Intent> mappingActivityLauncher;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 2. Register the launcher. This is where we define what happens when the activity returns.
+        // This launcher handles the result from the Add/Edit screen
         addEditDevoteeLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
-                    // Check if the result code is OK (meaning a save was successful)
                     if (result.getResultCode() == Activity.RESULT_OK) {
-                        // A devotee was added or edited. Clear the search and reload the list.
                         if (searchEditText != null) {
                             searchEditText.setText("");
                         }
                         devoteeListViewModel.loadAllDevotees();
                     }
-                    // If the result code is anything else (e.g., CANCELED), we do nothing,
-                    // preserving the search term and the filtered list.
                 });
+
+        // NEW: This launcher handles the result from the file picker
+        filePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                this::onFileSelected
+        );
+
+        // NEW: This launcher handles the result from the MappingActivity
+        mappingActivityLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        // The import was successful, reload the list to show new data
+                        devoteeListViewModel.loadAllDevotees();
+                    }
+                }
+        );
     }
+
+    // NEW: This method is called when the user selects a file
+    private void onFileSelected(Uri uri) {
+        if (uri == null) {
+            Toast.makeText(getContext(), "No file selected", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try (InputStream inputStream = requireContext().getContentResolver().openInputStream(uri);
+             InputStreamReader reader = new InputStreamReader(inputStream);
+             CSVReader csvReader = new CSVReader(reader)) {
+
+            String[] headers = csvReader.readNext(); // Read just the header row
+            if (headers == null || headers.length == 0) {
+                Toast.makeText(getContext(), "Error: Could not read CSV headers or file is empty.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            // Launch the MappingActivity
+            Intent intent = new Intent(getActivity(), MappingActivity.class);
+            intent.putExtra(MappingActivity.EXTRA_FILE_URI, uri);
+            intent.putStringArrayListExtra(MappingActivity.EXTRA_CSV_HEADERS, new ArrayList<>(Arrays.asList(headers)));
+            mappingActivityLauncher.launch(intent);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(getContext(), "Error reading file: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -84,7 +135,6 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
 
         FloatingActionButton fab = view.findViewById(R.id.fab_add_devotee);
         fab.setOnClickListener(v -> {
-            // 3. Use the launcher to start the activity
             Intent intent = new Intent(getActivity(), AddEditDevoteeActivity.class);
             String prefillQuery = searchEditText.getText().toString().trim();
             if (!prefillQuery.isEmpty()) {
@@ -92,12 +142,9 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
             }
             addEditDevoteeLauncher.launch(intent);
         });
-
-        // Load the initial data
         devoteeListViewModel.loadAllDevotees();
     }
 
-    // 4. Update the onDevoteeClick to also use the launcher
     @Override
     public void onDevoteeClick(Devotee devotee) {
         Intent intent = new Intent(getActivity(), AddEditDevoteeActivity.class);
@@ -105,7 +152,6 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
         addEditDevoteeLauncher.launch(intent);
     }
 
-    // No changes needed for the methods below
     private void setupRecyclerView(View view) {
         RecyclerView recyclerView = view.findViewById(R.id.recycler_view_devotees);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -118,8 +164,6 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
     private void observeViewModel() {
         devoteeListViewModel.getDevoteeList().observe(getViewLifecycleOwner(), enrichedDevotees -> {
             if (enrichedDevotees != null) {
-                // Transform the List<EnrichedDevotee> into a List<Devotee>
-                // before passing it to the adapter.
                 List<Devotee> simpleDevotees = enrichedDevotees.stream()
                         .map(DevoteeDao.EnrichedDevotee::devotee)
                         .collect(Collectors.toList());
@@ -156,7 +200,8 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
                 if (menuItem.getItemId() == R.id.action_import_devotees) {
-                    Toast.makeText(getContext(), "Import Devotees clicked (not implemented)", Toast.LENGTH_SHORT).show();
+                    // Launch the file picker
+                    filePickerLauncher.launch("*/*");
                     return true;
                 }
                 return false;

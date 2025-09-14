@@ -1,7 +1,10 @@
 // In: src/main/java/com/rkm/attendance/core/AttendanceRepository.java
 package com.rkm.attendance.core;
 
+import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
+
 import com.rkm.attendance.db.*;
 import com.rkm.attendance.db.DevoteeDao.EnrichedDevotee;
 import com.rkm.attendance.model.*;
@@ -12,6 +15,7 @@ import com.rkm.attendance.importer.ImportMapping;
 import com.rkm.attendance.importer.WhatsAppGroupImporter;
 
 import java.io.File;
+import java.io.InputStream;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,7 +35,7 @@ public class AttendanceRepository {
         this.configDao = new ConfigDao(database);
     }
 
-    // ... (unchanged until markDevoteeAsPresent)
+    // ... (unchanged until importMasterDevoteeList)
     public boolean checkSuperAdminPin(String pin) { return configDao.checkSuperAdminPin(pin); }
     public boolean checkEventCoordinatorPin(String pin) { return configDao.checkEventCoordinatorPin(pin); }
     public List<Event> getAllEvents() { return eventDao.listAll(); }
@@ -60,22 +64,15 @@ public class AttendanceRepository {
     }
     public void deleteEvent(long eventId) { eventDao.delete(eventId); }
     public List<String[]> getAttendanceRowsForEvent(long eventId) { return eventDao.listAttendanceRows(eventId); }
-
-    // MODIFIED: This is the correct, working version of the method.
     public boolean markDevoteeAsPresent(long eventId, long devoteeId) {
         EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devoteeId, eventId);
-
-        // Case 1: Already present. Do nothing.
         if (status != null && status.count > 0) {
             return false;
         }
-
-        // Case 2: Has a pre-registration record (cnt=0). Update it.
         if (status != null) {
             eventDao.markAsAttended(eventId, devoteeId);
             return true;
         }
-        // Case 3: No record exists (walk-in). Insert a new spot registration.
         else {
             eventDao.insertSpotRegistration(eventId, devoteeId);
             return true;
@@ -110,11 +107,28 @@ public class AttendanceRepository {
     public Devotee getDevoteeById(long devoteeId) { return devoteeDao.getById(devoteeId); }
     public void updateDevotee(Devotee devotee) { devoteeDao.update(devotee); }
     public int deleteDevotees(List<Long> devoteeIds) { return devoteeDao.deleteByIds(devoteeIds); }
+
+    // NEW: Method to handle import from a content URI
+    public CsvImporter.ImportStats importMasterDevoteeList(Context context, Uri uri, ImportMapping mapping) throws Exception {
+        CsvImporter importer = new CsvImporter(database);
+        // We can set other importer properties here if needed
+        // importer.setIncludeUnmappedAsExtras(unmappedToExtras);
+        try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
+            if (inputStream == null) {
+                throw new Exception("Could not open file URI");
+            }
+            return importer.importCsv(inputStream, mapping);
+        }
+    }
+    
+    // This is the old method that works with a File object
     public CsvImporter.ImportStats importMasterDevoteeList(File csvFile, ImportMapping mapping, boolean unmappedToExtras) throws Exception {
         CsvImporter importer = new CsvImporter(database);
         importer.setIncludeUnmappedAsExtras(unmappedToExtras);
         return importer.importCsv(csvFile, mapping);
     }
+
+    // ... rest of the file is unchanged ...
     public AttendanceImporter.Stats importAttendanceList(long eventId, File csvFile, ImportMapping mapping) throws Exception {
         AttendanceImporter importer = new AttendanceImporter(database);
         return importer.importForEvent(eventId, csvFile, mapping);
