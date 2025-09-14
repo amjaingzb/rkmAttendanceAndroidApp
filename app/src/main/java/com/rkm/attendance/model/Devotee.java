@@ -36,11 +36,6 @@ public class Devotee {
         this.extraJson = extraJson;
     }
 
-    /**
-     * Merges non-null and non-blank fields from the 'other' devotee into this one.
-     * This is used to enrich an existing record with new data from an import or form.
-     * @param other The devotee object containing the new data.
-     */
     public void mergeWith(Devotee other) {
         if (other == null) return;
 
@@ -59,9 +54,19 @@ public class Devotee {
         if (isNotBlank(other.gender)) {
             this.gender = other.gender;
         }
-        if (other.age != null && other.age > 0) {
-            this.age = other.age;
+        
+        // --- START OF FIX #1 ---
+        // Implement the correct age merge logic.
+        if (other.age != null && other.age > 0 && other.age < 100) {
+            if (this.age == null || this.age <= 0) {
+                // If current age is invalid, take the new one.
+                this.age = other.age;
+            } else {
+                // Both are valid, so take the greater of the two.
+                this.age = Math.max(this.age, other.age);
+            }
         }
+        // --- END OF FIX #1 ---
         
         if (isNotBlank(other.extraJson)) {
             if (!isNotBlank(this.extraJson)) {
@@ -69,16 +74,11 @@ public class Devotee {
             } else {
                 ObjectMapper mapper = new ObjectMapper();
                 try {
-                    // --- START OF FIX ---
-                    // Replaced <> with the explicit type for Java 8 compatibility.
                     TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {};
-                    // --- END OF FIX ---
                     Map<String, Object> existingMap = mapper.readValue(this.extraJson, typeRef);
                     Map<String, Object> newMap = mapper.readValue(other.extraJson, typeRef);
-
                     existingMap.putAll(newMap);
                     this.extraJson = mapper.writeValueAsString(existingMap);
-
                 } catch (IOException e) {
                     Log.e("DevoteeMerge", "Failed to merge extraJson fields", e);
                 }
@@ -90,49 +90,25 @@ public class Devotee {
         return s != null && !s.trim().isEmpty();
     }
 
-
     public Long getDevoteeId() { return devoteeId; }
     public void setDevoteeId(Long devoteeId) { this.devoteeId = devoteeId; }
-
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }
-
     public String getNameNorm() { return nameNorm; }
     public void setNameNorm(String nameNorm) { this.nameNorm = nameNorm; }
-
     public String getMobileE164() { return mobileE164; }
     public void setMobileE164(String mobileE164) { this.mobileE164 = mobileE164; }
-
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
-
     public Integer getAge() { return age; }
     public void setAge(Integer age) { this.age = age; }
-
     public String getExtraJson() { return extraJson; }
     public void setExtraJson(String extraJson) { this.extraJson = extraJson; }
-
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }
 
-    @Override public String toString() {
-        return "Devotee{" +
-                "id=" + devoteeId +
-                ", name='" + fullName + '\'' +
-                ", mobile='" + mobileE164 + '\'' +
-                ", address='" + address + '\'' +
-                ", age=" + age +
-                '}';
-    }
-
-    @Override public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Devotee devotee = (Devotee) o;
-        return Objects.equals(mobileE164, devotee.mobileE164) && Objects.equals(nameNorm, devotee.nameNorm);
-    }
-
+    @Override public boolean equals(Object o) { if (this == o) return true; if (o == null || getClass() != o.getClass()) return false; Devotee devotee = (Devotee) o; return Objects.equals(mobileE164, devotee.mobileE164) && Objects.equals(nameNorm, devotee.nameNorm); }
     @Override public int hashCode() { return Objects.hash(mobileE164, nameNorm); }
 }

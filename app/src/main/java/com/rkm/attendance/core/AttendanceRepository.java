@@ -40,7 +40,7 @@ public class AttendanceRepository {
         this.configDao = new ConfigDao(database);
     }
 
-    // --- START OF FIX #1 ---
+    // --- START OF FIX #2 ---
     public CsvImporter.ImportStats importMasterDevoteeList(Context context, Uri uri, ImportMapping mapping) throws Exception {
         CsvImporter importer = new CsvImporter(database);
         CsvImporter.ImportStats stats = new CsvImporter.ImportStats();
@@ -59,19 +59,21 @@ public class AttendanceRepository {
                 while ((row = csvReader.readMap()) != null) {
                     stats.processed++;
                     try {
-                        // Step 1: Parse row into a transient Devotee object
                         Devotee parsedDevotee = importer.toDevotee(row, mapping);
                         if (parsedDevotee == null) {
                             stats.skipped++;
                             continue;
                         }
 
-                        // Step 2: Use the robust save/merge logic which handles extraJson
-                        saveOrMergeDevoteeFromAdmin(parsedDevotee);
+                        // Check for existence BEFORE merging to update the correct stat
+                        Devotee existing = devoteeDao.findByKey(parsedDevotee.getMobileE164(), parsedDevotee.getNameNorm());
+                        if (existing != null) {
+                            stats.updatedChanged++;
+                        } else {
+                            stats.inserted++;
+                        }
 
-                        // We can't easily tell if it was an insert or update here,
-                        // so we'll just count it as a success for now.
-                        stats.inserted++; // Simplified stat counting
+                        saveOrMergeDevoteeFromAdmin(parsedDevotee);
 
                     } catch (IllegalArgumentException e) {
                         Log.w(TAG, "Skipping bad row in repository: " + row.toString() + ". Reason: " + e.getMessage());
@@ -85,15 +87,19 @@ public class AttendanceRepository {
         }
         return stats;
     }
-    // --- END OF FIX #1 ---
+    // --- END OF FIX #2 ---
     
-    // Original file-based method is deprecated by the more general one above but kept for reference
-    public CsvImporter.ImportStats importMasterDevoteeList(File csvFile, ImportMapping mapping, boolean unmappedToExtras) throws Exception {
-        // This is now legacy. The new method is preferred.
-        throw new UnsupportedOperationException("File-based import is deprecated, use URI-based method.");
+    public void updateEvent(Event event) throws OverlapException {
+        if (event == null) { throw new IllegalArgumentException("Event cannot be null."); }
+        if (event.getEventName() == null || event.getEventName().trim().isEmpty()) { throw new IllegalArgumentException("Event Name is mandatory."); }
+        if (event.getEventDate() == null || event.getEventDate().trim().isEmpty()) { throw new IllegalArgumentException("Event Date is mandatory."); }
+        if (eventDao.hasOverlap(event.getActiveFromTs(), event.getActiveUntilTs(), event.getEventId())) {
+            throw new OverlapException("Time window overlaps with an existing event.");
+        }
+        eventDao.update(event);
     }
-
-    // ... rest of the file is unchanged ...
+    
+    // ... rest of file is unchanged ...
     public boolean checkSuperAdminPin(String pin) { return configDao.checkSuperAdminPin(pin); }
     public boolean checkEventCoordinatorPin(String pin) { return configDao.checkEventCoordinatorPin(pin); }
     public List<Event> getAllEvents() { return eventDao.listAll(); }
@@ -111,15 +117,6 @@ public class AttendanceRepository {
         Event newEvent = new Event(null, null, name, date, finalActiveFrom, finalActiveUntil, remark);
         return eventDao.insert(newEvent);
     }
-    public void updateEvent(Event event) throws OverlapException {
-        if (event == null) { throw new IllegalArgumentException("Event cannot be null."); }
-        if (event.getEventName() == null || event.getEventName().trim().isEmpty()) { throw new IllegalArgumentException("Event Name is mandatory."); }
-        if (event.getEventDate() == null || event.getEventDate().trim().isEmpty()) { throw new IllegalArgumentException("Event Date is mandatory."); }
-        if (eventDao.hasOverlap(event.getActiveFromTs(), event.getActiveUntilTs(), event.getEventId())) {
-            throw new OverlapException("Time window overlaps with an existing event.");
-        }
-        eventDao.update(event);
-    }
     public void deleteEvent(long eventId) { eventDao.delete(eventId); }
     public List<String[]> getAttendanceRowsForEvent(long eventId) { return eventDao.listAttendanceRows(eventId); }
     public boolean markDevoteeAsPresent(long eventId, long devoteeId) {
@@ -136,11 +133,6 @@ public class AttendanceRepository {
         Devotee mergedDevotee = saveOrMergeDevoteeFromAdmin(newDevoteeData);
         markDevoteeAsPresent(eventId, mergedDevotee.getDevoteeId());
         return mergedDevotee.getDevoteeId();
-    }
-    public List<EnrichedDevotee> searchEnrichedDevotees(String query) {
-        String mobileInput = (query != null && query.matches(".*\\d.*")) ? query : null;
-        String nameInput = (mobileInput == null) ? query : null;
-        return devoteeDao.searchEnrichedDevotees(mobileInput, nameInput);
     }
     public Devotee saveOrMergeDevoteeFromAdmin(Devotee devoteeFromForm) {
         long finalId = devoteeDao.resolveOrCreateDevotee(
@@ -166,7 +158,6 @@ public class AttendanceRepository {
     }
     public DevoteeDao.CounterStats getCounterStats() { return devoteeDao.getCounterStats(); }
     public List<EnrichedDevotee> getAllEnrichedDevotees() { return devoteeDao.getAllEnrichedDevotees(); }
-    public List<EnrichedDevotee> getEnrichedAttendeesForEvent(long eventId) { return eventDao.getEnrichedAttendeesForEvent(eventId); }
     public List<Devotee> getCheckedInAttendeesForEvent(long eventId) { return eventDao.findCheckedInAttendeesForEvent(eventId); }
     public EventDao.EventStats getEventStats(long eventId) { return eventDao.getEventStats(eventId); }
     public Event getActiveEvent() { return eventDao.findCurrentlyActiveEvent(); }
@@ -176,13 +167,9 @@ public class AttendanceRepository {
                 .map(devotee -> {
                     EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devotee.getDevoteeId(), eventId);
                     EventStatus eventStatus;
-                    if (status == null) {
-                        eventStatus = EventStatus.WALK_IN;
-                    } else if (status.count > 0) {
-                        eventStatus = EventStatus.PRESENT;
-                    } else {
-                        eventStatus = EventStatus.PRE_REGISTERED;
-                    }
+                    if (status == null) { eventStatus = EventStatus.WALK_IN; } 
+                    else if (status.count > 0) { eventStatus = EventStatus.PRESENT; } 
+                    else { eventStatus = EventStatus.PRE_REGISTERED; }
                     return new EnrichedDevotee(devotee, null, 0, null, eventStatus);
                 })
                 .collect(Collectors.toList());
