@@ -24,12 +24,11 @@ public class Devotee {
         this.mobileE164 = mobileE164;
         this.address = address;
         this.age = age;
-        this.email = email;       // NEW
-        this.gender = gender;     // NEW
+        this.email = email;
+        this.gender = gender;
         this.extraJson = extraJson;
     }
 
-    // NEW: A helper method to merge data from another Devotee object.
     /**
      * Merges non-null and non-blank fields from the 'other' devotee into this one.
      * This is used to enrich an existing record with new data from an import or form.
@@ -59,10 +58,15 @@ public class Devotee {
         if (other.age != null && other.age > 0) {
             this.age = other.age;
         }
-        // Note: extraJson is not merged for simplicity in this model.
+        
+        // --- START OF FIX ---
+        // This was the missing piece of logic.
+        if (isNotBlank(other.extraJson)) {
+            this.extraJson = other.extraJson;
+        }
+        // --- END OF FIX ---
     }
 
-    // NEW: Helper for the merge logic
     private boolean isNotBlank(String s) {
         return s != null && !s.trim().isEmpty();
     }

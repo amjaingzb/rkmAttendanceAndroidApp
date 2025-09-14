@@ -10,12 +10,8 @@ import com.rkm.attendance.model.Devotee;
 import com.rkm.attendance.model.Event;
 import com.rkm.rkmattendanceapp.ui.EventStatus;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -27,26 +23,21 @@ public class EventDao {
         this.db = db;
     }
 
-    // MODIFIED: This is the new, powerful sorting logic.
     public List<Event> listAll() {
         List<Event> out = new ArrayList<>();
-        // Get today's date in the required yyyy-MM-dd format for the query
         String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
-
-        // This query implements the three-stage temporal sorting
         String sql = "SELECT *, " +
                 "  CASE " +
-                "    WHEN event_date > ? THEN 1 " + // Future events
-                "    WHEN event_date = ? THEN 2 " + // Present events
-                "    ELSE 3 " +                     // Past events
+                "    WHEN event_date > ? THEN 1 " +
+                "    WHEN event_date = ? THEN 2 " +
+                "    ELSE 3 " +
                 "  END as date_group " +
                 "FROM event " +
                 "ORDER BY " +
-                "  date_group ASC, " +                                          // Group by status
-                "  CASE WHEN date_group = 1 THEN event_date END ASC, " +      // Sort future events soonest first
-                "  CASE WHEN date_group = 3 THEN event_date END DESC, " +     // Sort past events most recent first
-                "  event_name COLLATE NOCASE ASC";                            // Sort by name as a tie-breaker
-
+                "  date_group ASC, " +
+                "  CASE WHEN date_group = 1 THEN event_date END ASC, " +
+                "  CASE WHEN date_group = 3 THEN event_date END DESC, " +
+                "  event_name COLLATE NOCASE ASC";
         try (Cursor cursor = db.rawQuery(sql, new String[]{today, today})) {
             while (cursor.moveToNext()) {
                 out.add(fromCursor(cursor));
@@ -55,23 +46,27 @@ public class EventDao {
         return out;
     }
 
-    // NEW: The method to check for overlapping time windows.
+    // --- START OF FIX #2 ---
+    // This method is now safe from null argument exceptions.
     public boolean hasOverlap(String fromTs, String untilTs, Long excludeEventId) {
-        String sql = "SELECT 1 FROM event WHERE " +
-                "(? < active_until_ts) AND (? > active_from_ts) " +
-                "AND (? IS NULL OR event_id != ?)";
+        StringBuilder sql = new StringBuilder("SELECT 1 FROM event WHERE (? < active_until_ts) AND (? > active_from_ts)");
+        List<String> args = new ArrayList<>();
+        args.add(fromTs);
+        args.add(untilTs);
 
-        String excludeIdStr = (excludeEventId == null) ? null : String.valueOf(excludeEventId);
+        if (excludeEventId != null) {
+            sql.append(" AND (event_id != ?)");
+            args.add(String.valueOf(excludeEventId));
+        }
 
-        try (Cursor cursor = db.rawQuery(sql, new String[]{fromTs, untilTs, excludeIdStr, excludeIdStr})) {
-            // If the cursor has any rows, it means we found an overlap.
+        try (Cursor cursor = db.rawQuery(sql.toString(), args.toArray(new String[0]))) {
             return cursor.moveToFirst();
         }
     }
+    // --- END OF FIX #2 ---
 
 
     public long insert(Event e) {
-        // ... (rest of the file is unchanged, including the other DAOs and helpers) ...
         ContentValues values = new ContentValues();
         values.put("event_code", emptyToNull(e.getEventCode()));
         values.put("event_name", e.getEventName());
@@ -146,29 +141,12 @@ public class EventDao {
     private static String emptyToNull(String s) {
         return (s == null || s.trim().isEmpty()) ? null : s;
     }
-    public static class AttendanceInfo {
-        public final long attendanceId;
-        public final int cnt;
-        public AttendanceInfo(long id, int c) { this.attendanceId = id; this.cnt = c; }
-    }
     public static class AttendanceStatus {
         public final String regType;
         public final int count;
         public AttendanceStatus(String regType, int count) {
             this.regType = regType;
             this.count = count;
-        }
-    }
-    public AttendanceInfo findAttendance(long eventId, long devoteeId) {
-        String sql = "SELECT attendance_id, cnt FROM attendance WHERE event_id = ? AND devotee_id = ?";
-        try (Cursor cursor = db.rawQuery(sql, new String[]{String.valueOf(eventId), String.valueOf(devoteeId)})) {
-            if (cursor.moveToFirst()) {
-                return new AttendanceInfo(
-                        cursor.getLong(cursor.getColumnIndexOrThrow("attendance_id")),
-                        cursor.getInt(cursor.getColumnIndexOrThrow("cnt"))
-                );
-            }
-            return null;
         }
     }
     public AttendanceStatus getAttendanceStatus(long devoteeId, long eventId) {
@@ -197,19 +175,6 @@ public class EventDao {
         values.put("cnt", count);
         values.put("remark", emptyToNull(remark));
         db.insertWithOnConflict("attendance", null, values, SQLiteDatabase.CONFLICT_REPLACE);
-    }
-    public void updateAttendanceCount(long eventId, long devoteeId, int newCnt) {
-        ContentValues values = new ContentValues();
-        values.put("cnt", newCnt);
-        db.update("attendance", values, "event_id = ? AND devotee_id = ?", new String[]{String.valueOf(eventId), String.valueOf(devoteeId)});
-    }
-    public long insertAttendanceWithCount(long eventId, long devoteeId, int cnt, String remark) {
-        ContentValues values = new ContentValues();
-        values.put("event_id", eventId);
-        values.put("devotee_id", devoteeId);
-        values.put("cnt", cnt);
-        values.put("remark", emptyToNull(remark));
-        return db.insertOrThrow("attendance", null, values);
     }
     public List<DevoteeDao.EnrichedDevotee> getEnrichedAttendeesForEvent(long eventId) {
         List<DevoteeDao.EnrichedDevotee> results = new ArrayList<>();

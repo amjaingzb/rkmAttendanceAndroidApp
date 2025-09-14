@@ -26,23 +26,15 @@ public class MappingViewModel extends AndroidViewModel {
         this.repository = ((AttendanceApplication) application).repository;
     }
 
-    public LiveData<Boolean> getIsLoading() {
-        return isLoading;
-    }
+    public LiveData<Boolean> getIsLoading() { return isLoading; }
+    public LiveData<CsvImporter.ImportStats> getImportStats() { return importStats; }
+    public LiveData<String> getErrorMessage() { return errorMessage; }
 
-    public LiveData<CsvImporter.ImportStats> getImportStats() {
-        return importStats;
-    }
-
-    public LiveData<String> getErrorMessage() {
-        return errorMessage;
-    }
-
+    // MODIFIED: The 'saveUnmappedAsExtras' flag is now gone, as the logic is fully in the repository.
     public void startImport(Uri fileUri, ImportMapping mapping) {
         isLoading.setValue(true);
         new Thread(() -> {
             try {
-                // We pass the Application context, which is safe.
                 CsvImporter.ImportStats stats = repository.importMasterDevoteeList(getApplication(), fileUri, mapping);
                 importStats.postValue(stats);
             } catch (Exception e) {

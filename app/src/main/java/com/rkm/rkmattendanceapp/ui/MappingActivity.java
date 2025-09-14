@@ -16,12 +16,17 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.rkm.attendance.importer.CsvImporter;
+import com.rkm.attendance.importer.ImportMapping;
 import com.rkm.rkmattendanceapp.R;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
-public class MappingActivity extends AppCompatActivity {
+public class MappingActivity extends AppCompatActivity implements MappingAdapter.MappingChangeListener {
 
     public static final String EXTRA_FILE_URI = "com.rkm.rkmattendanceapp.ui.EXTRA_FILE_URI";
     public static final String EXTRA_CSV_HEADERS = "com.rkm.rkmattendanceapp.ui.EXTRA_CSV_HEADERS";
@@ -30,6 +35,8 @@ public class MappingActivity extends AppCompatActivity {
     private MappingAdapter adapter;
     private Uri fileUri;
     private ProgressBar progressBar;
+    private SwitchMaterial retainDroppedSwitch;
+    private MenuItem startImportMenuItem;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,21 +54,32 @@ public class MappingActivity extends AppCompatActivity {
         }
 
         progressBar = findViewById(R.id.progress_bar_import);
+        retainDroppedSwitch = findViewById(R.id.switch_unmapped_to_extras);
         viewModel = new ViewModelProvider(this).get(MappingViewModel.class);
         setupRecyclerView(headers);
         observeViewModel();
+        
+        retainDroppedSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (adapter != null) {
+                adapter.toggleDropRetain(isChecked);
+            }
+        });
     }
 
     private void setupRecyclerView(ArrayList<String> headers) {
         RecyclerView recyclerView = findViewById(R.id.recycler_view_mapping);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new MappingAdapter(this, headers);
+        adapter = new MappingAdapter(this, headers, this);
         recyclerView.setAdapter(adapter);
     }
 
     private void observeViewModel() {
         viewModel.getIsLoading().observe(this, isLoading -> {
             progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+            if (startImportMenuItem != null) {
+                startImportMenuItem.setEnabled(!isLoading);
+            }
+            retainDroppedSwitch.setEnabled(!isLoading);
         });
 
         viewModel.getImportStats().observe(this, stats -> {
@@ -80,27 +98,75 @@ public class MappingActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.mapping_menu, menu);
+        startImportMenuItem = menu.findItem(R.id.action_start_import);
+        validateMapping();
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.action_start_import) {
-            viewModel.startImport(fileUri, adapter.getFinalMapping());
+            if (validateMapping()) {
+                ImportMapping finalMapping = getFinalMapping();
+                // --- START OF FIX ---
+                // Corrected the method call to use the 2-argument version
+                viewModel.startImport(fileUri, finalMapping);
+                // --- END OF FIX ---
+            } else {
+                 Toast.makeText(this, "Please map columns for 'Full Name' and 'Mobile Number'", Toast.LENGTH_LONG).show();
+            }
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+    
+    private ImportMapping getFinalMapping() {
+        ImportMapping originalMapping = adapter.getFinalMapping();
+        if (!retainDroppedSwitch.isChecked()) {
+            return originalMapping;
+        }
+
+        ImportMapping finalMapping = new ImportMapping();
+        for (Map.Entry<String, String> entry : originalMapping.asMap().entrySet()) {
+            if ("DROP".equals(entry.getValue())) {
+                finalMapping.put(entry.getKey(), "RETAIN");
+            } else {
+                finalMapping.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return finalMapping;
+    }
+    
+    @Override
+    public void onMappingChanged() {
+        validateMapping();
+    }
+
+    private boolean validateMapping() {
+        if (adapter == null || startImportMenuItem == null) {
+            return false;
+        }
+        ImportMapping currentMapping = adapter.getFinalMapping();
+        Set<String> mappedTargets = new HashSet<>(currentMapping.asMap().values());
+        boolean isNameMapped = mappedTargets.contains("full_name");
+        boolean isMobileMapped = mappedTargets.contains("mobile");
+        if (isNameMapped && isMobileMapped) {
+            startImportMenuItem.setEnabled(true);
+            return true;
+        } else {
+            startImportMenuItem.setEnabled(false);
+            return false;
+        }
     }
 
     private void showSuccessDialog(CsvImporter.ImportStats stats) {
         String message = getString(R.string.import_stats_message,
                 stats.processed, stats.inserted, stats.updatedChanged, stats.skipped);
-
         new AlertDialog.Builder(this)
                 .setTitle(R.string.import_success_title)
                 .setMessage(message)
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> {
-                    setResult(RESULT_OK); // Signal success to the calling fragment
+                    setResult(RESULT_OK);
                     finish();
                 })
                 .setCancelable(false)

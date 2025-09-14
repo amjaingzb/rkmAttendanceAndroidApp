@@ -3,7 +3,9 @@ package com.rkm.rkmattendanceapp.ui;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.ArrayAdapter;
@@ -15,21 +17,23 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
+import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
 
 public class AddEditDevoteeActivity extends AppCompatActivity {
 
-    // Define ALL the keys this Activity accepts
     public static final String EXTRA_DEVOTEE_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_DEVOTEE_ID";
     public static final String EXTRA_PREFILL_QUERY = "com.rkm.rkmattendanceapp.ui.EXTRA_PREFILL_QUERY";
     public static final String EXTRA_IS_ON_SPOT_REG = "com.rkm.rkmattendanceapp.ui.EXTRA_IS_ON_SPOT_REG";
-    public static final String EXTRA_EVENT_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_EVENT_ID"; // The key for the event ID
+    public static final String EXTRA_EVENT_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_EVENT_ID";
 
     public static final long NEW_DEVOTEE_ID = -1;
 
     private AddEditDevoteeViewModel viewModel;
 
+    private TextInputLayout mobileInputLayout; // NEW: Reference to the layout for setting errors
     private TextInputEditText nameEditText;
     private TextInputEditText mobileEditText;
     private TextInputEditText emailEditText;
@@ -38,7 +42,6 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
     private AutoCompleteTextView genderAutoComplete;
 
     private long currentDevoteeId = NEW_DEVOTEE_ID;
-
     private boolean isOnSpotMode = false;
     private long eventIdForOnSpot = -1;
 
@@ -52,6 +55,9 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
             getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_close);
         }
 
+        // --- START OF FIX #1 ---
+        mobileInputLayout = findViewById(R.id.text_input_layout_mobile); // Get the layout
+        // --- END OF FIX #1 ---
         nameEditText = findViewById(R.id.edit_text_name);
         mobileEditText = findViewById(R.id.edit_text_mobile);
         emailEditText = findViewById(R.id.edit_text_email);
@@ -64,6 +70,20 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
         genderAutoComplete.setAdapter(adapter);
 
         viewModel = new ViewModelProvider(this).get(AddEditDevoteeViewModel.class);
+
+        // --- START OF FIX #1 ---
+        // Add a TextWatcher to clear the error when the user starts typing
+        mobileEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                mobileInputLayout.setError(null); // Clear the error
+            }
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+        // --- END OF FIX #1 ---
 
         Intent intent = getIntent();
         if (intent.hasExtra(EXTRA_IS_ON_SPOT_REG)) {
@@ -88,7 +108,6 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
             setTitle("Edit Devotee");
             viewModel.loadDevotee(currentDevoteeId);
         }
-
         observeViewModel();
     }
 
@@ -105,16 +124,13 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
                 genderAutoComplete.setText(devotee.getGender(), false);
             }
         });
-
         viewModel.getSaveFinished().observe(this, finished -> {
             if (finished != null && finished) {
                 Toast.makeText(this, "Devotee saved", Toast.LENGTH_SHORT).show();
-                // Set the result to OK so the calling fragment knows we saved.
                 setResult(RESULT_OK);
                 finish();
             }
         });
-
         viewModel.getErrorMessage().observe(this, message -> {
             if (!TextUtils.isEmpty(message)) {
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show();
@@ -124,16 +140,27 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
 
     private void saveDevotee() {
         String name = nameEditText.getText().toString().trim();
-        String mobile = mobileEditText.getText().toString().trim();
+        String mobileRaw = mobileEditText.getText().toString().trim();
+        String mobileNorm = DevoteeDao.normalizePhone(mobileRaw);
+        
+        // --- START OF FIX #1 ---
+        // Use inline error messages for better UX
+        if (TextUtils.isEmpty(name)) {
+            // While we already check for this, it's good practice
+            Toast.makeText(this, "Please enter a valid name", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (TextUtils.isEmpty(mobileNorm) || mobileNorm.length() != 10) {
+            mobileInputLayout.setError("Mobile number must be 10 digits");
+            return;
+        }
+        mobileInputLayout.setError(null); // Clear error if validation passes
+        // --- END OF FIX #1 ---
+
         String email = emailEditText.getText().toString().trim();
         String address = addressEditText.getText().toString().trim();
         String ageStr = ageEditText.getText().toString().trim();
         String gender = genderAutoComplete.getText().toString().trim();
-
-        if (TextUtils.isEmpty(name) || TextUtils.isEmpty(mobile)) {
-            Toast.makeText(this, "Please enter a name and mobile number", Toast.LENGTH_SHORT).show();
-            return;
-        }
 
         Integer age = null;
         if (!ageStr.isEmpty()) {
@@ -144,19 +171,10 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
                 return;
             }
         }
-
         Devotee devoteeToSave = new Devotee(
-                currentDevoteeId == NEW_DEVOTEE_ID ? null : currentDevoteeId,
-                name,
-                null,
-                mobile,
-                address,
-                age,
-                email,
-                gender,
-                null
+                currentDevoteeId == NEW_DEVOTEE_ID ? null : currentDevoteeId, name, null,
+                mobileNorm, address, age, email, gender, null
         );
-
         viewModel.saveDevotee(devoteeToSave, isOnSpotMode, eventIdForOnSpot);
     }
 

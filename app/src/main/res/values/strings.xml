@@ -3,7 +3,7 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
-    <!-- NEW STRINGS FOR IMPORT FEATURE -->
+    <!-- STRINGS FOR IMPORT FEATURE -->
     <string name="mapping_activity_title">Map CSV Columns</string>
     <string name="mapping_instructions">Please map the columns from your CSV file to the app\'s database fields. Select \'Drop\' to ignore a column.</string>
     <string name="action_start_import">Start Import</string>
@@ -11,5 +11,6 @@
     <string name="import_success_title">Import Successful</string>
     <string name="import_error_title">Import Failed</string>
     <string name="import_stats_message">Processed: %1$d\nInserted: %2$d\nUpdated: %3$d\nSkipped: %4$d</string>
+    <string name="retain_dropped_columns">Retain columns marked as \'Drop\' in extras</string>
 
 </resources>

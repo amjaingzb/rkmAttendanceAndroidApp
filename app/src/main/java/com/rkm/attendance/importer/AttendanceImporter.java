@@ -60,18 +60,9 @@ public class AttendanceImporter {
         return st;
     }
 
-    // This method logically belongs in EventDao, but we can put it here to keep the importer working
-    // It's a direct translation of the old EventDao method.
-    private void upsertAttendanceAddCount(long eventId, long devoteeId, Integer cnt, String remark) {
-        EventDao.AttendanceInfo existing = eventDao.findAttendance(eventId, devoteeId);
-        if (existing != null) {
-            int newCount = existing.cnt + (cnt != null ? cnt : 0);
-            eventDao.updateAttendanceCount(eventId, devoteeId, newCount);
-        } else {
-            eventDao.insertAttendanceWithCount(eventId, devoteeId, (cnt != null ? cnt : 0), remark);
-        }
-    }
-
+    // --- START OF FIX ---
+    // The broken, unused private method 'upsertAttendanceAddCount' has been completely removed.
+    // --- END OF FIX ---
 
     // ----- Pure Java helpers (no changes) -----
     private static String val(Map<String, String> row, ImportMapping mapping, String target) {
@@ -82,7 +73,6 @@ public class AttendanceImporter {
 
         // Fallback for keys that might have weird characters (like BOM)
         String want = normHeader(chosen);
-        // Replace 'var' with the explicit type: Map.Entry<String, String>
         for (Map.Entry<String, String> entry : row.entrySet()) {
             if (normHeader(entry.getKey()).equals(want)) {
                 return entry.getValue();
@@ -93,7 +83,6 @@ public class AttendanceImporter {
 
 
     private static String headerFor(ImportMapping m, String target) {
-        // Replace 'var' with the explicit type: Map.Entry<String, String>
         for (Map.Entry<String, String> entry : m.asMap().entrySet()) {
             if (target.equalsIgnoreCase(entry.getValue())) {
                 return entry.getKey();

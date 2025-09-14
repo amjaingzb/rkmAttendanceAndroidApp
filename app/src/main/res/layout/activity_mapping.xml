@@ -13,7 +13,22 @@
         android:padding="16dp"
         android:text="@string/mapping_instructions"
         android:textAppearance="?attr/textAppearanceBody2"
-        android:background="#F0F0F0"/> <!-- MODIFIED: Replaced theme attribute with a simple hex color -->
+        android:background="#F0F0F0"/>
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switch_unmapped_to_extras"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/retain_dropped_columns" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?android:attr/listDivider"
+        android:layout_marginTop="8dp" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_view_mapping"
