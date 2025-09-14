@@ -1,23 +1,30 @@
 // In: com/rkm/attendance/model/Devotee.java
 package com.rkm.attendance.model;
 
+import android.util.Log;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.io.IOException;
+import java.util.Map;
 import java.util.Objects;
 
 public class Devotee {
-    private Long devoteeId; // nullable for new rows
-    private String fullName; // required
-    private String nameNorm; // lowercase + single-spaced
-    private String mobileE164; // required, but we trust it as exact key
-    private String address; // nullable
-    private Integer age; // nullable
-    private String extraJson; // nullable JSON
-    private String email;   // NEW
-    private String gender;  // NEW
+    private Long devoteeId;
+    private String fullName;
+    private String nameNorm;
+    private String mobileE164;
+    private String address;
+    private Integer age;
+    private String extraJson;
+    private String email;
+    private String gender;
 
     public Devotee() {}
 
     public Devotee(Long devoteeId, String fullName, String nameNorm, String mobileE164,
-                   String address, Integer age, String email, String gender, String extraJson) { // NEW params
+                   String address, Integer age, String email, String gender, String extraJson) {
         this.devoteeId = devoteeId;
         this.fullName = fullName;
         this.nameNorm = nameNorm;
@@ -37,12 +44,9 @@ public class Devotee {
     public void mergeWith(Devotee other) {
         if (other == null) return;
 
-        // Never merge the ID.
-        // We prefer the new name if it's longer (e.g., "Amit" -> "Amit Jain")
         if (isNotBlank(other.fullName) && (this.fullName == null || other.fullName.length() > this.fullName.length())) {
             this.fullName = other.fullName;
         }
-        // The mobile number should already match, but we can be safe.
         if (isNotBlank(other.mobileE164)) {
             this.mobileE164 = other.mobileE164;
         }
@@ -59,12 +63,27 @@ public class Devotee {
             this.age = other.age;
         }
         
-        // --- START OF FIX ---
-        // This was the missing piece of logic.
         if (isNotBlank(other.extraJson)) {
-            this.extraJson = other.extraJson;
+            if (!isNotBlank(this.extraJson)) {
+                this.extraJson = other.extraJson;
+            } else {
+                ObjectMapper mapper = new ObjectMapper();
+                try {
+                    // --- START OF FIX ---
+                    // Replaced <> with the explicit type for Java 8 compatibility.
+                    TypeReference<Map<String, Object>> typeRef = new TypeReference<Map<String, Object>>() {};
+                    // --- END OF FIX ---
+                    Map<String, Object> existingMap = mapper.readValue(this.extraJson, typeRef);
+                    Map<String, Object> newMap = mapper.readValue(other.extraJson, typeRef);
+
+                    existingMap.putAll(newMap);
+                    this.extraJson = mapper.writeValueAsString(existingMap);
+
+                } catch (IOException e) {
+                    Log.e("DevoteeMerge", "Failed to merge extraJson fields", e);
+                }
+            }
         }
-        // --- END OF FIX ---
     }
 
     private boolean isNotBlank(String s) {

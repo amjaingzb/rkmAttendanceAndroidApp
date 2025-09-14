@@ -43,6 +43,11 @@ public class MappingActivity extends AppCompatActivity implements MappingAdapter
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mapping);
         setTitle(R.string.mapping_activity_title);
+        
+        // Enable the back arrow in the toolbar
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
 
         fileUri = getIntent().getParcelableExtra(EXTRA_FILE_URI);
         ArrayList<String> headers = getIntent().getStringArrayListExtra(EXTRA_CSV_HEADERS);
@@ -105,36 +110,24 @@ public class MappingActivity extends AppCompatActivity implements MappingAdapter
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.action_start_import) {
+        int itemId = item.getItemId();
+        // --- START OF FIX #2 ---
+        if (itemId == android.R.id.home) {
+            // Treat the "Up" button exactly like the system back button
+            finish();
+            return true;
+        } 
+        // --- END OF FIX #2 ---
+        else if (itemId == R.id.action_start_import) {
             if (validateMapping()) {
-                ImportMapping finalMapping = getFinalMapping();
-                // --- START OF FIX ---
-                // Corrected the method call to use the 2-argument version
+                ImportMapping finalMapping = adapter.getFinalMapping();
                 viewModel.startImport(fileUri, finalMapping);
-                // --- END OF FIX ---
             } else {
                  Toast.makeText(this, "Please map columns for 'Full Name' and 'Mobile Number'", Toast.LENGTH_LONG).show();
             }
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
-    
-    private ImportMapping getFinalMapping() {
-        ImportMapping originalMapping = adapter.getFinalMapping();
-        if (!retainDroppedSwitch.isChecked()) {
-            return originalMapping;
-        }
-
-        ImportMapping finalMapping = new ImportMapping();
-        for (Map.Entry<String, String> entry : originalMapping.asMap().entrySet()) {
-            if ("DROP".equals(entry.getValue())) {
-                finalMapping.put(entry.getKey(), "RETAIN");
-            } else {
-                finalMapping.put(entry.getKey(), entry.getValue());
-            }
-        }
-        return finalMapping;
     }
     
     @Override
@@ -158,7 +151,7 @@ public class MappingActivity extends AppCompatActivity implements MappingAdapter
             return false;
         }
     }
-
+    
     private void showSuccessDialog(CsvImporter.ImportStats stats) {
         String message = getString(R.string.import_stats_message,
                 stats.processed, stats.inserted, stats.updatedChanged, stats.skipped);

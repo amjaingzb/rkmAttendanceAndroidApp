@@ -257,3 +257,13 @@ Here is the precise order of operations to build this feature correctly:
     *   **`CsvImporter.java`:** The existing `setIncludeUnmappedAsExtras()` method is the final destination. The repository will call this method on the importer instance based on the flag's value before starting the import process.
 
 This plan directly addresses all the points you raised and provides a clear, robust path to a fully functional and user-friendly CSV import feature. Once you review and approve this plan, I can proceed with generating the necessary code changes.
+
+
+
+
+
+
+================== Extra features not yet self refined ===========
+1. Log data base changes 
+2. sync with gdrive 
+3. 
