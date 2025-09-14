@@ -14,8 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// --- START OF FIX #1 ---
-// This class is now much simpler. Its only job is to PARSE, not save.
 public class CsvImporter {
     private final ObjectMapper om = new ObjectMapper();
 
@@ -77,9 +75,47 @@ public class CsvImporter {
         return new Devotee(null, fullName, nameNorm, mobileNorm, address, age, email, gender, extraJson);
     }
     
+    // --- START OF FIX ---
+    // This method now contains the smarter, stateful guessing logic.
+    public static Map<String, String> guessTargets(List<String> headers) {
+        Map<String, String> finalMapping = new LinkedHashMap<>();
+        Set<String> usedTargets = new HashSet<>(); // Keep track of consumed targets
+
+        Map<String,String> syn = new LinkedHashMap<>();
+        java.util.function.Function<String,String> norm = s -> s==null?"":s.toLowerCase().replaceAll("[^a-z0-9]","");
+        for (String s : Arrays.asList("name","fullname","membername","devotee","person","contactname")) syn.put(norm.apply(s), "full_name");
+        for (String s : Arrays.asList("mobile","mobileno","mobilenumber", "phone","phoneno","phonenumber", "contact","contactno","contactnumber")) syn.put(norm.apply(s), "mobile");
+        for (String s : Arrays.asList("address","addr","residence","location")) syn.put(norm.apply(s), "address");
+        for (String s : Arrays.asList("age","years")) syn.put(norm.apply(s), "age");
+        for (String s : Arrays.asList("email","e-mail","emailid","emailaddress","mail")) syn.put(norm.apply(s), "email");
+        for (String s : Arrays.asList("gender","sex")) syn.put(norm.apply(s), "gender");
+
+        for (String header : headers) {
+            String k = norm.apply(header);
+            String guessedTarget = syn.get(k);
+            if (guessedTarget == null) {
+                if (k.contains("mobile")||k.contains("phone")||k.contains("contact")) guessedTarget="mobile";
+                else if (k.contains("name")) guessedTarget="full_name";
+            }
+
+            if (guessedTarget != null) {
+                if (!usedTargets.contains(guessedTarget)) {
+                    // The target is available, use it.
+                    finalMapping.put(header, guessedTarget);
+                    usedTargets.add(guessedTarget);
+                } else {
+                    // The target has already been used, default to RETAIN.
+                    finalMapping.put(header, "RETAIN");
+                }
+            }
+            // If no guess, it will be left unmapped (and default to DROP in the UI)
+        }
+        return finalMapping;
+    }
+    // --- END OF FIX ---
+    
     // --- UTILITY METHODS (UNCHANGED) ---
     private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
-    public static Map<String, String> guessTargets(List<String> headers) { Map<String, String> out = new LinkedHashMap<>(); java.util.function.Function<String,String> norm = s -> s==null?"":s.toLowerCase().replaceAll("[^a-z0-9]",""); Map<String,String> syn = new LinkedHashMap<>(); for (String s : Arrays.asList("name","fullname","membername","devotee","person","contactname")) syn.put(norm.apply(s), "full_name"); for (String s : Arrays.asList("mobile","mobileno","mobilenumber", "phone","phoneno","phonenumber", "contact","contactno","contactnumber")) syn.put(norm.apply(s), "mobile"); for (String s : Arrays.asList("address","addr","residence","location")) syn.put(norm.apply(s), "address"); for (String s : Arrays.asList("age","years")) syn.put(norm.apply(s), "age"); for (String s : Arrays.asList("email","e-mail","emailid","emailaddress","mail")) syn.put(norm.apply(s), "email"); for (String s : Arrays.asList("gender","sex")) syn.put(norm.apply(s), "gender"); for (String h : headers) { String k = norm.apply(h); String mapped = syn.get(k); if (mapped == null) { if (k.contains("mobile")||k.contains("phone")||k.contains("contact")) mapped="mobile"; else if (k.contains("name")) mapped="full_name"; } if (mapped != null) out.put(h, mapped); } return out; }
     private static Integer parseAge(String s) { if (s == null) return null; String d = s.replaceAll("[^0-9]", ""); if (d.isEmpty()) return null; try { int age = Integer.parseInt(d); return (age > 0 && age < 100) ? age : null; } catch (NumberFormatException e) { return null; } }
     private static String headerFor(ImportMapping mapping, String target) { for (Map.Entry<String, String> entry : mapping.asMap().entrySet()) { if (target.equalsIgnoreCase(entry.getValue())) { return entry.getKey(); } } return null; }
     private static String normHeader(String s) { if (s == null) return ""; String x = s.replace("\uFEFF", "").replace('\u00A0', ' '); return x.toLowerCase().replaceAll("\\s+", " ").trim(); }
