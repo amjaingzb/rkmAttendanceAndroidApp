@@ -37,9 +37,7 @@ public class AddEditEventActivity extends AppCompatActivity {
 
     private AddEditEventViewModel viewModel;
     private TextInputEditText nameEditText, dateEditText, fromTimeEditText, untilTimeEditText, remarkEditText;
-    // --- START OF FIX #1 ---
     private TextInputLayout fromTimeInputLayout, untilTimeInputLayout;
-    // --- END OF FIX #1 ---
     
     private long currentEventId = NEW_EVENT_ID;
     private LocalDate selectedDate = LocalDate.now();
@@ -93,10 +91,8 @@ public class AddEditEventActivity extends AppCompatActivity {
         fromTimeEditText = findViewById(R.id.edit_text_active_from);
         untilTimeEditText = findViewById(R.id.edit_text_active_until);
         remarkEditText = findViewById(R.id.edit_text_event_remark);
-        // --- START OF FIX #1 ---
         fromTimeInputLayout = findViewById(R.id.text_input_layout_active_from);
         untilTimeInputLayout = findViewById(R.id.text_input_layout_active_until);
-        // --- END OF FIX #1 ---
     }
 
     private void setupClickListeners() {
@@ -115,8 +111,6 @@ public class AddEditEventActivity extends AppCompatActivity {
             }
         });
         
-        // --- START OF FIX #1 ---
-        // Enhanced error handling for visual feedback
         viewModel.getErrorMessage().observe(this, message -> {
             if (!TextUtils.isEmpty(message)) {
                 if (message.toLowerCase().contains("overlap")) {
@@ -127,7 +121,6 @@ public class AddEditEventActivity extends AppCompatActivity {
                 }
             }
         });
-        // --- END OF FIX #1 ---
     }
 
     private void populateUI(Event event) {
@@ -148,7 +141,7 @@ public class AddEditEventActivity extends AppCompatActivity {
     }
 
     private void saveEvent() {
-        // Clear previous errors
+        // Clear previous errors before validating
         fromTimeInputLayout.setError(null);
         untilTimeInputLayout.setError(null);
 
@@ -164,13 +157,10 @@ public class AddEditEventActivity extends AppCompatActivity {
             return;
         }
 
-        // --- START OF FIX #2 ---
-        // Add validation to ensure 'until' is after 'from'
         if (selectedUntilTime.isBefore(selectedFromTime) || selectedUntilTime.equals(selectedFromTime)) {
             untilTimeInputLayout.setError("'Until' time must be after 'From' time");
             return;
         }
-        // --- END OF FIX #2 ---
 
         String remark = remarkEditText.getText().toString().trim();
         String activeFrom = LocalDateTime.of(selectedDate, selectedFromTime).format(DATETIME_FORMATTER);
@@ -205,6 +195,12 @@ public class AddEditEventActivity extends AppCompatActivity {
         dateEditText.setText(selectedDate.format(DATE_FORMATTER));
         fromTimeEditText.setText(selectedFromTime.format(TIME_FORMATTER));
         untilTimeEditText.setText(selectedUntilTime.format(TIME_FORMATTER));
+        
+        // --- START OF FIX ---
+        // Clear any existing errors whenever the time is updated.
+        fromTimeInputLayout.setError(null);
+        untilTimeInputLayout.setError(null);
+        // --- END OF FIX ---
     }
 
     private void showDatePicker() {
