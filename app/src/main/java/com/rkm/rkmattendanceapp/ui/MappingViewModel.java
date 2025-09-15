@@ -3,12 +3,10 @@ package com.rkm.rkmattendanceapp.ui;
 
 import android.app.Application;
 import android.net.Uri;
-
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-
 import com.rkm.attendance.core.AttendanceRepository;
 import com.rkm.attendance.importer.CsvImporter;
 import com.rkm.attendance.importer.ImportMapping;
@@ -30,12 +28,27 @@ public class MappingViewModel extends AndroidViewModel {
     public LiveData<CsvImporter.ImportStats> getImportStats() { return importStats; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
 
-    // MODIFIED: The 'saveUnmappedAsExtras' flag is now gone, as the logic is fully in the repository.
-    public void startImport(Uri fileUri, ImportMapping mapping) {
+    public void startDevoteeImport(Uri fileUri, ImportMapping mapping) {
         isLoading.setValue(true);
         new Thread(() -> {
             try {
                 CsvImporter.ImportStats stats = repository.importMasterDevoteeList(getApplication(), fileUri, mapping);
+                importStats.postValue(stats);
+            } catch (Exception e) {
+                e.printStackTrace();
+                errorMessage.postValue(e.getMessage());
+            } finally {
+                isLoading.postValue(false);
+            }
+        }).start();
+    }
+    
+    public void startAttendanceImport(Uri fileUri, ImportMapping mapping, long eventId) {
+        isLoading.setValue(true);
+        new Thread(() -> {
+            try {
+                // The stats object is the same, so we can reuse the same LiveData
+                CsvImporter.ImportStats stats = repository.importAttendanceList(getApplication(), fileUri, mapping, eventId);
                 importStats.postValue(stats);
             } catch (Exception e) {
                 e.printStackTrace();

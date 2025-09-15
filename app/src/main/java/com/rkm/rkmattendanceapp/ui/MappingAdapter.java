@@ -9,10 +9,8 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.rkm.attendance.importer.CsvImporter;
 import com.rkm.attendance.importer.ImportMapping;
 import com.rkm.rkmattendanceapp.R;
@@ -24,63 +22,52 @@ import java.util.Map;
 
 public class MappingAdapter extends RecyclerView.Adapter<MappingAdapter.ViewHolder> {
 
-    public interface MappingChangeListener {
-        void onMappingChanged();
-    }
-
-    private static final String[] TARGET_VALUES = {
-            "DROP", "RETAIN", "full_name", "mobile", "address", "age", "email", "gender"
-    };
-    private static final String[] TARGET_LABELS = {
-            "Drop (Ignore this column)", "Retain (Save in extras)", "Full Name",
-            "Mobile Number", "Address", "Age", "Email", "Gender"
-    };
+    public interface MappingChangeListener { void onMappingChanged(); }
 
     private final List<String> csvHeaders;
     private final String[] currentMappingValues;
     private final MappingChangeListener changeListener;
+    private final String[] targetValues;
+    private final String[] targetLabels;
 
-    public MappingAdapter(Context context, List<String> csvHeaders, MappingChangeListener listener) {
+    public MappingAdapter(Context context, List<String> csvHeaders, MappingChangeListener listener, Privilege privilege) {
         this.csvHeaders = csvHeaders;
         this.changeListener = listener;
         this.currentMappingValues = new String[csvHeaders.size()];
+
+        // Dynamically build the list of available fields based on privilege
+        List<String> values = new ArrayList<>(Arrays.asList("DROP", "RETAIN", "full_name", "mobile", "address", "age", "email", "gender"));
+        List<String> labels = new ArrayList<>(Arrays.asList("Drop (Ignore this column)", "Retain (Save in extras)", "Full Name", "Mobile Number", "Address", "Age", "Email", "Gender"));
+
+        if (privilege == Privilege.SUPER_ADMIN) {
+            values.add("count");
+            labels.add("Count (Attendance)");
+        }
+        this.targetValues = values.toArray(new String[0]);
+        this.targetLabels = labels.toArray(new String[0]);
+
         Map<String, String> guessedMapping = CsvImporter.guessTargets(csvHeaders);
         for (int i = 0; i < csvHeaders.size(); i++) {
-            String header = csvHeaders.get(i);
-            String guessedTarget = guessedMapping.get(header);
+            String guessedTarget = guessedMapping.get(csvHeaders.get(i));
             if (guessedTarget != null) {
                 currentMappingValues[i] = guessedTarget;
             } else {
-                currentMappingValues[i] = TARGET_VALUES[0]; // Default to "DROP"
+                currentMappingValues[i] = targetValues[0]; // Default to DROP
             }
         }
     }
 
-    // --- START OF FIX #2 ---
-    /**
-     * Toggles all mappings between DROP and RETAIN based on the switch state.
-     * @param retainAll true to change all DROPs to RETAIN, false to change all RETAINs to DROP.
-     */
     public void toggleDropRetain(boolean retainAll) {
-        if (retainAll) {
-            for (int i = 0; i < currentMappingValues.length; i++) {
-                if ("DROP".equals(currentMappingValues[i])) {
-                    currentMappingValues[i] = "RETAIN";
-                }
-            }
-        } else {
-            for (int i = 0; i < currentMappingValues.length; i++) {
-                if ("RETAIN".equals(currentMappingValues[i])) {
-                    currentMappingValues[i] = "DROP";
-                }
+        for (int i = 0; i < currentMappingValues.length; i++) {
+            if (retainAll) {
+                if ("DROP".equals(currentMappingValues[i])) currentMappingValues[i] = "RETAIN";
+            } else {
+                if ("RETAIN".equals(currentMappingValues[i])) currentMappingValues[i] = "DROP";
             }
         }
-        notifyDataSetChanged(); // This is crucial to update the UI
-        if (changeListener != null) {
-            changeListener.onMappingChanged(); // Re-validate after the toggle
-        }
+        notifyDataSetChanged();
+        if (changeListener != null) changeListener.onMappingChanged();
     }
-    // --- END OF FIX #2 ---
 
     @NonNull
     @Override
@@ -88,16 +75,10 @@ public class MappingAdapter extends RecyclerView.Adapter<MappingAdapter.ViewHold
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.list_item_mapping, parent, false);
         return new ViewHolder(view);
     }
-
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.bind(position);
-    }
-
+    public void onBindViewHolder(@NonNull ViewHolder holder, int position) { holder.bind(position); }
     @Override
-    public int getItemCount() {
-        return csvHeaders.size();
-    }
+    public int getItemCount() { return csvHeaders.size(); }
 
     public ImportMapping getFinalMapping() {
         ImportMapping finalMapping = new ImportMapping();
@@ -116,18 +97,17 @@ public class MappingAdapter extends RecyclerView.Adapter<MappingAdapter.ViewHold
             super(itemView);
             headerText = itemView.findViewById(R.id.text_csv_header);
             targetSpinner = itemView.findViewById(R.id.spinner_target_field);
-            spinnerAdapter = new ArrayAdapter<>(itemView.getContext(), android.R.layout.simple_spinner_item, new ArrayList<>(Arrays.asList(TARGET_LABELS)));
+            spinnerAdapter = new ArrayAdapter<>(itemView.getContext(), android.R.layout.simple_spinner_item, new ArrayList<>(Arrays.asList(targetLabels)));
             spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             targetSpinner.setAdapter(spinnerAdapter);
         }
 
         void bind(int position) {
-            String header = csvHeaders.get(position);
-            headerText.setText(header);
+            headerText.setText(csvHeaders.get(position));
             String currentSelectionValue = currentMappingValues[position];
             int selectionIndex = 0;
-            for (int i = 0; i < TARGET_VALUES.length; i++) {
-                if (TARGET_VALUES[i].equals(currentSelectionValue)) {
+            for (int i = 0; i < targetValues.length; i++) {
+                if (targetValues[i].equals(currentSelectionValue)) {
                     selectionIndex = i;
                     break;
                 }
@@ -136,10 +116,8 @@ public class MappingAdapter extends RecyclerView.Adapter<MappingAdapter.ViewHold
             targetSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
                 public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
-                    currentMappingValues[getAdapterPosition()] = TARGET_VALUES[pos];
-                    if (changeListener != null) {
-                        changeListener.onMappingChanged();
-                    }
+                    currentMappingValues[getAdapterPosition()] = targetValues[pos];
+                    if (changeListener != null) changeListener.onMappingChanged();
                 }
                 @Override
                 public void onNothingSelected(AdapterView<?> parent) {}

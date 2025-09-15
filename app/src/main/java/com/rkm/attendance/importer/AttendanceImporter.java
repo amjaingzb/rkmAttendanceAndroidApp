@@ -1,113 +1,69 @@
 // In: src/main/java/com/rkm/attendance/importer/AttendanceImporter.java
 package com.rkm.attendance.importer;
 
-import android.database.sqlite.SQLiteDatabase;
-import com.opencsv.CSVReaderHeaderAware;
 import com.rkm.attendance.db.DevoteeDao;
-import com.rkm.attendance.db.EventDao;
+import com.rkm.attendance.model.Devotee;
 
-import java.io.File;
-import java.io.FileReader;
 import java.util.Map;
 
+/**
+ * A simple parser class dedicated to processing rows from an attendance CSV.
+ * It is responsible for parsing a row into a temporary Devotee object and extracting the count.
+ */
 public class AttendanceImporter {
-    private final SQLiteDatabase db;
-    private final DevoteeDao devoteeDao;
-    private final EventDao eventDao;
 
-    public AttendanceImporter(SQLiteDatabase db) {
-        this.db = db;
-        this.devoteeDao = new DevoteeDao(db);
-        this.eventDao = new EventDao(db);
-    }
+    /**
+     * A simple data holder for the result of parsing one row.
+     */
+    public static class ParsedAttendanceRow {
+        public final Devotee devotee;
+        public final int count;
 
-    public static class Stats {
-        public int processed, insertedOrAdded, skipped;
-    }
-
-    public Stats importForEvent(long eventId, File csvFile, ImportMapping mapping) throws Exception {
-        Stats st = new Stats();
-        try (CSVReaderHeaderAware reader = new CSVReaderHeaderAware(new FileReader(csvFile))) {
-            Map<String, String> row;
-            db.beginTransaction();
-            try {
-                while ((row = reader.readMap()) != null) {
-                    st.processed++;
-
-                    String rawName = val(row, mapping, "full_name");
-                    String rawMobile = val(row, mapping, "mobile");
-                    String rawCount = val(row, mapping, "count");
-
-                    String mobile10 = DevoteeDao.normalizePhone(rawMobile);
-                    if (mobile10 == null || mobile10.length() != 10 || rawName == null || rawName.trim().isEmpty()) {
-                        st.skipped++;
-                        continue;
-                    }
-
-                    long devoteeId = devoteeDao.resolveOrCreateDevotee(rawName, mobile10, null, null, null, null);
-
-                    int count = parseCount(rawCount);
-                    String regType = (count > 0) ? "SPOT_REG" : "PRE_REG";
-
-                    eventDao.upsertAttendance(eventId, devoteeId, regType, count, null);
-                    st.insertedOrAdded++;
-                }
-                db.setTransactionSuccessful();
-            } finally {
-                db.endTransaction();
-            }
-        }
-        return st;
-    }
-
-    // --- START OF FIX ---
-    // The broken, unused private method 'upsertAttendanceAddCount' has been completely removed.
-    // --- END OF FIX ---
-
-    // ----- Pure Java helpers (no changes) -----
-    private static String val(Map<String, String> row, ImportMapping mapping, String target) {
-        String chosen = headerFor(mapping, target);
-        if (chosen == null) return null;
-        String v = row.get(chosen);
-        if (v != null) return v;
-
-        // Fallback for keys that might have weird characters (like BOM)
-        String want = normHeader(chosen);
-        for (Map.Entry<String, String> entry : row.entrySet()) {
-            if (normHeader(entry.getKey()).equals(want)) {
-                return entry.getValue();
-            }
-        }
-        return null;
-    }
-
-
-    private static String headerFor(ImportMapping m, String target) {
-        for (Map.Entry<String, String> entry : m.asMap().entrySet()) {
-            if (target.equalsIgnoreCase(entry.getValue())) {
-                return entry.getKey();
-            }
-        }
-        return null;
-    }
-
-
-    private static String normHeader(String s) {
-        if (s == null) return "";
-        String x = s.replace("\uFEFF", "").replace('\u00A0', ' ');
-        return x.toLowerCase().replaceAll("\\s+", " ").trim();
-    }
-
-    private static int parseCount(String s) {
-        if (s == null) return 0;
-        String t = s.trim();
-        if (t.isEmpty()) return 0;
-        try {
-            String d = t.replaceAll("[^0-9\\-+]", "");
-            if (d.isEmpty()) return 0;
-            return Integer.parseInt(d);
-        } catch (NumberFormatException ignore) {
-            return 0; // Default to 0 if parsing fails
+        public ParsedAttendanceRow(Devotee devotee, int count) {
+            this.devotee = devotee;
+            this.count = count;
         }
     }
+
+    /**
+     * Parses a single row from a CSV into a transient Devotee object and an attendance count.
+     * This method does NOT save anything to the database.
+     * @param row The map representing the CSV row.
+     * @param mapping The mapping configuration from the UI.
+     * @return A ParsedAttendanceRow object, or null if mandatory fields are missing.
+     */
+    public ParsedAttendanceRow parseRow(Map<String, String> row, ImportMapping mapping) {
+        String fullName = value(row, mapping, "full_name");
+        String mobile = value(row, mapping, "mobile");
+        if (isBlank(fullName) || isBlank(mobile)) {
+            return null; // Mandatory fields are missing
+        }
+
+        String address = value(row, mapping, "address");
+        Integer age = parseAge(value(row, mapping, "age"));
+        String email = value(row, mapping, "email");
+        String gender = value(row, mapping, "gender");
+        String nameNorm = DevoteeDao.normalizeName(fullName);
+        String mobileNorm = DevoteeDao.normalizePhone(mobile);
+
+        if (isBlank(mobileNorm)) {
+            return null;
+        }
+
+        // For attendance import, we don't need to process extra_json.
+        // The devotee record will be enriched, but we don't add new extra fields here.
+        Devotee parsedDevotee = new Devotee(null, fullName, nameNorm, mobileNorm, address, age, email, gender, null);
+
+        int count = parseCount(value(row, mapping, "count"));
+
+        return new ParsedAttendanceRow(parsedDevotee, count);
+    }
+
+    // --- UTILITY METHODS (copied for self-sufficiency) ---
+    private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
+    private static Integer parseAge(String s) { if (s == null) return null; String d = s.replaceAll("[^0-9]", ""); if (d.isEmpty()) return null; try { int age = Integer.parseInt(d); return (age > 0 && age < 100) ? age : null; } catch (NumberFormatException e) { return null; } }
+    private static String headerFor(ImportMapping mapping, String target) { for (Map.Entry<String, String> entry : mapping.asMap().entrySet()) { if (target.equalsIgnoreCase(entry.getValue())) { return entry.getKey(); } } return null; }
+    private static String normHeader(String s) { if (s == null) return ""; String x = s.replace("\uFEFF", "").replace('\u00A0', ' '); return x.toLowerCase().replaceAll("\\s+", " ").trim(); }
+    private static String value(Map<String, String> row, ImportMapping mapping, String target) { String chosen = headerFor(mapping, target); if (chosen == null) return null; String v = row.get(chosen); if (v != null) return v; String want = normHeader(chosen); for (Map.Entry<String, String> e : row.entrySet()) { if (normHeader(e.getKey()).equals(want)) { return e.getValue(); } } return null; }
+    private static int parseCount(String s) { if (s == null) return 0; String t = s.trim(); if (t.isEmpty()) return 0; try { String d = t.replaceAll("[^0-9\\-+]", ""); if (d.isEmpty()) return 0; return Integer.parseInt(d); } catch (NumberFormatException ignore) { return 0; } }
 }

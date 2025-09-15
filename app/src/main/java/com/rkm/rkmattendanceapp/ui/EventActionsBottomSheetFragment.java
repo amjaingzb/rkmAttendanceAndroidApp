@@ -22,7 +22,6 @@ public class EventActionsBottomSheetFragment extends BottomSheetDialogFragment {
     public static final String TAG = "EventActionsBottomSheet";
     public static final String REQUEST_KEY = "event_action_request";
     public static final String KEY_ACTION = "selected_action";
-
     public static final String KEY_EVENT_ID = "event_id";
     public static final String KEY_EVENT_DATE = "event_date";
     public static final String KEY_PRIVILEGE = "privilege";
@@ -53,34 +52,30 @@ public class EventActionsBottomSheetFragment extends BottomSheetDialogFragment {
 
         View deleteAction = view.findViewById(R.id.action_delete_event);
         View editAction = view.findViewById(R.id.action_edit_event);
+        View importAction = view.findViewById(R.id.action_import_attendance);
 
-        // --- MODIFIED: This is the corrected, more explicit logic ---
-
-        // Rule 1: The "Delete" button is ONLY visible if the privilege is SUPER_ADMIN.
-        // For all other cases (Coordinator, null, etc.), it is hidden.
-        if (privilege == Privilege.SUPER_ADMIN) {
-            deleteAction.setVisibility(View.VISIBLE);
-        } else {
-            deleteAction.setVisibility(View.GONE);
-        }
-
-        // Rule 2: The "Edit" button is DISABLED if the privilege is EVENT_COORDINATOR
-        // AND the event is in the past. It's enabled in all other scenarios.
-        if (privilege == Privilege.EVENT_COORDINATOR && isDateInPast(eventDate)) {
+        // Rule: "Delete" is only for Super Admins
+        deleteAction.setVisibility(privilege == Privilege.SUPER_ADMIN ? View.VISIBLE : View.GONE);
+        
+        // Rule: Coordinators cannot edit or import for past events
+        boolean isPast = isDateInPast(eventDate);
+        if (privilege == Privilege.EVENT_COORDINATOR && isPast) {
             editAction.setEnabled(false);
             editAction.setAlpha(0.5f);
+            importAction.setEnabled(false);
+            importAction.setAlpha(0.5f);
         } else {
             editAction.setEnabled(true);
             editAction.setAlpha(1.0f);
+            importAction.setEnabled(true);
+            importAction.setAlpha(1.0f);
         }
 
-        // --- End of Privilege Logic ---
-
-        view.findViewById(R.id.action_import_attendance).setOnClickListener(v -> sendResult("IMPORT_ATTENDANCE", eventId));
+        importAction.setOnClickListener(v -> {
+            if (v.isEnabled()) sendResult("IMPORT_ATTENDANCE", eventId);
+        });
         editAction.setOnClickListener(v -> {
-            if(editAction.isEnabled()) {
-                sendResult("EDIT", eventId);
-            }
+            if (v.isEnabled()) sendResult("EDIT", eventId);
         });
         deleteAction.setOnClickListener(v -> sendResult("DELETE", eventId));
     }
@@ -103,8 +98,7 @@ public class EventActionsBottomSheetFragment extends BottomSheetDialogFragment {
             todayCal.set(Calendar.MINUTE, 0);
             todayCal.set(Calendar.SECOND, 0);
             todayCal.set(Calendar.MILLISECOND, 0);
-            Date today = todayCal.getTime();
-            return eventDate.before(today);
+            return eventDate.before(todayCal.getTime());
         } catch (ParseException e) {
             e.printStackTrace();
             return false;
