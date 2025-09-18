@@ -53,17 +53,13 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
 
     public void searchDevotees(String query) {
         this.lastSearchQuery = query;
-
         if (query == null || query.length() < 3) {
             searchResults.postValue(null);
             return;
         }
         new Thread(() -> {
             try {
-                // --- START OF FIX (WhatsApp Icon) ---
-                // This now calls the fully-enriched search method from the repository
                 List<DevoteeDao.EnrichedDevotee> results = repository.searchDevoteesForEvent(query, currentEventId);
-                // --- END OF FIX (WhatsApp Icon) ---
                 searchResults.postValue(results);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -71,16 +67,22 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
             }
         }).start();
     }
-
+    
     public void markAttendance(long devoteeId) {
         new Thread(() -> {
             try {
                 repository.markDevoteeAsPresent(currentEventId, devoteeId);
                 refreshStatsAndCheckedInList();
+
+                // --- START OF WORKFLOW FIX ---
+                // The search results MUST be re-queried to show the new "Present" status.
+                // This makes the "refresh-in-place" work correctly after the dialog closes.
                 if (lastSearchQuery != null && lastSearchQuery.length() >= 3) {
                     List<DevoteeDao.EnrichedDevotee> updatedResults = repository.searchDevoteesForEvent(lastSearchQuery, currentEventId);
                     searchResults.postValue(updatedResults);
                 }
+                // --- END OF WORKFLOW FIX ---
+
             } catch (Exception e) {
                 e.printStackTrace();
                 errorMessage.postValue("Failed to mark attendance.");

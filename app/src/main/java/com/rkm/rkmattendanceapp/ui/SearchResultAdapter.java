@@ -52,7 +52,7 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView nameText, mobileText, statusText;
-        ImageView whatsappStatusIcon; // NEW: Reference to the icon
+        ImageView whatsappStatusIcon;
         interface SearchResultProvider { List<DevoteeDao.EnrichedDevotee> getList(); }
 
         public ViewHolder(@NonNull View itemView, OnSearchResultClickListener listener, SearchResultProvider provider) {
@@ -60,7 +60,7 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
             nameText = itemView.findViewById(R.id.text_search_devotee_name);
             mobileText = itemView.findViewById(R.id.text_search_devotee_mobile);
             statusText = itemView.findViewById(R.id.text_search_reg_status);
-            whatsappStatusIcon = itemView.findViewById(R.id.icon_whatsapp_status); // NEW: Bind the icon
+            whatsappStatusIcon = itemView.findViewById(R.id.icon_whatsapp_status);
 
             itemView.setOnClickListener(v -> {
                 int pos = getAdapterPosition();
@@ -75,14 +75,15 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
             nameText.setText(result.devotee().getFullName());
             mobileText.setText(result.devotee().getMobileE164());
 
-            // --- START OF PAYOFF FEATURE ---
-            // Show the icon ONLY if the devotee is NOT in a WhatsApp group.
-            if (result.whatsAppGroup() == null || result.whatsAppGroup() == 0) {
-                whatsappStatusIcon.setVisibility(View.VISIBLE);
+            // --- START OF ICON FIX ---
+            // Use two distinct icons for clear, at-a-glance status.
+            whatsappStatusIcon.setVisibility(View.VISIBLE); // Icon is always visible
+            if (result.whatsAppGroup() != null && result.whatsAppGroup() > 0) {
+                whatsappStatusIcon.setImageResource(R.drawable.ic_whatsapp_green);
             } else {
-                whatsappStatusIcon.setVisibility(View.GONE);
+                whatsappStatusIcon.setImageResource(R.drawable.ic_whatsapp_gray);
             }
-            // --- END OF PAYOFF FEATURE ---
+            // --- END OF ICON FIX ---
 
             switch (result.getEventStatus()) {
                 case PRESENT:
@@ -90,13 +91,11 @@ public class SearchResultAdapter extends RecyclerView.Adapter<SearchResultAdapte
                     statusText.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_status_present));
                     itemView.setEnabled(false);
                     break;
-
                 case PRE_REGISTERED:
                     statusText.setText("Pre-Reg");
                     statusText.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_status_prereg));
                     itemView.setEnabled(true);
                     break;
-
                 case WALK_IN:
                     statusText.setText("Walk-in");
                     statusText.setBackground(ContextCompat.getDrawable(context, R.drawable.bg_status_walkin));
