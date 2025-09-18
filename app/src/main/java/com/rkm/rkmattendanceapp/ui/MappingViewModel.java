@@ -58,4 +58,21 @@ public class MappingViewModel extends AndroidViewModel {
             }
         }).start();
     }
+
+    public void startWhatsAppImport(Uri fileUri, ImportMapping mapping) {
+        isLoading.setValue(true);
+        new Thread(() -> {
+            try {
+                repository.importWhatsAppGroups(getApplication(), fileUri, mapping);
+                // For simplicity, we'll just signal completion without detailed stats for now.
+                // A more advanced implementation could return stats from the importer.
+                importStats.postValue(new CsvImporter.ImportStats());
+            } catch (Exception e) {
+                e.printStackTrace();
+                errorMessage.postValue(e.getMessage());
+            } finally {
+                isLoading.postValue(false);
+            }
+        }).start();
+    }
 }

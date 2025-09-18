@@ -683,3 +683,4 @@ Maintain counters **cumulative attendance, last attendance date** per person/key
 3. Report of which active devotes are not in whatsApp group 
 4. report of which whatsapp devotees are not active 
 5. report of cumulative -- counter 
+6. extend this for receiving donations , recording upi xaction 4 digits, cash or upi, sending receipt

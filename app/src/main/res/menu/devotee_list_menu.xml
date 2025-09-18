@@ -7,4 +7,9 @@
         android:title="Import Master Devotee List"
         app:showAsAction="never" />
 
+    <item
+        android:id="@+id/action_import_whatsapp"
+        android:title="Import WhatsApp Group List"
+        app:showAsAction="never" />
+
 </menu>
