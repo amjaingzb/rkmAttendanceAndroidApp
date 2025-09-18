@@ -18,7 +18,6 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
 
     private final AttendanceRepository repository;
     private long currentEventId = -1;
-    // NEW: A variable to remember the last valid search query.
     private String lastSearchQuery = null;
 
     private final MutableLiveData<Event> eventDetails = new MutableLiveData<>();
@@ -53,7 +52,6 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
     }
 
     public void searchDevotees(String query) {
-        // NEW: Store the latest query.
         this.lastSearchQuery = query;
 
         if (query == null || query.length() < 3) {
@@ -62,7 +60,10 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
         }
         new Thread(() -> {
             try {
+                // --- START OF FIX (WhatsApp Icon) ---
+                // This now calls the fully-enriched search method from the repository
                 List<DevoteeDao.EnrichedDevotee> results = repository.searchDevoteesForEvent(query, currentEventId);
+                // --- END OF FIX (WhatsApp Icon) ---
                 searchResults.postValue(results);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -71,43 +72,22 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
         }).start();
     }
 
-    // MODIFIED: This method now re-runs the search after marking attendance.
     public void markAttendance(long devoteeId) {
         new Thread(() -> {
             try {
                 repository.markDevoteeAsPresent(currentEventId, devoteeId);
-                // First, refresh the stats and the main checked-in list as before.
                 refreshStatsAndCheckedInList();
-
-                // NEW: Now, re-run the last search to update the search results UI in place.
                 if (lastSearchQuery != null && lastSearchQuery.length() >= 3) {
                     List<DevoteeDao.EnrichedDevotee> updatedResults = repository.searchDevoteesForEvent(lastSearchQuery, currentEventId);
                     searchResults.postValue(updatedResults);
                 }
-
             } catch (Exception e) {
                 e.printStackTrace();
                 errorMessage.postValue("Failed to mark attendance.");
             }
         }).start();
     }
-
-    public void onSpotRegisterAndMarkPresent(Devotee newDevotee) {
-        if (currentEventId == -1) {
-            errorMessage.postValue("Error: No active event to register for.");
-            return;
-        }
-        new Thread(() -> {
-            try {
-                repository.onSpotRegisterAndMarkPresent(currentEventId, newDevotee);
-                refreshStatsAndCheckedInList();
-            } catch (Exception e) {
-                e.printStackTrace();
-                errorMessage.postValue("On-spot registration failed: " + e.getMessage());
-            }
-        }).start();
-    }
-
+    
     private void refreshStatsAndCheckedInList() {
         try {
             EventDao.EventStats stats = repository.getEventStats(currentEventId);

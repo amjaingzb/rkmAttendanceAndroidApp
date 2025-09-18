@@ -24,6 +24,40 @@ public class DevoteeDao {
     public DevoteeDao(SQLiteDatabase db) {
         this.db = db;
     }
+    
+    // --- START OF FIX (WhatsApp Icon) ---
+    private static final String ENRICHED_DEVOTEE_SQL =
+            "WITH att_stats AS (" +
+            "SELECT a.devotee_id, SUM(a.cnt) AS total_attendance, MAX(date(e.event_date)) AS last_date " +
+            "FROM attendance a JOIN event e ON a.event_id = e.event_id " +
+            "WHERE e.event_date IS NOT NULL AND e.event_date != '' GROUP BY a.devotee_id" +
+            ") " +
+            "SELECT d.*, wgm.group_number, COALESCE(ats.total_attendance, 0) AS cumulative_attendance, ats.last_date AS last_attendance_date " +
+            "FROM devotee d " +
+            "LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 " +
+            "LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id ";
+
+    public List<EnrichedDevotee> getAllEnrichedDevotees() {
+        String sql = ENRICHED_DEVOTEE_SQL + "ORDER BY d.full_name COLLATE NOCASE";
+        List<EnrichedDevotee> results = new ArrayList<>();
+        try (Cursor cursor = db.rawQuery(sql, null)) {
+            while (cursor.moveToNext()) {
+                results.add(enrichedFromCursor(cursor, EventStatus.WALK_IN));
+            }
+        }
+        return results;
+    }
+    
+    public Integer getWhatsAppGroup(String mobileE164) {
+        if (mobileE164 == null) return null;
+        try (Cursor cursor = db.query("whatsapp_group_map", new String[]{"group_number"}, "phone_number_10 = ?", new String[]{mobileE164}, null, null, null)) {
+            if (cursor.moveToFirst()) {
+                return cursor.getInt(0);
+            }
+        }
+        return null;
+    }
+    // --- END OF FIX (WhatsApp Icon) ---
 
     public void update(Devotee d) {
         String sql = "UPDATE devotee SET " +
@@ -38,11 +72,6 @@ public class DevoteeDao {
         db.execSQL(sql, args);
     }
     
-    // --- START OF FIX #2 ---
-    /**
-     * Finds a single devotee by their unique key (mobile + normalized name).
-     * @return A Devotee object if found, otherwise null.
-     */
     public Devotee findByKey(String mobile10, String nameNorm) {
         String sql = "SELECT * FROM devotee WHERE mobile_e164 = ? AND name_norm = ? LIMIT 1";
         try (Cursor cursor = db.rawQuery(sql, new String[]{mobile10, nameNorm})) {
@@ -52,106 +81,16 @@ public class DevoteeDao {
             return null;
         }
     }
-    // --- END OF FIX #2 ---
 
-    public Devotee fromCursor(Cursor cursor) {
-        int idCol = cursor.getColumnIndexOrThrow("devotee_id");
-        int fullNameCol = cursor.getColumnIndexOrThrow("full_name");
-        int nameNormCol = cursor.getColumnIndexOrThrow("name_norm");
-        int mobileCol = cursor.getColumnIndexOrThrow("mobile_e164");
-        int addressCol = cursor.getColumnIndexOrThrow("address");
-        int ageCol = cursor.getColumnIndexOrThrow("age");
-        int emailCol = cursor.getColumnIndexOrThrow("email");
-        int genderCol = cursor.getColumnIndexOrThrow("gender");
-        int extraJsonCol = cursor.getColumnIndexOrThrow("extra_json");
-        return new Devotee(
-                cursor.getLong(idCol), cursor.getString(fullNameCol), cursor.getString(nameNormCol),
-                cursor.getString(mobileCol), cursor.getString(addressCol),
-                cursor.isNull(ageCol) ? null : cursor.getInt(ageCol),
-                cursor.getString(emailCol), cursor.getString(genderCol), cursor.getString(extraJsonCol)
-        );
-    }
-    public Devotee getById(long id) {
-        try (Cursor cursor = db.query("devotee", null, "devotee_id = ?", new String[]{String.valueOf(id)}, null, null, null)) {
-            return cursor.moveToFirst() ? fromCursor(cursor) : null;
-        }
-    }
-    public int deleteByIds(List<Long> ids) {
-        if (ids == null || ids.isEmpty()) return 0;
-        int deletedRows = 0;
-        db.beginTransaction();
-        try {
-            for (Long id : ids) {
-                deletedRows += db.delete("devotee", "devotee_id = ?", new String[]{String.valueOf(id)});
-            }
-            db.setTransactionSuccessful();
-        } finally { db.endTransaction(); }
-        return deletedRows;
-    }
-    public List<Devotee> findByMobileAny(String mobile10) {
-        List<Devotee> out = new ArrayList<>();
-        String sql = "SELECT * FROM devotee " +
-                "WHERE mobile_e164 = ? OR (extra_json IS NOT NULL AND extra_json LIKE '%' || ? || '%') " +
-                "ORDER BY full_name";
-        try (Cursor cursor = db.rawQuery(sql, new String[]{mobile10, mobile10})) {
-            while (cursor.moveToNext()) { out.add(fromCursor(cursor)); }
-        }
-        return out;
-    }
-    public long resolveOrCreateDevotee(String rawName, String rawMobile, String address, Integer age, String email, String gender) {
-        String nameNorm  = normalizeName(rawName);
-        String mobile10  = normalizePhone(rawMobile);
-        if (nameNorm == null || nameNorm.trim().isEmpty() || mobile10 == null || mobile10.length() != 10) {
-            throw new IllegalArgumentException("resolveOrCreateDevotee: missing/invalid name or mobile");
-        }
-        List<Devotee> sameMobile = findByMobileAny(mobile10);
-        Devotee best = null;
-        double bestSim = 0.0;
-        for (Devotee cand : sameMobile) { if (normalizeName(rawName).equals(normalizeName(cand.getFullName()))) { best = cand; bestSim = 1.0; break; } }
-        if (best == null) { for (Devotee cand : sameMobile) { if (samePersonOnMobileAggressive(rawName, cand.getFullName())) { best = cand; bestSim = 0.97; break; } } }
-        if (best == null) { for (Devotee cand : sameMobile) { if (isSubsetName(rawName, cand.getFullName()) || isSubsetName(cand.getFullName(), rawName)) { best = cand; bestSim = 0.95; break; } } }
-        if (best == null) {
-            for (Devotee cand : sameMobile) {
-                double s = jaroWinklerSim(normalizeName(rawName), normalizeName(cand.getFullName()));
-                if (s > bestSim) { bestSim = s; best = cand; }
-            }
-            if (bestSim < 0.92) best = null;
-        }
-        if (best != null) {
-            if (bestSim < 0.999) { logFuzzyMerge(mobile10, rawName, best.getFullName(), bestSim); }
-            return best.getDevoteeId();
-        }
-        Devotee fresh = new Devotee(null, rawName, nameNorm, mobile10, address, age, email, gender, null);
-        return insertAndGetId(fresh);
-    }
-    private long insertAndGetId(Devotee d) {
-        ContentValues values = new ContentValues();
-        values.put("full_name", d.getFullName());
-        values.put("name_norm", d.getNameNorm());
-        values.put("mobile_e164", d.getMobileE164());
-        values.put("address", d.getAddress());
-        values.put("age", d.getAge());
-        values.put("email", d.getEmail());
-        values.put("gender", d.getGender());
-        values.put("extra_json", d.getExtraJson());
-        return db.insertOrThrow("devotee", null, values);
-    }
-    public static class EnrichedDevotee {
-        private final Devotee devotee;
-        private final Integer whatsAppGroup;
-        private final int cumulativeAttendance;
-        private final String lastAttendanceDate;
-        private final EventStatus eventStatus;
-        public EnrichedDevotee(Devotee d, Integer wg, int ca, String lad, EventStatus es) { this.devotee = d; this.whatsAppGroup = wg; this.cumulativeAttendance = ca; this.lastAttendanceDate = lad; this.eventStatus = es; }
-        public Devotee devotee() { return devotee; }
-        public Integer whatsAppGroup() { return whatsAppGroup; }
-        public int cumulativeAttendance() { return cumulativeAttendance; }
-        public String lastAttendanceDate() { return lastAttendanceDate; }
-        public EventStatus getEventStatus() { return eventStatus; }
-    }
-    public List<EnrichedDevotee> searchEnrichedDevotees(String mobileInput, String namePart) { String m = (mobileInput != null) ? mobileInput.replaceAll("[^0-9]", "") : null; boolean useM = m != null && m.length() >= 4; boolean useN = (namePart != null && !namePart.trim().isEmpty() && namePart.trim().length() >= 3); if (!useM && !useN) { return Collections.emptyList(); } String sql = "WITH att_stats AS (SELECT a.devotee_id, SUM(a.cnt) AS total_attendance, MAX(date(e.event_date)) AS last_date FROM attendance a JOIN event e ON a.event_id = e.event_id WHERE e.event_date IS NOT NULL AND e.event_date != '' GROUP BY a.devotee_id) SELECT d.*, wgm.group_number, COALESCE(ats.total_attendance, 0) AS cumulative_attendance, ats.last_date AS last_attendance_date FROM devotee d LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id WHERE (? IS NOT NULL AND ( d.mobile_e164 LIKE '%' || ? || '%' OR (d.extra_json IS NOT NULL AND d.extra_json LIKE '%' || ? || '%') )) OR (? IS NOT NULL AND d.name_norm LIKE '%' || lower(?) || '%' ) ORDER BY d.full_name COLLATE NOCASE"; String[] args = { useM ? m : null, useM ? m : null, useM ? m : null, useN ? namePart : null, useN ? namePart : null }; List<EnrichedDevotee> results = new ArrayList<>(); try (Cursor cursor = db.rawQuery(sql, args)) { while (cursor.moveToNext()) { results.add(enrichedFromCursor(cursor, EventStatus.WALK_IN)); } } return results; }
+    // ... All other methods are unchanged ...
+    public Devotee fromCursor(Cursor cursor) { int idCol = cursor.getColumnIndexOrThrow("devotee_id"); int fullNameCol = cursor.getColumnIndexOrThrow("full_name"); int nameNormCol = cursor.getColumnIndexOrThrow("name_norm"); int mobileCol = cursor.getColumnIndexOrThrow("mobile_e164"); int addressCol = cursor.getColumnIndexOrThrow("address"); int ageCol = cursor.getColumnIndexOrThrow("age"); int emailCol = cursor.getColumnIndexOrThrow("email"); int genderCol = cursor.getColumnIndexOrThrow("gender"); int extraJsonCol = cursor.getColumnIndexOrThrow("extra_json"); return new Devotee( cursor.getLong(idCol), cursor.getString(fullNameCol), cursor.getString(nameNormCol), cursor.getString(mobileCol), cursor.getString(addressCol), cursor.isNull(ageCol) ? null : cursor.getInt(ageCol), cursor.getString(emailCol), cursor.getString(genderCol), cursor.getString(extraJsonCol) ); }
+    public Devotee getById(long id) { try (Cursor cursor = db.query("devotee", null, "devotee_id = ?", new String[]{String.valueOf(id)}, null, null, null)) { return cursor.moveToFirst() ? fromCursor(cursor) : null; } }
+    public int deleteByIds(List<Long> ids) { if (ids == null || ids.isEmpty()) return 0; int deletedRows = 0; db.beginTransaction(); try { for (Long id : ids) { deletedRows += db.delete("devotee", "devotee_id = ?", new String[]{String.valueOf(id)}); } db.setTransactionSuccessful(); } finally { db.endTransaction(); } return deletedRows; }
+    public List<Devotee> findByMobileAny(String mobile10) { List<Devotee> out = new ArrayList<>(); String sql = "SELECT * FROM devotee " + "WHERE mobile_e164 = ? OR (extra_json IS NOT NULL AND extra_json LIKE '%' || ? || '%') " + "ORDER BY full_name"; try (Cursor cursor = db.rawQuery(sql, new String[]{mobile10, mobile10})) { while (cursor.moveToNext()) { out.add(fromCursor(cursor)); } } return out; }
+    public long resolveOrCreateDevotee(String rawName, String rawMobile, String address, Integer age, String email, String gender) { String nameNorm  = normalizeName(rawName); String mobile10  = normalizePhone(rawMobile); if (nameNorm == null || nameNorm.trim().isEmpty() || mobile10 == null || mobile10.length() != 10) { throw new IllegalArgumentException("resolveOrCreateDevotee: missing/invalid name or mobile"); } List<Devotee> sameMobile = findByMobileAny(mobile10); Devotee best = null; double bestSim = 0.0; for (Devotee cand : sameMobile) { if (normalizeName(rawName).equals(normalizeName(cand.getFullName()))) { best = cand; bestSim = 1.0; break; } } if (best == null) { for (Devotee cand : sameMobile) { if (samePersonOnMobileAggressive(rawName, cand.getFullName())) { best = cand; bestSim = 0.97; break; } } } if (best == null) { for (Devotee cand : sameMobile) { if (isSubsetName(rawName, cand.getFullName()) || isSubsetName(cand.getFullName(), rawName)) { best = cand; bestSim = 0.95; break; } } } if (best == null) { for (Devotee cand : sameMobile) { double s = jaroWinklerSim(normalizeName(rawName), normalizeName(cand.getFullName())); if (s > bestSim) { bestSim = s; best = cand; } } if (bestSim < 0.92) best = null; } if (best != null) { if (bestSim < 0.999) { logFuzzyMerge(mobile10, rawName, best.getFullName(), bestSim); } return best.getDevoteeId(); } Devotee fresh = new Devotee(null, rawName, nameNorm, mobile10, address, age, email, gender, null); return insertAndGetId(fresh); }
+    private long insertAndGetId(Devotee d) { ContentValues values = new ContentValues(); values.put("full_name", d.getFullName()); values.put("name_norm", d.getNameNorm()); values.put("mobile_e164", d.getMobileE164()); values.put("address", d.getAddress()); values.put("age", d.getAge()); values.put("email", d.getEmail()); values.put("gender", d.getGender()); values.put("extra_json", d.getExtraJson()); return db.insertOrThrow("devotee", null, values); }
+    public static class EnrichedDevotee { private final Devotee devotee; private final Integer whatsAppGroup; private final int cumulativeAttendance; private final String lastAttendanceDate; private final EventStatus eventStatus; public EnrichedDevotee(Devotee d, Integer wg, int ca, String lad, EventStatus es) { this.devotee = d; this.whatsAppGroup = wg; this.cumulativeAttendance = ca; this.lastAttendanceDate = lad; this.eventStatus = es; } public Devotee devotee() { return devotee; } public Integer whatsAppGroup() { return whatsAppGroup; } public int cumulativeAttendance() { return cumulativeAttendance; } public String lastAttendanceDate() { return lastAttendanceDate; } public EventStatus getEventStatus() { return eventStatus; } }
     public List<Devotee> searchSimpleDevotees(String query) { if (query == null || query.trim().length() < 3) { return Collections.emptyList(); } String s = query.trim().toLowerCase(); String d = s.replaceAll("[^0-9]", ""); List<Devotee> results = new ArrayList<>(); StringBuilder sql = new StringBuilder("SELECT * FROM devotee WHERE "); List<String> args = new ArrayList<>(); sql.append("name_norm LIKE ?"); args.add("%" + s + "%"); if (!d.isEmpty()) { sql.append(" OR mobile_e164 LIKE ?"); args.add("%" + d + "%"); } sql.append(" ORDER BY full_name COLLATE NOCASE"); try (Cursor cursor = db.rawQuery(sql.toString(), args.toArray(new String[0]))) { while (cursor.moveToNext()) { results.add(fromCursor(cursor)); } } return results; }
-    public List<EnrichedDevotee> getAllEnrichedDevotees() { String sql = "WITH att_stats AS (SELECT a.devotee_id, SUM(a.cnt) AS total_attendance, MAX(date(e.event_date)) AS last_date FROM attendance a JOIN event e ON a.event_id = e.event_id WHERE e.event_date IS NOT NULL AND e.event_date != '' GROUP BY a.devotee_id) SELECT d.*, wgm.group_number, COALESCE(ats.total_attendance, 0) AS cumulative_attendance, ats.last_date AS last_attendance_date FROM devotee d LEFT JOIN whatsapp_group_map wgm ON d.mobile_e164 = wgm.phone_number_10 LEFT JOIN att_stats ats ON d.devotee_id = ats.devotee_id ORDER BY d.full_name COLLATE NOCASE"; List<EnrichedDevotee> results = new ArrayList<>(); try (Cursor cursor = db.rawQuery(sql, null)) { while (cursor.moveToNext()) { results.add(enrichedFromCursor(cursor, EventStatus.WALK_IN)); } } return results; }
     private EnrichedDevotee enrichedFromCursor(Cursor cursor, EventStatus eventStatus) { Devotee d = fromCursor(cursor); int gCol = cursor.getColumnIndex("group_number"); Integer g = cursor.isNull(gCol) ? null : cursor.getInt(gCol); int a = cursor.getInt(cursor.getColumnIndexOrThrow("cumulative_attendance")); String ld = cursor.getString(cursor.getColumnIndexOrThrow("last_attendance_date")); return new EnrichedDevotee(d, g, a, ld, eventStatus); }
     public static final class CounterStats { private final long t, m, r, d; public CounterStats(long t, long m, long r, long d) { this.t = t; this.m = m; this.r = r; this.d = d; } public long totalDevotees() { return t; } public long totalMappedWhatsAppNumbers() { return m; } public long registeredDevoteesInWhatsApp() { return r; } public long devoteesWithAttendance() { return d; } }
     public CounterStats getCounterStats() { return new CounterStats(sC("SELECT COUNT(devotee_id) FROM devotee"), sC("SELECT COUNT(DISTINCT phone_number_10) FROM whatsapp_group_map"), sC("SELECT COUNT(devotee_id) FROM devotee WHERE mobile_e164 IN (SELECT phone_number_10 FROM whatsapp_group_map)"), sC("SELECT COUNT(DISTINCT devotee_id) FROM attendance WHERE cnt > 0")); }

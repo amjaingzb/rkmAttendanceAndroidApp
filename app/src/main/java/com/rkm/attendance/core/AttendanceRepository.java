@@ -4,6 +4,7 @@ package com.rkm.attendance.core;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.util.Log;
 
 import com.opencsv.CSVReaderHeaderAware;
 import com.rkm.attendance.db.*;
@@ -43,93 +44,34 @@ public class AttendanceRepository {
         this.configDao = new ConfigDao(database);
     }
 
-    public CsvImporter.ImportStats importAttendanceList(Context context, Uri uri, ImportMapping mapping, long eventId) throws Exception {
-        AppLogger.d(TAG, "Starting importAttendanceList for eventId: " + eventId);
-        AttendanceImporter importer = new AttendanceImporter();
-        CsvImporter.ImportStats stats = new CsvImporter.ImportStats();
-
-        List<Map<String, String>> allRows = new ArrayList<>();
-        try (InputStream inputStream = context.getContentResolver().openInputStream(uri);
-             InputStreamReader reader = new InputStreamReader(inputStream);
-             CSVReaderHeaderAware csvReader = new CSVReaderHeaderAware(reader)) {
-            Map<String, String> row;
-            while((row = csvReader.readMap()) != null) {
-                allRows.add(row);
-            }
-        }
-        AppLogger.d(TAG, "Loaded " + allRows.size() + " rows from CSV into memory.");
-
-        if (allRows.isEmpty()) {
-            AppLogger.w(TAG, "CSV file is empty or could not be read. Aborting import.");
-            return stats;
-        }
-
-        // PASS 1: Save and merge all devotees.
-        AppLogger.d(TAG, "Starting PASS 1: Save/Merge Devotees.");
-        database.beginTransaction();
-        try {
-            for (Map<String, String> row : allRows) {
-                stats.processed++;
-                try {
-                    AttendanceImporter.ParsedAttendanceRow parsedRow = importer.parseRow(row, mapping);
-                    if (parsedRow == null) {
-                        AppLogger.w(TAG, "PASS 1: Row skipped due to null parse result. Row: " + row);
-                        stats.skipped++;
-                        continue;
-                    }
-                    saveOrMergeDevoteeFromAdmin(parsedRow.devotee);
-                    AppLogger.d(TAG, "PASS 1: Successfully processed devotee: " + parsedRow.devotee.getFullName());
-                } catch (IllegalArgumentException e) {
-                    AppLogger.e(TAG, "PASS 1: Skipping bad devotee row. Row: " + row, e);
-                    stats.skipped++;
-                }
-            }
-            AppLogger.d(TAG, "PASS 1: Loop finished. Setting transaction successful.");
-            database.setTransactionSuccessful();
-        } catch (Exception e) {
-            AppLogger.e(TAG, "PASS 1: CRITICAL ERROR during transaction.", e);
-        } finally {
-            AppLogger.d(TAG, "PASS 1: Ending transaction.");
-            database.endTransaction();
-        }
+    // --- START OF FIX ---
+    // This is the definitive, correct version of the search method for the Operator screen.
+    public List<EnrichedDevotee> searchDevoteesForEvent(String query, long eventId) {
+        // First, get the basic list of devotees who match the name/mobile search query.
+        List<Devotee> allMatches = devoteeDao.searchSimpleDevotees(query);
         
-        // PASS 2: Create the attendance links.
-        AppLogger.d(TAG, "Starting PASS 2: Link Attendance.");
-        database.beginTransaction();
-        try {
-            for (Map<String, String> row : allRows) {
-                try {
-                    AttendanceImporter.ParsedAttendanceRow parsedRow = importer.parseRow(row, mapping);
-                    if (parsedRow == null) continue;
+        // Now, for each of those devotees, enrich them with their specific status for THIS event.
+        return allMatches.stream()
+                .map(devotee -> {
+                    // Get their attendance status for the current event
+                    EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devotee.getDevoteeId(), eventId);
+                    EventStatus eventStatus = (status == null) ? EventStatus.WALK_IN : (status.count > 0 ? EventStatus.PRESENT : EventStatus.PRE_REGISTERED);
                     
-                    Devotee devotee = devoteeDao.findByKey(parsedRow.devotee.getMobileE164(), parsedRow.devotee.getNameNorm());
-                    if (devotee == null) {
-                        AppLogger.e(TAG, "PASS 2: FATAL! Could not find devotee in DB that should have been saved in Pass 1: " + parsedRow.devotee.getFullName());
-                        continue;
-                    }
+                    // ALSO, get their WhatsApp group status from the master map
+                    Integer whatsAppGroup = devoteeDao.getWhatsAppGroup(devotee.getMobileE164());
 
-                    AppLogger.d(TAG, "PASS 2: Upserting attendance for EventID: " + eventId + ", DevoteeID: " + devotee.getDevoteeId());
-                    eventDao.upsertAttendance(eventId, devotee.getDevoteeId(), "PRE_REG", parsedRow.count, "Imported");
-                    stats.inserted++;
-                } catch (Exception e) {
-                    AppLogger.e(TAG, "PASS 2: ERROR linking attendance for row: " + row, e);
-                }
-            }
-            AppLogger.d(TAG, "PASS 2: Loop finished. Setting transaction successful.");
-            database.setTransactionSuccessful();
-        } catch (Exception e) {
-            AppLogger.e(TAG, "PASS 2: CRITICAL ERROR during transaction.", e);
-        } finally {
-            AppLogger.d(TAG, "PASS 2: Ending transaction.");
-            database.endTransaction();
-        }
-        
-        stats.processed = allRows.size();
-        AppLogger.d(TAG, "Import finished. Final Stats: " + stats.processed + " processed, " + stats.inserted + " inserted/linked, " + stats.skipped + " skipped.");
-        return stats;
+                    // Create the fully enriched object with ALL the necessary data for the UI
+                    return new EnrichedDevotee(devotee, whatsAppGroup, 0, null, eventStatus);
+                })
+                .sorted(Comparator.comparingInt((EnrichedDevotee e) -> e.getEventStatus() == EventStatus.PRESENT ? 1 : 0)
+                        .thenComparing(e -> e.devotee().getFullName(), String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
     }
-    
-    // ... other methods are unchanged ...
+    // --- END OF FIX ---
+
+
+    // ... All other methods are unchanged and complete ...
+    public CsvImporter.ImportStats importAttendanceList(Context context, Uri uri, ImportMapping mapping, long eventId) throws Exception { AppLogger.d(TAG, "Starting importAttendanceList for eventId: " + eventId); AttendanceImporter importer = new AttendanceImporter(); CsvImporter.ImportStats stats = new CsvImporter.ImportStats(); List<Map<String, String>> allRows = new ArrayList<>(); try (InputStream inputStream = context.getContentResolver().openInputStream(uri); InputStreamReader reader = new InputStreamReader(inputStream); CSVReaderHeaderAware csvReader = new CSVReaderHeaderAware(reader)) { Map<String, String> row; while((row = csvReader.readMap()) != null) { allRows.add(row); } } AppLogger.d(TAG, "Loaded " + allRows.size() + " rows from CSV into memory."); if (allRows.isEmpty()) { AppLogger.w(TAG, "CSV file is empty or could not be read. Aborting import."); return stats; } AppLogger.d(TAG, "Starting PASS 1: Save/Merge Devotees."); database.beginTransaction(); try { for (Map<String, String> row : allRows) { stats.processed++; try { AttendanceImporter.ParsedAttendanceRow parsedRow = importer.parseRow(row, mapping); if (parsedRow == null) { AppLogger.w(TAG, "PASS 1: Row skipped due to null parse result. Row: " + row); stats.skipped++; continue; } saveOrMergeDevoteeFromAdmin(parsedRow.devotee); } catch (IllegalArgumentException e) { AppLogger.e(TAG, "PASS 1: Skipping bad devotee row. Row: " + row, e); stats.skipped++; } } AppLogger.d(TAG, "PASS 1: Loop finished. Setting transaction successful."); database.setTransactionSuccessful(); } catch (Exception e) { AppLogger.e(TAG, "PASS 1: CRITICAL ERROR during transaction.", e); } finally { AppLogger.d(TAG, "PASS 1: Ending transaction."); database.endTransaction(); } AppLogger.d(TAG, "Starting PASS 2: Link Attendance."); database.beginTransaction(); try { for (Map<String, String> row : allRows) { try { AttendanceImporter.ParsedAttendanceRow parsedRow = importer.parseRow(row, mapping); if (parsedRow == null) continue; Devotee devotee = devoteeDao.findByKey(parsedRow.devotee.getMobileE164(), parsedRow.devotee.getNameNorm()); if (devotee == null) { AppLogger.e(TAG, "PASS 2: FATAL! Could not find devotee in DB that should have been saved in Pass 1: " + parsedRow.devotee.getFullName()); continue; } eventDao.upsertAttendance(eventId, devotee.getDevoteeId(), "PRE_REG", parsedRow.count, "Imported"); stats.inserted++; } catch (Exception e) { AppLogger.e(TAG, "PASS 2: ERROR linking attendance for row: " + row, e); } } AppLogger.d(TAG, "PASS 2: Loop finished. Setting transaction successful."); database.setTransactionSuccessful(); } catch (Exception e) { AppLogger.e(TAG, "PASS 2: CRITICAL ERROR during transaction.", e); } finally { AppLogger.d(TAG, "PASS 2: Ending transaction."); database.endTransaction(); } stats.processed = allRows.size(); AppLogger.d(TAG, "Import finished. Final Stats: " + stats.processed + " processed, " + stats.inserted + " inserted/linked, " + stats.skipped + " skipped."); return stats; }
     public WhatsAppGroupImporter.Stats importWhatsAppGroups(Context context, Uri uri, ImportMapping mapping) throws Exception { WhatsAppGroupImporter importer = new WhatsAppGroupImporter(database); try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) { if (inputStream == null) { throw new Exception("Could not open file URI"); } return importer.importCsv(inputStream, mapping); } }
     public boolean checkSuperAdminPin(String pin) { return configDao.checkSuperAdminPin(pin); }
     public boolean checkEventCoordinatorPin(String pin) { return configDao.checkEventCoordinatorPin(pin); }
@@ -147,7 +89,6 @@ public class AttendanceRepository {
     public boolean markDevoteeAsPresent(long eventId, long devoteeId) { EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devoteeId, eventId); if (status != null && status.count > 0) { return false; } if (status != null) { eventDao.markAsAttended(eventId, devoteeId); } else { eventDao.insertSpotRegistration(eventId, devoteeId); } return true; }
     public long onSpotRegisterAndMarkPresent(long eventId, Devotee newDevoteeData) { Devotee mergedDevotee = saveOrMergeDevoteeFromAdmin(newDevoteeData); markDevoteeAsPresent(eventId, mergedDevotee.getDevoteeId()); return mergedDevotee.getDevoteeId(); }
     public List<Devotee> getCheckedInAttendeesForEvent(long eventId) { return eventDao.findCheckedInAttendeesForEvent(eventId); }
-    public List<EnrichedDevotee> searchDevoteesForEvent(String query, long eventId) { List<Devotee> allMatches = devoteeDao.searchSimpleDevotees(query); return allMatches.stream() .map(devotee -> { EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devotee.getDevoteeId(), eventId); EventStatus eventStatus = (status == null) ? EventStatus.WALK_IN : (status.count > 0 ? EventStatus.PRESENT : EventStatus.PRE_REGISTERED); return new EnrichedDevotee(devotee, null, 0, null, eventStatus); }) .sorted(Comparator.comparingInt((EnrichedDevotee e) -> e.getEventStatus() == EventStatus.PRESENT ? 1 : 0) .thenComparing(e -> e.devotee().getFullName(), String.CASE_INSENSITIVE_ORDER)) .collect(Collectors.toList()); }
     public DevoteeDao.CounterStats getCounterStats() { return devoteeDao.getCounterStats(); }
     public EventDao.EventStats getEventStats(long eventId) { return eventDao.getEventStats(eventId); }
     public CsvImporter.ImportStats importMasterDevoteeList(Context context, Uri uri, ImportMapping mapping) throws Exception { CsvImporter importer = new CsvImporter(database); CsvImporter.ImportStats stats = new CsvImporter.ImportStats(); try (InputStream inputStream = context.getContentResolver().openInputStream(uri); InputStreamReader reader = new InputStreamReader(inputStream); CSVReaderHeaderAware csvReader = new CSVReaderHeaderAware(reader)) { if (inputStream == null) { throw new Exception("Could not open file URI"); } database.beginTransaction(); try { Map<String, String> row; while ((row = csvReader.readMap()) != null) { stats.processed++; try { Devotee parsedDevotee = importer.toDevotee(row, mapping); if (parsedDevotee == null) { stats.skipped++; continue; } Devotee existing = devoteeDao.findByKey(parsedDevotee.getMobileE164(), parsedDevotee.getNameNorm()); if (existing != null) { stats.updatedChanged++; } else { stats.inserted++; } saveOrMergeDevoteeFromAdmin(parsedDevotee); } catch (IllegalArgumentException e) { AppLogger.w(TAG, "Skipping bad row in master import: " + row.toString(), e); stats.skipped++; } } database.setTransactionSuccessful(); } finally { database.endTransaction(); } } return stats; }
