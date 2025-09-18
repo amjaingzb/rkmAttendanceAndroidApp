@@ -38,11 +38,8 @@ public class MappingAdapter extends RecyclerView.Adapter<MappingAdapter.ViewHold
         List<String> values = new ArrayList<>();
         List<String> labels = new ArrayList<>();
         
-        // --- START OF FIX ---
-        // Dynamically build the list of available fields based on import type
         switch (importType) {
             case WHATSAPP:
-                // Provide a simplified, focused list for WhatsApp import
                 values.addAll(Arrays.asList("DROP", "phone", "whatsAppGroupId"));
                 labels.addAll(Arrays.asList("Drop", "Phone Number", "WhatsApp Group ID"));
                 break;
@@ -55,12 +52,15 @@ public class MappingAdapter extends RecyclerView.Adapter<MappingAdapter.ViewHold
                 }
                 break;
         }
-        // --- END OF FIX ---
 
         this.targetValues = values.toArray(new String[0]);
         this.targetLabels = labels.toArray(new String[0]);
 
-        Map<String, String> guessedMapping = CsvImporter.guessTargets(csvHeaders);
+        // --- START OF FIX ---
+        // The method call is now corrected to pass the importType
+        Map<String, String> guessedMapping = CsvImporter.guessTargets(csvHeaders, importType);
+        // --- END OF FIX ---
+        
         for (int i = 0; i < csvHeaders.size(); i++) {
             String guessedTarget = guessedMapping.get(csvHeaders.get(i));
             if (guessedTarget != null && values.contains(guessedTarget)) {
