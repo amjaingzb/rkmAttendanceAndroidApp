@@ -25,14 +25,6 @@ public class CsvImporter {
         public int processed, inserted, updatedChanged, updatedNoChange, skipped;
     }
 
-    /**
-     * Parses a single row from a CSV file into a transient Devotee object.
-     * This method does NOT save anything to the database.
-     * @param row The map representing the CSV row.
-     * @param mapping The mapping configuration from the UI.
-     * @return A Devotee object ready to be saved, or null if mandatory fields are missing.
-     * @throws Exception on JSON parsing errors.
-     */
     public Devotee toDevotee(Map<String, String> row, ImportMapping mapping) throws Exception {
         String fullName = value(row, mapping, "full_name");
         String mobile = value(row, mapping, "mobile");
@@ -76,13 +68,15 @@ public class CsvImporter {
     }
     
     // --- START OF FIX ---
-    // This method now contains the smarter, stateful guessing logic.
+    // The guessing logic is now consolidated into this single, more powerful method.
     public static Map<String, String> guessTargets(List<String> headers) {
         Map<String, String> finalMapping = new LinkedHashMap<>();
-        Set<String> usedTargets = new HashSet<>(); // Keep track of consumed targets
+        Set<String> usedTargets = new HashSet<>();
 
         Map<String,String> syn = new LinkedHashMap<>();
         java.util.function.Function<String,String> norm = s -> s==null?"":s.toLowerCase().replaceAll("[^a-z0-9]","");
+        
+        // Devotee and Attendance fields
         for (String s : Arrays.asList("name","fullname","membername","devotee","person","contactname")) syn.put(norm.apply(s), "full_name");
         for (String s : Arrays.asList("mobile","mobileno","mobilenumber", "phone","phoneno","phonenumber", "contact","contactno","contactnumber")) syn.put(norm.apply(s), "mobile");
         for (String s : Arrays.asList("address","addr","residence","location")) syn.put(norm.apply(s), "address");
@@ -90,31 +84,34 @@ public class CsvImporter {
         for (String s : Arrays.asList("email","e-mail","emailid","emailaddress","mail")) syn.put(norm.apply(s), "email");
         for (String s : Arrays.asList("gender","sex")) syn.put(norm.apply(s), "gender");
 
+        // WhatsApp specific fields
+        for (String s : Arrays.asList("group", "groupid", "groupno", "groupnumber", "whatsappgroup", "whatsappgroupid")) syn.put(norm.apply(s), "whatsAppGroupId");
+        // Add a specific synonym for "phone" to map to the whatsapp-specific "phone" target
+        syn.put(norm.apply("phone"), "phone");
+
         for (String header : headers) {
             String k = norm.apply(header);
             String guessedTarget = syn.get(k);
+
+            // Fallback for partial matches (like ExtraMobile)
             if (guessedTarget == null) {
-                if (k.contains("mobile")||k.contains("phone")||k.contains("contact")) guessedTarget="mobile";
+                if (k.contains("mobile") || k.contains("phone") || k.contains("contact")) guessedTarget="mobile";
                 else if (k.contains("name")) guessedTarget="full_name";
             }
 
             if (guessedTarget != null) {
                 if (!usedTargets.contains(guessedTarget)) {
-                    // The target is available, use it.
                     finalMapping.put(header, guessedTarget);
                     usedTargets.add(guessedTarget);
                 } else {
-                    // The target has already been used, default to RETAIN.
                     finalMapping.put(header, "RETAIN");
                 }
             }
-            // If no guess, it will be left unmapped (and default to DROP in the UI)
         }
         return finalMapping;
     }
     // --- END OF FIX ---
     
-    // --- UTILITY METHODS (UNCHANGED) ---
     private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
     private static Integer parseAge(String s) { if (s == null) return null; String d = s.replaceAll("[^0-9]", ""); if (d.isEmpty()) return null; try { int age = Integer.parseInt(d); return (age > 0 && age < 100) ? age : null; } catch (NumberFormatException e) { return null; } }
     private static String headerFor(ImportMapping mapping, String target) { for (Map.Entry<String, String> entry : mapping.asMap().entrySet()) { if (target.equalsIgnoreCase(entry.getValue())) { return entry.getKey(); } } return null; }

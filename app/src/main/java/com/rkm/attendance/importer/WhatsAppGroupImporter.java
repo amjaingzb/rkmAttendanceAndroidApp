@@ -10,6 +10,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class WhatsAppGroupImporter {
@@ -25,23 +27,20 @@ public class WhatsAppGroupImporter {
         public int processed, insertedOrUpdated, skipped;
     }
 
-    // --- START OF FIX ---
-    // This new method handles importing from an InputStream, which is required by the repository.
     public Stats importCsv(InputStream inputStream, ImportMapping mapping) throws Exception {
         try (CSVReaderHeaderAware reader = new CSVReaderHeaderAware(new InputStreamReader(inputStream))) {
             return doImport(reader, mapping);
         }
     }
-    // --- END OF FIX ---
 
-    // This is the original method that works with a File object
     public Stats importCsv(File csvFile, ImportMapping mapping) throws Exception {
         try (CSVReaderHeaderAware reader = new CSVReaderHeaderAware(new FileReader(csvFile))) {
             return doImport(reader, mapping);
         }
     }
 
-    // This private method contains the actual import logic, shared by both public methods.
+    // --- START OF FIX #2 ---
+    // This method now correctly RETURNS the stats object.
     private Stats doImport(CSVReaderHeaderAware reader, ImportMapping mapping) throws Exception {
         Stats st = new Stats();
         db.beginTransaction();
@@ -77,6 +76,29 @@ public class WhatsAppGroupImporter {
         }
         return st;
     }
+    // --- END OF FIX #2 ---
+
+    // --- START OF FIX #1 ---
+    // Added "phonenumber" to the synonym list for better guessing.
+    // NOTE: This is a static helper method, but placing it here keeps it co-located with the importer.
+    public static Map<String, String> guessTargets(Map<String, String> mapping) {
+        Map<String, String> out = new LinkedHashMap<>();
+        java.util.function.Function<String,String> norm = s -> s==null?"":s.toLowerCase().replaceAll("[^a-z0-9]","");
+
+        Map<String,String> syn = new LinkedHashMap<>();
+        for (String s : Arrays.asList("mobile", "mobileno", "mobilenumber", "phone", "phoneno", "phonenumber", "contact", "contactno", "contactnumber"))
+            syn.put(norm.apply(s), "phone");
+        for (String s : Arrays.asList("group", "groupid", "whatsappgroup", "whatsappgroupid"))
+            syn.put(norm.apply(s), "whatsAppGroupId");
+            
+        for (Map.Entry<String, String> entry : mapping.entrySet()) {
+            String k = norm.apply(entry.getKey());
+            String mapped = syn.get(k);
+            if (mapped != null) out.put(entry.getKey(), mapped);
+        }
+        return out;
+    }
+    // --- END OF FIX #1 ---
 
     private static String value(Map<String, String> row, ImportMapping mapping, String target) {
         for (Map.Entry<String, String> entry : mapping.asMap().entrySet()) {

@@ -10,6 +10,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.rkm.attendance.core.AttendanceRepository;
 import com.rkm.attendance.importer.CsvImporter;
 import com.rkm.attendance.importer.ImportMapping;
+import com.rkm.attendance.importer.WhatsAppGroupImporter;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
 
 public class MappingViewModel extends AndroidViewModel {
@@ -47,7 +48,6 @@ public class MappingViewModel extends AndroidViewModel {
         isLoading.setValue(true);
         new Thread(() -> {
             try {
-                // The stats object is the same, so we can reuse the same LiveData
                 CsvImporter.ImportStats stats = repository.importAttendanceList(getApplication(), fileUri, mapping, eventId);
                 importStats.postValue(stats);
             } catch (Exception e) {
@@ -59,14 +59,22 @@ public class MappingViewModel extends AndroidViewModel {
         }).start();
     }
 
+    // --- START OF FIX #2 ---
+    // This method now correctly receives the stats and translates them for the UI.
     public void startWhatsAppImport(Uri fileUri, ImportMapping mapping) {
         isLoading.setValue(true);
         new Thread(() -> {
             try {
-                repository.importWhatsAppGroups(getApplication(), fileUri, mapping);
-                // For simplicity, we'll just signal completion without detailed stats for now.
-                // A more advanced implementation could return stats from the importer.
-                importStats.postValue(new CsvImporter.ImportStats());
+                WhatsAppGroupImporter.Stats whatsAppStats = repository.importWhatsAppGroups(getApplication(), fileUri, mapping);
+                
+                // Translate from WhatsApp stats to the generic CsvImporter stats for the dialog
+                CsvImporter.ImportStats finalStats = new CsvImporter.ImportStats();
+                finalStats.processed = whatsAppStats.processed;
+                finalStats.updatedChanged = whatsAppStats.insertedOrUpdated; // We'll show "updated" for clarity
+                finalStats.skipped = whatsAppStats.skipped;
+                
+                importStats.postValue(finalStats);
+
             } catch (Exception e) {
                 e.printStackTrace();
                 errorMessage.postValue(e.getMessage());
@@ -75,4 +83,5 @@ public class MappingViewModel extends AndroidViewModel {
             }
         }).start();
     }
+    // --- END OF FIX #2 ---
 }

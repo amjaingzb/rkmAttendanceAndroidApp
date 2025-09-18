@@ -42,18 +42,20 @@ public class AttendanceRepository {
         this.configDao = new ConfigDao(database);
     }
     
-    // --- THIS IS THE NEWLY ADDED METHOD ---
-    public void importWhatsAppGroups(Context context, Uri uri, ImportMapping mapping) throws Exception {
+    // --- START OF FIX #2 ---
+    // This method now correctly RETURNS the stats object from the importer.
+    public WhatsAppGroupImporter.Stats importWhatsAppGroups(Context context, Uri uri, ImportMapping mapping) throws Exception {
         WhatsAppGroupImporter importer = new WhatsAppGroupImporter(database);
         try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
             if (inputStream == null) {
                 throw new Exception("Could not open file URI");
             }
-            importer.importCsv(inputStream, mapping);
+            return importer.importCsv(inputStream, mapping);
         }
     }
+    // --- END OF FIX #2 ---
 
-    // --- The rest of the file is restored to its complete and correct state ---
+    // --- All other methods are unchanged and complete ---
     public boolean checkSuperAdminPin(String pin) { return configDao.checkSuperAdminPin(pin); }
     public boolean checkEventCoordinatorPin(String pin) { return configDao.checkEventCoordinatorPin(pin); }
     public List<Event> getAllEvents() { return eventDao.listAll(); }
