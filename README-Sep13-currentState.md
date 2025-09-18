@@ -684,3 +684,4 @@ Maintain counters **cumulative attendance, last attendance date** per person/key
 4. report of which whatsapp devotees are not active 
 5. report of cumulative -- counter 
 6. extend this for receiving donations , recording upi xaction 4 digits, cash or upi, sending receipt
+7.  In fact lets add that to requiremetns. Lets logging be so generic that later we can turn if off completely , select severity , redirect the logs to db etc ..

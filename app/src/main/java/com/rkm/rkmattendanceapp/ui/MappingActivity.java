@@ -19,11 +19,15 @@ import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.rkm.attendance.importer.CsvImporter;
 import com.rkm.attendance.importer.ImportMapping;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.util.AppLogger;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
 public class MappingActivity extends AppCompatActivity implements MappingAdapter.MappingChangeListener {
+
+    private static final String TAG = "MappingActivity";
     
     public static final String EXTRA_FILE_URI = "com.rkm.rkmattendanceapp.ui.EXTRA_FILE_URI";
     public static final String EXTRA_CSV_HEADERS = "com.rkm.rkmattendanceapp.ui.EXTRA_CSV_HEADERS";
@@ -55,24 +59,23 @@ public class MappingActivity extends AppCompatActivity implements MappingAdapter
         if (intent.hasExtra(EXTRA_PRIVILEGE)) privilege = (Privilege) intent.getSerializableExtra(EXTRA_PRIVILEGE);
         if (intent.hasExtra(EXTRA_IMPORT_TYPE)) importType = (ImportType) intent.getSerializableExtra(EXTRA_IMPORT_TYPE);
 
+        AppLogger.d(TAG, "onCreate: ImportType=" + importType + ", EventID=" + eventId + ", Privilege=" + privilege);
+        
         retainDroppedSwitch = findViewById(R.id.switch_unmapped_to_extras);
         
-        // --- START OF FIX ---
-        // Set a contextual title and hide irrelevant UI for WhatsApp import
         switch(importType) {
             case WHATSAPP:
                 setTitle("Map WhatsApp Columns");
-                retainDroppedSwitch.setVisibility(View.GONE); // Hide the switch
+                retainDroppedSwitch.setVisibility(View.GONE);
                 break;
             case ATTENDANCE:
                 setTitle("Map Attendance Columns");
                 retainDroppedSwitch.setVisibility(View.VISIBLE);
                 break;
-            default: // DEVOTEE
+            default:
                 setTitle(R.string.mapping_activity_title);
                 retainDroppedSwitch.setVisibility(View.VISIBLE);
         }
-        // --- END OF FIX ---
 
         if (fileUri == null || headers == null || headers.isEmpty()) {
             Toast.makeText(this, "Error: Invalid file or headers.", Toast.LENGTH_LONG).show();
@@ -105,15 +108,17 @@ public class MappingActivity extends AppCompatActivity implements MappingAdapter
         } 
         else if (itemId == R.id.action_start_import) {
             if (validateMapping()) {
+                ImportMapping finalMapping = adapter.getFinalMapping();
+                AppLogger.d(TAG, "Start Import button clicked. Import Type: " + importType + ". Final Mapping: " + finalMapping.asMap());
                 switch(importType) {
                     case WHATSAPP:
-                        viewModel.startWhatsAppImport(fileUri, adapter.getFinalMapping());
+                        viewModel.startWhatsAppImport(fileUri, finalMapping);
                         break;
                     case ATTENDANCE:
-                        viewModel.startAttendanceImport(fileUri, adapter.getFinalMapping(), eventId);
+                        viewModel.startAttendanceImport(fileUri, finalMapping, eventId);
                         break;
                     default:
-                        viewModel.startDevoteeImport(fileUri, adapter.getFinalMapping());
+                        viewModel.startDevoteeImport(fileUri, finalMapping);
                         break;
                 }
             } else {
@@ -140,6 +145,7 @@ public class MappingActivity extends AppCompatActivity implements MappingAdapter
         return isValid;
     }
 
+    // --- Other methods are unchanged ---
     private void observeViewModel() { ProgressBar progressBar = findViewById(R.id.progress_bar_import); viewModel.getIsLoading().observe(this, isLoading -> { progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE); if (startImportMenuItem != null) startImportMenuItem.setEnabled(!isLoading); retainDroppedSwitch.setEnabled(!isLoading); }); viewModel.getImportStats().observe(this, this::showSuccessDialog); viewModel.getErrorMessage().observe(this, this::showErrorDialog); }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) { getMenuInflater().inflate(R.menu.mapping_menu, menu); startImportMenuItem = menu.findItem(R.id.action_start_import); validateMapping(); return true; }

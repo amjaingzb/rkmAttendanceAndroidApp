@@ -5,10 +5,15 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -16,7 +21,10 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.view.MenuHost;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -25,13 +33,18 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.opencsv.CSVReader;
 import com.rkm.attendance.model.Event;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class EventListFragment extends Fragment implements EventListAdapter.OnEventListener {
+
+    private static final String TAG = "EventListFragment";
 
     private EventListViewModel eventListViewModel;
     private AdminViewModel adminViewModel;
@@ -41,8 +54,8 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
     private ActivityResultLauncher<String> filePickerLauncher;
     private ActivityResultLauncher<Intent> mappingActivityLauncher;
 
-    // A temporary holder for the event ID during the file selection process
     private Long eventIdForAttendanceImport = null;
+    private Privilege privilegeForAttendanceImport = null;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -61,6 +74,7 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK) {
+                        AppLogger.d(TAG, "Returned from MappingActivity with RESULT_OK. Reloading events.");
                         eventListViewModel.loadEvents();
                     }
                 });
@@ -80,7 +94,8 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
     private void onFileSelected(Uri uri) {
         if (uri == null) {
             Toast.makeText(getContext(), "No file selected", Toast.LENGTH_SHORT).show();
-            eventIdForAttendanceImport = null; // Reset the state
+            eventIdForAttendanceImport = null;
+            privilegeForAttendanceImport = null;
             return;
         }
 
@@ -96,19 +111,21 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
             intent.putExtra(MappingActivity.EXTRA_FILE_URI, uri);
             intent.putStringArrayListExtra(MappingActivity.EXTRA_CSV_HEADERS, new ArrayList<>(Arrays.asList(headers)));
             
-            // Pass the event ID and privilege if this is for an attendance import
-            if (eventIdForAttendanceImport != null) {
+            if (eventIdForAttendanceImport != null && privilegeForAttendanceImport != null) {
+                AppLogger.d(TAG, "Launching MappingActivity for ATTENDANCE import. EventID: " + eventIdForAttendanceImport + ", Privilege: " + privilegeForAttendanceImport);
                 intent.putExtra(MappingActivity.EXTRA_EVENT_ID, eventIdForAttendanceImport);
-                intent.putExtra(MappingActivity.EXTRA_PRIVILEGE, adminViewModel.currentPrivilege.getValue());
+                intent.putExtra(MappingActivity.EXTRA_PRIVILEGE, privilegeForAttendanceImport);
+                intent.putExtra(MappingActivity.EXTRA_IMPORT_TYPE, ImportType.ATTENDANCE);
             }
             
             mappingActivityLauncher.launch(intent);
 
         } catch (Exception e) {
-            Log.e("EventListFragment", "File selection error", e);
+            AppLogger.e(TAG, "Error during file selection or reading headers.", e);
             Toast.makeText(getContext(), "Error reading file: " + e.getMessage(), Toast.LENGTH_LONG).show();
         } finally {
-            eventIdForAttendanceImport = null; // CRITICAL: Reset the state after use
+            eventIdForAttendanceImport = null;
+            privilegeForAttendanceImport = null;
         }
     }
 
@@ -130,53 +147,21 @@ public class EventListFragment extends Fragment implements EventListAdapter.OnEv
                 addEditEventLauncher.launch(intent);
                 break;
             case "IMPORT_ATTENDANCE":
-                this.eventIdForAttendanceImport = eventId; // Set the state
-                filePickerLauncher.launch("text/csv"); // Launch the picker
+                AppLogger.d(TAG, "IMPORT_ATTENDANCE action selected for eventId: " + eventId);
+                this.eventIdForAttendanceImport = eventId;
+                this.privilegeForAttendanceImport = adminViewModel.currentPrivilege.getValue();
+                filePickerLauncher.launch("text/csv");
                 break;
         }
     }
 
+    // --- Other methods are unchanged ---
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_event_list, container, false);
-    }
-
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) { return inflater.inflate(R.layout.fragment_event_list, container, false); }
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        eventListViewModel = new ViewModelProvider(this).get(EventListViewModel.class);
-        setupRecyclerView(view);
-        observeViewModel();
-        FloatingActionButton fab = view.findViewById(R.id.fab_add_event);
-        fab.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), AddEditEventActivity.class);
-            intent.putExtra(AddEditEventActivity.EXTRA_PRIVILEGE, adminViewModel.currentPrivilege.getValue());
-            addEditEventLauncher.launch(intent);
-        });
-        eventListViewModel.loadEvents();
-    }
-    private void setupRecyclerView(View view) {
-        RecyclerView recyclerView = view.findViewById(R.id.recycler_view_events);
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        recyclerView.setHasFixedSize(true);
-        adapter = new EventListAdapter();
-        adapter.setOnEventListener(this);
-        recyclerView.setAdapter(adapter);
-    }
-    private void observeViewModel() {
-        eventListViewModel.getEventList().observe(getViewLifecycleOwner(), events -> {
-            if (events != null) adapter.setEvents(events);
-        });
-        eventListViewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
-            if (message != null && !message.isEmpty()) {
-                Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
-            }
-        });
-    }
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) { super.onViewCreated(view, savedInstanceState); eventListViewModel = new ViewModelProvider(this).get(EventListViewModel.class); setupRecyclerView(view); observeViewModel(); FloatingActionButton fab = view.findViewById(R.id.fab_add_event); fab.setOnClickListener(v -> { Intent intent = new Intent(getActivity(), AddEditEventActivity.class); intent.putExtra(AddEditEventActivity.EXTRA_PRIVILEGE, adminViewModel.currentPrivilege.getValue()); addEditEventLauncher.launch(intent); }); eventListViewModel.loadEvents(); }
+    private void setupRecyclerView(View view) { RecyclerView recyclerView = view.findViewById(R.id.recycler_view_events); recyclerView.setLayoutManager(new LinearLayoutManager(getContext())); recyclerView.setHasFixedSize(true); adapter = new EventListAdapter(); adapter.setOnEventListener(this); recyclerView.setAdapter(adapter); }
+    private void observeViewModel() { eventListViewModel.getEventList().observe(getViewLifecycleOwner(), events -> { if (events != null) adapter.setEvents(events); }); eventListViewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> { if (message != null && !message.isEmpty()) { Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show(); } }); }
     @Override
-    public void onEventClick(Event event) {
-        Privilege currentPrivilege = adminViewModel.currentPrivilege.getValue();
-        EventActionsBottomSheetFragment.newInstance(event.getEventId(), event.getEventDate(), currentPrivilege)
-                .show(getParentFragmentManager(), EventActionsBottomSheetFragment.TAG);
-    }
+    public void onEventClick(Event event) { Privilege currentPrivilege = adminViewModel.currentPrivilege.getValue(); EventActionsBottomSheetFragment.newInstance(event.getEventId(), event.getEventDate(), currentPrivilege) .show(getParentFragmentManager(), EventActionsBottomSheetFragment.TAG); }
 }
