@@ -1,16 +1,23 @@
 <resources>
     <string name="app_name">rkmattendanceapp</string>
-    <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
-    <!-- STRINGS FOR IMPORT FEATURE -->
+    <!-- Import Feature Strings -->
     <string name="mapping_activity_title">Map CSV Columns</string>
     <string name="mapping_instructions">Please map the columns from your CSV file to the app\'s database fields. Select \'Drop\' to ignore a column.</string>
     <string name="action_start_import">Start Import</string>
-    <string name="import_in_progress">Import in progress, please wait...</string>
     <string name="import_success_title">Import Successful</string>
     <string name="import_error_title">Import Failed</string>
     <string name="import_stats_message">Processed: %1$d\nInserted: %2$d\nUpdated: %3$d\nSkipped: %4$d</string>
     <string name="retain_dropped_columns">Retain columns marked as \'Drop\' in extras</string>
+
+    <!-- NEW: Report Feature Strings -->
+    <string name="report_export_devotee_title">Full Devotee List</string>
+    <string name="report_export_devotee_subtitle_zero">No records found.</string>
+    <string name="report_export_devotee_subtitle_one">1 record found. Tap to export as CSV.</string>
+    <string name="report_export_devotee_subtitle_many">%1$d records found. Tap to export as CSV.</string>
+    <string name="export_success">Export file created successfully.</string>
+    <string name="export_failed">Export failed. See logs for details.</string>
+    <string name="share_export_title">Share Devotee Export</string>
 
 </resources>

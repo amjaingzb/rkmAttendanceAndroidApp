@@ -17,17 +17,15 @@
         <activity
             android:name=".ui.MarkAttendanceActivity"
             android:exported="false" />
-        <!-- 1. Declare the new LauncherActivity and make it the entry point -->
         <activity
             android:name=".ui.LauncherActivity"
             android:exported="true"
-            android:theme="@style/Theme.AppCompat.NoActionBar"> <!-- Use a theme with no toolbar -->
+            android:theme="@style/Theme.AppCompat.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- 2. AdminMainActivity is now a regular activity, no longer the launcher -->
+        </activity>
         <activity
             android:name=".ui.AdminMainActivity"
             android:exported="false" />
@@ -39,22 +37,28 @@
             android:name=".ui.AddEditDevoteeActivity"
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
-
-        <!-- NEW: Declare the RoleSelectionActivity -->
         <activity
             android:name=".ui.RoleSelectionActivity"
             android:exported="false" />
-
-        <!-- NEW: Declare the PinEntryActivity -->
         <activity
             android:name=".ui.PinEntryActivity"
             android:exported="false" />
-            
-        <!-- NEW: Declare the MappingActivity -->
         <activity
             android:name=".ui.MappingActivity"
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
+
+        <!-- START OF FILEPROVIDER CONFIGURATION -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/provider_paths" />
+        </provider>
+        <!-- END OF FILEPROVIDER CONFIGURATION -->
 
     </application>
 
