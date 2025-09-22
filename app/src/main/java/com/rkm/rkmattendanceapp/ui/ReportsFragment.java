@@ -10,8 +10,6 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -45,6 +43,7 @@ public class ReportsFragment extends Fragment {
         setupClickListeners();
         observeViewModel();
 
+        // Load the initial data for the screen
         reportsViewModel.loadStats();
     }
 
@@ -78,7 +77,7 @@ public class ReportsFragment extends Fragment {
             if (uri != null) {
                 AppLogger.d(TAG, "Received shareable URI: " + uri);
                 shareCsvFile(uri);
-                reportsViewModel.onShareIntentHandled(); // Reset the event
+                reportsViewModel.onShareIntentHandled(); // Reset the event to prevent re-triggering
             }
         });
     }
