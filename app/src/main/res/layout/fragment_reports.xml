@@ -29,46 +29,48 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Overall Statistics"
-                    android:textAppearance="?attr/textAppearanceTitleMedium" />
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="?android:attr/textColorPrimary"/>
                 
-                <!-- Row 1 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Total Devotee Records:" android:textAppearance="?attr/textAppearanceBodyMedium"/>
-                    <TextView android:id="@+id/text_total_devotees" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="450" android:textAppearance="?attr/textAppearanceBodyMedium" android:textStyle="bold"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Total Devotee Records:" android:textSize="16sp" android:textColor="#BDBDBD"/>
+                    <TextView android:id="@+id/text_total_devotees" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="450" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
                 </LinearLayout>
 
-                <!-- Row 2 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Mapped WhatsApp Numbers:" android:textAppearance="?attr/textAppearanceBodyMedium"/>
-                    <TextView android:id="@+id/text_total_whatsapp" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="320" android:textAppearance="?attr/textAppearanceBodyMedium" android:textStyle="bold"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Mapped WhatsApp Numbers:" android:textSize="16sp" android:textColor="#BDBDBD"/>
+                    <TextView android:id="@+id/text_total_whatsapp" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="320" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
                 </LinearLayout>
 
-                <!-- Row 3 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Devotees in WhatsApp Group:" android:textAppearance="?attr/textAppearanceBodyMedium"/>
-                    <TextView android:id="@+id/text_devotees_in_whatsapp" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="315" android:textAppearance="?attr/textAppearanceBodyMedium" android:textStyle="bold"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Devotees in WhatsApp Group:" android:textSize="16sp" android:textColor="#BDBDBD"/>
+                    <TextView android:id="@+id/text_devotees_in_whatsapp" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="315" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
                 </LinearLayout>
 
-                <!-- Row 4 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Devotees with Attendance:" android:textAppearance="?attr/textAppearanceBodyMedium"/>
-                    <TextView android:id="@+id/text_devotees_with_attendance" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="280" android:textAppearance="?attr/textAppearanceBodyMedium" android:textStyle="bold"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Devotees with Attendance:" android:textSize="16sp" android:textColor="#BDBDBD"/>
+                    <TextView android:id="@+id/text_devotees_with_attendance" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="280" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
                 </LinearLayout>
 
             </LinearLayout>
@@ -81,9 +83,10 @@
             android:layout_marginStart="8dp"
             android:layout_marginBottom="8dp"
             android:text="Available Reports"
-            android:textAppearance="?attr/textAppearanceTitleMedium" />
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="?android:attr/textColorPrimary"/>
 
-        <!-- Report Option 1: Export Full List -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_export_devotee_list"
             android:layout_width="match_parent"
@@ -102,15 +105,16 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/report_export_devotee_title"
-                    android:textAppearance="?attr/textAppearanceBodyLarge"
-                    android:textStyle="bold"/>
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="?android:attr/textColorPrimary"/>
 
                 <TextView
                     android:id="@+id/text_export_devotee_subtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textSize="16sp"
                     android:textColor="?android:attr/textColorSecondary"
                     tools:text="450 records found. Tap to export as CSV."/>
 
