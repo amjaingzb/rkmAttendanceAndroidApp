@@ -4,6 +4,6 @@
     <item
         android:id="@+id/action_export_csv"
         android:title="@string/action_export_csv"
-        android:icon="@drawable/ic_save"
+        android:icon="@drawable/ic_export"
         app:showAsAction="ifRoom" />
 </menu>
