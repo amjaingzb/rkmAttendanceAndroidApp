@@ -41,13 +41,16 @@
                 android:focusable="false"
                 android:inputType="date" />
         </com.google.android.material.textfield.TextInputLayout>
-        
+
+        <!-- === START OF CORRECTED LAYOUT FIX === -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:text="Active Window (Optional)"
-            android:textAppearance="?attr/textAppearanceLabelLarge"/>
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="?android:attr/textColorPrimary"/>
+        <!-- === END OF CORRECTED LAYOUT FIX === -->
         
         <LinearLayout
             android:layout_width="match_parent"
