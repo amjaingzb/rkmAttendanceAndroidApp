@@ -12,11 +12,10 @@
         android:id="@+id/text_pin_entry_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="64dp"
+        android:layout_marginTop="96dp"
         android:textAppearance="?attr/textAppearanceHeadline6"
         tools:text="Enter Super Admin PIN" />
 
-    <!-- MODIFIED: Replaced the 3rd party library with a standard LinearLayout of EditTexts -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

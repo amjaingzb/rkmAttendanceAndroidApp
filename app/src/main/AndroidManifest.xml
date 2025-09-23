@@ -39,10 +39,12 @@
             android:parentActivityName=".ui.AdminMainActivity" />
         <activity
             android:name=".ui.RoleSelectionActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.Rkmattendanceapp.NoActionBar" />
         <activity
             android:name=".ui.PinEntryActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.Rkmattendanceapp.NoActionBar" />
         <activity
             android:name=".ui.MappingActivity"
             android:exported="false"
@@ -53,7 +55,6 @@
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
         
-        <!-- NEW: Devotee Activity Report Activity -->
         <activity
             android:name=".ui.reports.ReportDevoteeActivity"
             android:exported="false"

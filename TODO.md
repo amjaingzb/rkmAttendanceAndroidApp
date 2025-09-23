@@ -4,13 +4,14 @@
 11. stop logging for production or redirect...
 2. sync with gdrive -- export import db
 6. extend this for receiving donations , recording upi xaction 4 digits, cash or upi, sending receipt. Pan/adhaar wil be mandatory here 
-9. whatsapp to an attendee groupjoin link
 10. file names should have date and time in suggest name ... export etc 
+11. where  to fit about us, version ,developer email..
 
 
 ###TAG-CONVERSATION-2025-09-23 19:14:45
 Done 
 8. Modify the masted db schema for adhaar , pan optional fields. correct change should be propagted for all add devotee , import devotee and whereevr devotee is silently being inserted into the master (say from pre-reg data). idelntify all such places, 
+9. whatsapp to an attendee groupjoin link
 
 
 DEFERRED FEATURES

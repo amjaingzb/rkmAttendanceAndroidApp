@@ -9,6 +9,15 @@
     android:padding="32dp"
     tools:context=".ui.RoleSelectionActivity">
 
+    <ImageView
+        android:id="@+id/image_view_logo"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginBottom="32dp"
+        android:contentDescription="App Logo"
+        android:src="@android:drawable/sym_def_app_icon"
+        app:tint="?attr/colorPrimary" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
