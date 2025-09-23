@@ -15,6 +15,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -25,6 +26,7 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -111,40 +113,72 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         checkedInRecyclerView.setAdapter(checkedInAdapter);
     }
 
+    // === START OF FULL DIALOG REFACTOR ===
     private void showConfirmationDialog(DevoteeDao.EnrichedDevotee enrichedDevotee) {
-        String title = enrichedDevotee.devotee().getFullName();
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_devotee_confirmation, null);
         
-        String status = enrichedDevotee.getEventStatus() == EventStatus.PRE_REGISTERED ? "Pre-Registered" : "Walk-in";
-        String mobile = enrichedDevotee.devotee().getMobileE164();
-        String groupStatus = (enrichedDevotee.whatsAppGroup() != null && enrichedDevotee.whatsAppGroup() > 0)
-                ? "Group: " + enrichedDevotee.whatsAppGroup()
-                : "Not in any group";
-        
-        String message = "Status: " + status + "\n" +
-                         "Mobile: " + mobile + "\n" +
-                         "WhatsApp: " + groupStatus;
+        TextView statusText = dialogView.findViewById(R.id.dialog_text_status);
+        TextView mobileText = dialogView.findViewById(R.id.dialog_text_mobile);
+        TextView whatsappText = dialogView.findViewById(R.id.dialog_text_whatsapp);
+        ImageView whatsappIcon = dialogView.findViewById(R.id.dialog_icon_whatsapp);
+        Button primaryButton = dialogView.findViewById(R.id.dialog_button_primary);
+        Button secondaryButton = dialogView.findViewById(R.id.dialog_button_secondary);
+        Button negativeButton = dialogView.findViewById(R.id.dialog_button_negative);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(title)
-               .setMessage(message)
-               .setPositiveButton("Mark as Present", (dialog, which) -> {
-                   viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
-               })
-               .setNegativeButton("Cancel", null);
+        // Populate the content views
+        if (enrichedDevotee.getEventStatus() == EventStatus.PRE_REGISTERED) {
+            statusText.setText("Pre-Registered");
+            statusText.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_status_prereg));
+        } else {
+            statusText.setText("Walk-in");
+            statusText.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_status_walkin));
+        }
 
-        if (enrichedDevotee.whatsAppGroup() == null || enrichedDevotee.whatsAppGroup() == 0) {
-            // === START OF WORKFLOW CHANGE ===
-            // STEP 1: Change the button text and its behavior to perform both actions.
-            builder.setNeutralButton("Send Invite & Mark Present", (dialog, which) -> {
-                // Call both methods to combine the actions into a single tap.
-                viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
-                dispatchWhatsAppInvite(enrichedDevotee.devotee());
-            });
-            // === END OF WORKFLOW CHANGE ===
+        mobileText.setText(enrichedDevotee.devotee().getMobileE164());
+
+        if (enrichedDevotee.whatsAppGroup() != null && enrichedDevotee.whatsAppGroup() > 0) {
+            whatsappText.setText("Group: " + enrichedDevotee.whatsAppGroup());
+            whatsappIcon.setImageResource(R.drawable.ic_whatsapp_green);
+        } else {
+            whatsappText.setText("Not in any group");
+            whatsappIcon.setImageResource(R.drawable.ic_whatsapp_gray);
         }
         
-        builder.show();
+        // Build the dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(enrichedDevotee.devotee().getFullName())
+               .setView(dialogView);
+
+        // Create the dialog instance BEFORE setting listeners so we can dismiss it from them
+        final AlertDialog dialog = builder.create();
+
+        // Set up button actions
+        primaryButton.setText("Mark as Present");
+        primaryButton.setOnClickListener(v -> {
+            viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
+            dialog.dismiss();
+        });
+
+        if (enrichedDevotee.whatsAppGroup() == null || enrichedDevotee.whatsAppGroup() == 0) {
+            secondaryButton.setVisibility(View.VISIBLE);
+            secondaryButton.setText("Send Invite & Mark Present");
+            secondaryButton.setOnClickListener(v -> {
+                viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
+                dispatchWhatsAppInvite(enrichedDevotee.devotee());
+                dialog.dismiss();
+            });
+        }
+
+        negativeButton.setOnClickListener(v -> dialog.dismiss());
+        
+        // Set the rounded background
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_rounded_background);
+        }
+
+        dialog.show();
     }
+    // === END OF FULL DIALOG REFACTOR ===
 
     private void dispatchWhatsAppInvite(Devotee devotee) {
         if (whatsAppInviteDetails == null || TextUtils.isEmpty(whatsAppInviteDetails.link) || TextUtils.isEmpty(whatsAppInviteDetails.messageTemplate)) {
@@ -159,17 +193,11 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             Intent intent = new Intent(Intent.ACTION_VIEW);
             String url = "https://api.whatsapp.com/send?phone=" + phoneForApi + "&text=" + URLEncoder.encode(fullMessage, "UTF-8");
             intent.setData(Uri.parse(url));
-
-            // === START OF UX FIX ===
-            // STEP 2: Set the package to open WhatsApp directly, bypassing the chooser.
             intent.setPackage("com.whatsapp");
-            // === END OF UX FIX ===
-
             startActivity(intent);
         } catch (UnsupportedEncodingException e) {
             Toast.makeText(this, "Error preparing invite message.", Toast.LENGTH_SHORT).show();
         } catch (ActivityNotFoundException e) {
-            // This now correctly handles the case where WhatsApp is not installed.
             Toast.makeText(this, "WhatsApp is not installed on this device.", Toast.LENGTH_LONG).show();
         }
     }
