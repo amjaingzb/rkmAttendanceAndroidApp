@@ -15,27 +15,114 @@
         app:cardElevation="4dp"
         app:cardBackgroundColor="#3C3C3C">
 
-        <GridLayout
+        <!-- === START OF DEFINITIVE LAYOUT REFACTOR === -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:columnCount="4"
-            android:padding="12dp">
+            android:orientation="horizontal"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:weightSum="4">
 
-            <!-- Labels -->
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Pre-Registered" android:textAppearance="?attr/textAppearanceBody2" android:textColor="@android:color/white"/>
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Attended" android:textAppearance="?attr/textAppearanceBody2" android:textColor="@android:color/white"/>
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Spot Reg" android:textAppearance="?attr/textAppearanceBody2" android:textColor="@android:color/white"/>
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Total" android:textAppearance="?attr/textAppearanceBody2" android:textColor="@android:color/white"/>
+            <!-- Pre-Registered Block -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Pre-Registered"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:singleLine="true"/>
+                <TextView
+                    android:id="@+id/text_stat_pre_reg"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    tools:text="150"/>
+            </LinearLayout>
 
-            <!-- === START OF NUMBER FONT SIZE FIX === -->
-            <!-- Counts -->
-            <TextView android:id="@+id/text_stat_pre_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="150" android:textAppearance="?attr/textAppearanceHeadlineMedium" android:textStyle="bold" android:textColor="@android:color/white"/>
-            <TextView android:id="@+id/text_stat_attended" android:layout_columnWeight="1" android:gravity="center" tools:text="125" android:textAppearance="?attr/textAppearanceHeadlineMedium" android:textStyle="bold" android:textColor="@android:color/white"/>
-            <TextView android:id="@+id/text_stat_spot_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="12" android:textAppearance="?attr/textAppearanceHeadlineMedium" android:textStyle="bold" android:textColor="@android:color/white"/>
-            <TextView android:id="@+id/text_stat_total" android:layout_columnWeight="1" android:gravity="center" tools:text="137" android:textAppearance="?attr/textAppearanceHeadlineMedium" android:textStyle="bold" android:textColor="@android:color/white"/>
-            <!-- === END OF NUMBER FONT SIZE FIX === -->
+            <!-- Attended Block -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Attended"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:singleLine="true"/>
+                <TextView
+                    android:id="@+id/text_stat_attended"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    tools:text="125"/>
+            </LinearLayout>
 
-        </GridLayout>
+            <!-- Spot Reg Block -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Spot Reg"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:singleLine="true"/>
+                <TextView
+                    android:id="@+id/text_stat_spot_reg"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    tools:text="12"/>
+            </LinearLayout>
+
+            <!-- Total Block -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Total"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:singleLine="true"/>
+                <TextView
+                    android:id="@+id/text_stat_total"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    tools:text="137"/>
+            </LinearLayout>
+
+        </LinearLayout>
+        <!-- === END OF DEFINITIVE LAYOUT REFACTOR === -->
+
     </com.google.android.material.card.MaterialCardView>
 
     <!-- Search Area -->
