@@ -113,7 +113,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         checkedInRecyclerView.setAdapter(checkedInAdapter);
     }
 
-    // === START OF FULL DIALOG REFACTOR ===
     private void showConfirmationDialog(DevoteeDao.EnrichedDevotee enrichedDevotee) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_devotee_confirmation, null);
         
@@ -144,41 +143,48 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             whatsappIcon.setImageResource(R.drawable.ic_whatsapp_gray);
         }
         
-        // Build the dialog
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(enrichedDevotee.devotee().getFullName())
-               .setView(dialogView);
+        final AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(enrichedDevotee.devotee().getFullName())
+                .setView(dialogView)
+                .create();
 
-        // Create the dialog instance BEFORE setting listeners so we can dismiss it from them
-        final AlertDialog dialog = builder.create();
-
-        // Set up button actions
-        primaryButton.setText("Mark as Present");
-        primaryButton.setOnClickListener(v -> {
-            viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
-            dialog.dismiss();
-        });
-
+        // === START OF HIERARCHY LOGIC ===
         if (enrichedDevotee.whatsAppGroup() == null || enrichedDevotee.whatsAppGroup() == 0) {
-            secondaryButton.setVisibility(View.VISIBLE);
-            secondaryButton.setText("Send Invite & Mark Present");
-            secondaryButton.setOnClickListener(v -> {
+            // Case 1: Invite is possible. Make it the primary action.
+            primaryButton.setText("Send Invite & Mark Present");
+            primaryButton.setOnClickListener(v -> {
                 viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
                 dispatchWhatsAppInvite(enrichedDevotee.devotee());
                 dialog.dismiss();
             });
+
+            secondaryButton.setVisibility(View.VISIBLE);
+            secondaryButton.setText("Mark as Present (No Invite)");
+            secondaryButton.setOnClickListener(v -> {
+                viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
+                dialog.dismiss();
+            });
+
+        } else {
+            // Case 2: Invite is not needed. "Mark as Present" is the only primary action.
+            primaryButton.setText("Mark as Present");
+            primaryButton.setOnClickListener(v -> {
+                viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
+                dialog.dismiss();
+            });
+            // Keep the secondary button hidden.
+            secondaryButton.setVisibility(View.GONE);
         }
+        // === END OF HIERARCHY LOGIC ===
 
         negativeButton.setOnClickListener(v -> dialog.dismiss());
         
-        // Set the rounded background
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_rounded_background);
         }
 
         dialog.show();
     }
-    // === END OF FULL DIALOG REFACTOR ===
 
     private void dispatchWhatsAppInvite(Devotee devotee) {
         if (whatsAppInviteDetails == null || TextUtils.isEmpty(whatsAppInviteDetails.link) || TextUtils.isEmpty(whatsAppInviteDetails.messageTemplate)) {
