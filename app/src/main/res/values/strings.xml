@@ -11,7 +11,7 @@
     <string name="import_stats_message">Processed: %1$d\nInserted: %2$d\nUpdated: %3$d\nSkipped: %4$d</string>
     <string name="retain_dropped_columns">Retain columns marked as \'Drop\' in extras</string>
 
-    <!-- NEW: Report Feature Strings -->
+    <!-- Report Feature Strings -->
     <string name="report_export_devotee_title">Full Devotee List</string>
     <string name="report_export_devotee_subtitle_zero">No records found.</string>
     <string name="report_export_devotee_subtitle_one">1 record found. Tap to export as CSV.</string>
@@ -19,5 +19,14 @@
     <string name="export_success">Export file created successfully.</string>
     <string name="export_failed">Export failed. See logs for details.</string>
     <string name="share_export_title">Share Devotee Export</string>
+    <string name="share_attendance_title">Share Attendance Export</string>
+
+    <!-- NEW: Attendance By Event Report Strings -->
+    <string name="report_attendance_by_event_title">Attendance By Event</string>
+    <string name="report_attendance_by_event_subtitle">View and export attendee lists for specific events.</string>
+    <string name="title_activity_report_event_list">Select an Event</string>
+    <string name="title_activity_report_attendance_list">Event Attendees</string>
+    <string name="total_attended_format">Total Attended: %d</string>
+    <string name="action_export_csv">Export as CSV</string>
 
 </resources>

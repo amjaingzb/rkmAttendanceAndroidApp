@@ -18,6 +18,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.card.MaterialCardView;
 import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.ui.reports.ReportEventListActivity;
 import com.rkm.rkmattendanceapp.util.AppLogger;
 
 public class ReportsFragment extends Fragment {
@@ -27,6 +28,7 @@ public class ReportsFragment extends Fragment {
     private TextView totalDevoteesText, totalWhatsappText, devoteesInWhatsappText, devoteesWithAttendanceText;
     private TextView exportSubtitleText;
     private MaterialCardView exportCard;
+    private MaterialCardView attendanceByEventCard;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -43,7 +45,6 @@ public class ReportsFragment extends Fragment {
         setupClickListeners();
         observeViewModel();
 
-        // Load the initial data for the screen
         reportsViewModel.loadStats();
     }
 
@@ -54,6 +55,7 @@ public class ReportsFragment extends Fragment {
         devoteesWithAttendanceText = view.findViewById(R.id.text_devotees_with_attendance);
         exportSubtitleText = view.findViewById(R.id.text_export_devotee_subtitle);
         exportCard = view.findViewById(R.id.card_export_devotee_list);
+        attendanceByEventCard = view.findViewById(R.id.card_attendance_by_event);
     }
 
     private void setupClickListeners() {
@@ -61,6 +63,12 @@ public class ReportsFragment extends Fragment {
             AppLogger.d(TAG, "Export devotee list card clicked.");
             Toast.makeText(getContext(), "Generating export file...", Toast.LENGTH_SHORT).show();
             reportsViewModel.startDevoteeExport();
+        });
+
+        attendanceByEventCard.setOnClickListener(v -> {
+            AppLogger.d(TAG, "Attendance by Event card clicked.");
+            Intent intent = new Intent(getActivity(), ReportEventListActivity.class);
+            startActivity(intent);
         });
     }
 
@@ -77,7 +85,7 @@ public class ReportsFragment extends Fragment {
             if (uri != null) {
                 AppLogger.d(TAG, "Received shareable URI: " + uri);
                 shareCsvFile(uri);
-                reportsViewModel.onShareIntentHandled(); // Reset the event to prevent re-triggering
+                reportsViewModel.onShareIntentHandled(); // Reset the event
             }
         });
     }
@@ -89,7 +97,6 @@ public class ReportsFragment extends Fragment {
         devoteesInWhatsappText.setText(String.valueOf(stats.registeredDevoteesInWhatsApp()));
         devoteesWithAttendanceText.setText(String.valueOf(stats.devoteesWithAttendance()));
 
-        // Update the dynamic label on the export card
         long total = stats.totalDevotees();
         if (total == 0) {
             exportSubtitleText.setText(R.string.report_export_devotee_subtitle_zero);

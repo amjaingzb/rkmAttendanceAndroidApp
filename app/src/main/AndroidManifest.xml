@@ -47,8 +47,17 @@
             android:name=".ui.MappingActivity"
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
+            
+        <!-- NEW: Report Activities -->
+        <activity
+            android:name=".ui.reports.ReportEventListActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.AdminMainActivity" />
+        <activity
+            android:name=".ui.reports.ReportAttendanceListActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.reports.ReportEventListActivity" />
 
-        <!-- START OF FILEPROVIDER CONFIGURATION -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -58,7 +67,6 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths" />
         </provider>
-        <!-- END OF FILEPROVIDER CONFIGURATION -->
 
     </application>
 

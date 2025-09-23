@@ -6,8 +6,8 @@ import android.net.Uri;
 import androidx.core.content.FileProvider;
 import com.opencsv.CSVWriter;
 import com.rkm.attendance.db.DevoteeDao;
+import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.util.AppLogger;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.util.List;
@@ -19,14 +19,14 @@ public class CsvExporter {
     /**
      * Exports the full list of enriched devotees to a temporary CSV file and returns its shareable URI.
      * @param context The application context.
-     * @param devotees The list of devotees to export.
+     * @param devotees The list of enriched devotees to export.
      * @param fileProviderAuthority The authority string for the FileProvider.
      * @return A content URI for the generated file, suitable for sharing.
      * @throws Exception if the file cannot be created or written.
      */
     public Uri exportDevotees(Context context, List<DevoteeDao.EnrichedDevotee> devotees, String fileProviderAuthority) throws Exception {
         String[] headers = {
-                "Devotee ID", "Full Name", "Mobile Number", "Address", "Age",
+                "Full Name", "Mobile Number", "Address", "Age",
                 "Email", "Gender", "WhatsApp Group", "Total Attendance",
                 "Last Attended Date", "Extra JSON"
         };
@@ -36,7 +36,6 @@ public class CsvExporter {
             exportDir.mkdirs();
         }
         File file = new File(exportDir, "devotee_export.csv");
-
         AppLogger.d(TAG, "Creating export file at: " + file.getAbsolutePath());
 
         try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
@@ -44,7 +43,6 @@ public class CsvExporter {
 
             for (DevoteeDao.EnrichedDevotee enriched : devotees) {
                 String[] data = {
-                    String.valueOf(enriched.devotee().getDevoteeId()),
                     enriched.devotee().getFullName(),
                     enriched.devotee().getMobileE164(),
                     enriched.devotee().getAddress(),
@@ -61,7 +59,39 @@ public class CsvExporter {
             AppLogger.d(TAG, "Successfully wrote " + devotees.size() + " records to CSV.");
         }
 
-        // Use the FileProvider to get a secure, shareable content URI
+        return FileProvider.getUriForFile(context, fileProviderAuthority, file);
+    }
+
+    /**
+     * Exports a simple list of attendees for a single event.
+     * @param context The application context.
+     * @param devotees The list of basic devotee objects to export.
+     * @param fileProviderAuthority The authority string for the FileProvider.
+     * @return A content URI for the generated file.
+     * @throws Exception if the file cannot be created or written.
+     */
+    public Uri exportSimpleDevoteeList(Context context, List<Devotee> devotees, String fileProviderAuthority) throws Exception {
+        String[] headers = {"Full Name", "Mobile Number"};
+
+        File exportDir = new File(context.getCacheDir(), "exports");
+        if (!exportDir.exists()) {
+            exportDir.mkdirs();
+        }
+        File file = new File(exportDir, "event_attendance_export.csv");
+        AppLogger.d(TAG, "Creating event attendance export at: " + file.getAbsolutePath());
+
+        try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
+            writer.writeNext(headers);
+for (Devotee devotee : devotees) {
+    String[] data = {
+        devotee.getFullName(),
+        devotee.getMobileE164()
+    };
+    writer.writeNext(data);
+}
+            AppLogger.d(TAG, "Successfully wrote " + devotees.size() + " attendees to CSV.");
+        }
+
         return FileProvider.getUriForFile(context, fileProviderAuthority, file);
     }
 }
