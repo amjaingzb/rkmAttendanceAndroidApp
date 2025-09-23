@@ -2,7 +2,6 @@
 package com.rkm.rkmattendanceapp.ui;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,10 +26,10 @@ public class ReportsFragment extends Fragment {
     private static final String TAG = "ReportsFragment";
     private ReportsViewModel reportsViewModel;
     private TextView totalDevoteesText, totalWhatsappText, devoteesInWhatsappText, devoteesWithAttendanceText;
-    private TextView exportSubtitleText;
-    private MaterialCardView exportCard;
+    
+    // The redundant exportCard and its subtitle TextView have been removed.
     private MaterialCardView attendanceByEventCard;
-    private MaterialCardView devoteeActivityCard; // NEW
+    private MaterialCardView devoteeActivityCard;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -55,26 +54,17 @@ public class ReportsFragment extends Fragment {
         totalWhatsappText = view.findViewById(R.id.text_total_whatsapp);
         devoteesInWhatsappText = view.findViewById(R.id.text_devotees_in_whatsapp);
         devoteesWithAttendanceText = view.findViewById(R.id.text_devotees_with_attendance);
-        exportSubtitleText = view.findViewById(R.id.text_export_devotee_subtitle);
-        exportCard = view.findViewById(R.id.card_export_devotee_list);
         attendanceByEventCard = view.findViewById(R.id.card_attendance_by_event);
-        devoteeActivityCard = view.findViewById(R.id.card_devotee_activity); // NEW
+        devoteeActivityCard = view.findViewById(R.id.card_devotee_activity);
     }
 
     private void setupClickListeners() {
-        exportCard.setOnClickListener(v -> {
-            AppLogger.d(TAG, "Export devotee list card clicked.");
-            Toast.makeText(getContext(), "Generating export file...", Toast.LENGTH_SHORT).show();
-            reportsViewModel.startDevoteeExport();
-        });
-
         attendanceByEventCard.setOnClickListener(v -> {
             AppLogger.d(TAG, "Attendance by Event card clicked.");
             Intent intent = new Intent(getActivity(), ReportEventListActivity.class);
             startActivity(intent);
         });
         
-        // NEW: Click listener for the new report
         devoteeActivityCard.setOnClickListener(v -> {
             AppLogger.d(TAG, "Devotee Activity card clicked.");
             Intent intent = new Intent(getActivity(), ReportDevoteeActivity.class);
@@ -84,16 +74,14 @@ public class ReportsFragment extends Fragment {
 
     private void observeViewModel() {
         reportsViewModel.getCounterStats().observe(getViewLifecycleOwner(), this::updateStatsUI);
+
         reportsViewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
-            if (message != null && !message.isEmpty()) Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
-        });
-        reportsViewModel.getShareableFileUri().observe(getViewLifecycleOwner(), uri -> {
-            if (uri != null) {
-                AppLogger.d(TAG, "Received shareable URI: " + uri);
-                shareCsvFile(uri);
-                reportsViewModel.onShareIntentHandled();
+            if (message != null && !message.isEmpty()) {
+                Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
             }
         });
+        
+        // The shareableFileUri observer is no longer needed in this fragment
     }
 
     private void updateStatsUI(DevoteeDao.CounterStats stats) {
@@ -102,28 +90,5 @@ public class ReportsFragment extends Fragment {
         totalWhatsappText.setText(String.valueOf(stats.totalMappedWhatsAppNumbers()));
         devoteesInWhatsappText.setText(String.valueOf(stats.registeredDevoteesInWhatsApp()));
         devoteesWithAttendanceText.setText(String.valueOf(stats.devoteesWithAttendance()));
-
-        long total = stats.totalDevotees();
-        if (total == 0) {
-            exportSubtitleText.setText(R.string.report_export_devotee_subtitle_zero);
-            exportCard.setEnabled(false);
-            exportCard.setAlpha(0.5f);
-        } else if (total == 1) {
-            exportSubtitleText.setText(R.string.report_export_devotee_subtitle_one);
-            exportCard.setEnabled(true);
-            exportCard.setAlpha(1.0f);
-        } else {
-            exportSubtitleText.setText(getString(R.string.report_export_devotee_subtitle_many, total));
-            exportCard.setEnabled(true);
-            exportCard.setAlpha(1.0f);
-        }
-    }
-    
-    private void shareCsvFile(Uri uri) {
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.setType("text/csv");
-        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
-        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivity(Intent.createChooser(shareIntent, getString(R.string.share_export_title)));
     }
 }

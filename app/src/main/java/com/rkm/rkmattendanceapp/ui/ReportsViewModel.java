@@ -9,11 +9,8 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import com.rkm.attendance.core.AttendanceRepository;
 import com.rkm.attendance.db.DevoteeDao;
-import com.rkm.attendance.importer.CsvExporter;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
-import com.rkm.rkmattendanceapp.R;
 import com.rkm.rkmattendanceapp.util.AppLogger;
-import java.util.List;
 
 public class ReportsViewModel extends AndroidViewModel {
 
@@ -22,6 +19,7 @@ public class ReportsViewModel extends AndroidViewModel {
     private final MutableLiveData<DevoteeDao.CounterStats> counterStats = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     
+    // This LiveData is no longer used by this fragment, but we keep it for other reports.
     private final MutableLiveData<Uri> shareableFileUri = new MutableLiveData<>();
 
     public ReportsViewModel(@NonNull Application application) {
@@ -45,37 +43,6 @@ public class ReportsViewModel extends AndroidViewModel {
             }
         }).start();
     }
-
-    public void startDevoteeExport() {
-        AppLogger.d(TAG, "Starting devotee export process...");
-        new Thread(() -> {
-            try {
-                List<DevoteeDao.EnrichedDevotee> allDevotees = repository.getAllEnrichedDevotees();
-                AppLogger.d(TAG, "Fetched " + allDevotees.size() + " devotees for export.");
-
-                if (allDevotees.isEmpty()) {
-                    errorMessage.postValue("No devotee records to export.");
-                    return;
-                }
-
-                CsvExporter exporter = new CsvExporter();
-                
-                // --- START OF FIX ---
-                // Construct the authority string here, where we have access to the context
-                String authority = getApplication().getPackageName() + ".fileprovider";
-                Uri uri = exporter.exportDevotees(getApplication(), allDevotees, authority);
-                // --- END OF FIX ---
-                
-                shareableFileUri.postValue(uri);
-
-            } catch (Exception e) {
-                AppLogger.e(TAG, "Export process failed.", e);
-                errorMessage.postValue("Export failed: " + e.getMessage());
-            }
-        }).start();
-    }
-
-    public void onShareIntentHandled() {
-        shareableFileUri.setValue(null);
-    }
+    
+    // The startDevoteeExport() method has been removed as it is now redundant.
 }

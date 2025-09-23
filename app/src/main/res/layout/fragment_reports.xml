@@ -55,24 +55,12 @@
             android:textStyle="bold"
             android:textColor="?android:attr/textColorPrimary"/>
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_export_devotee_list"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?android:attr/selectableItemBackground">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/report_export_devotee_title" android:textSize="18sp" android:textStyle="bold" android:textColor="?android:attr/textColorPrimary"/>
-                <TextView android:id="@+id/text_export_devotee_subtitle" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textSize="16sp" android:textColor="?android:attr/textColorSecondary" tools:text="450 records found. Tap to export as CSV."/>
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        <!-- The "Full Devotee List" card has been REMOVED -->
         
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_attendance_by_event"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
             android:clickable="true"
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
@@ -82,7 +70,7 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- NEW: Devotee Activity Report Card -->
+        <!-- UPDATED: This is now the main Master Devotee Report -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_devotee_activity"
             android:layout_width="match_parent"
@@ -92,8 +80,8 @@
             android:focusable="true"
             android:foreground="?android:attr/selectableItemBackground">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/report_devotee_activity_title" android:textSize="18sp" android:textStyle="bold" android:textColor="?android:attr/textColorPrimary"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/report_devotee_activity_subtitle" android:textSize="16sp" android:textColor="?android:attr/textColorSecondary"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/report_master_devotee_title" android:textSize="18sp" android:textStyle="bold" android:textColor="?android:attr/textColorPrimary"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/report_master_devotee_subtitle" android:textSize="16sp" android:textColor="?android:attr/textColorSecondary"/>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
