@@ -124,7 +124,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         Button secondaryButton = dialogView.findViewById(R.id.dialog_button_secondary);
         Button negativeButton = dialogView.findViewById(R.id.dialog_button_negative);
 
-        // Populate the content views
         if (enrichedDevotee.getEventStatus() == EventStatus.PRE_REGISTERED) {
             statusText.setText("Pre-Registered");
             statusText.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_status_prereg));
@@ -148,9 +147,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 .setView(dialogView)
                 .create();
 
-        // === START OF HIERARCHY LOGIC ===
         if (enrichedDevotee.whatsAppGroup() == null || enrichedDevotee.whatsAppGroup() == 0) {
-            // Case 1: Invite is possible. Make it the primary action.
             primaryButton.setText("Send Invite & Mark Present");
             primaryButton.setOnClickListener(v -> {
                 viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
@@ -166,16 +163,13 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             });
 
         } else {
-            // Case 2: Invite is not needed. "Mark as Present" is the only primary action.
             primaryButton.setText("Mark as Present");
             primaryButton.setOnClickListener(v -> {
                 viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
                 dialog.dismiss();
             });
-            // Keep the secondary button hidden.
             secondaryButton.setVisibility(View.GONE);
         }
-        // === END OF HIERARCHY LOGIC ===
 
         negativeButton.setOnClickListener(v -> dialog.dismiss());
         
@@ -237,10 +231,40 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) { getMenuInflater().inflate(R.menu.operator_main_menu, menu); return true; }
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.operator_main_menu, menu);
+        return true;
+    }
+
+    // === START OF NAVIGATION FIX ===
     @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) { if (item.getItemId() == R.id.action_admin_login) { Intent intent = new Intent(this, RoleSelectionActivity.class); intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK); startActivity(intent); finish(); return true; } return super.onOptionsItemSelected(item); }
-    private void bindViews() { statPreReg = findViewById(R.id.text_stat_pre_reg); statAttended = findViewById(R.id.text_stat_attended); statSpotReg = findViewById(R.id.text_stat_spot_reg); statTotal = findViewById(R.id.text_stat_total); searchInputLayout = findViewById(R.id.text_input_layout_search); searchEditText = findViewById(R.id.edit_text_search_attendee); addNewButton = findViewById(R.id.button_add_new_spot); searchResultsRecyclerView = findViewById(R.id.recycler_view_search_results); checkedInRecyclerView = findViewById(R.id.recycler_view_checked_in); checkedInLayout = findViewById(R.id.layout_checked_in_list); searchProgressBar = findViewById(R.id.progress_bar_search); noResultsTextView = findViewById(R.id.text_no_results); listHeaderTextView = findViewById(R.id.text_list_header); }
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_admin_login) {
+            // Use a standard Intent without flags or finish() for natural navigation.
+            Intent intent = new Intent(this, RoleSelectionActivity.class);
+            startActivity(intent);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+    // === END OF NAVIGATION FIX ===
+
+    private void bindViews() {
+        statPreReg = findViewById(R.id.text_stat_pre_reg);
+        statAttended = findViewById(R.id.text_stat_attended);
+        statSpotReg = findViewById(R.id.text_stat_spot_reg);
+        statTotal = findViewById(R.id.text_stat_total);
+        searchInputLayout = findViewById(R.id.text_input_layout_search);
+        searchEditText = findViewById(R.id.edit_text_search_attendee);
+        addNewButton = findViewById(R.id.button_add_new_spot);
+        searchResultsRecyclerView = findViewById(R.id.recycler_view_search_results);
+        checkedInRecyclerView = findViewById(R.id.recycler_view_checked_in);
+        checkedInLayout = findViewById(R.id.layout_checked_in_list);
+        searchProgressBar = findViewById(R.id.progress_bar_search);
+        noResultsTextView = findViewById(R.id.text_no_results);
+        listHeaderTextView = findViewById(R.id.text_list_header);
+    }
+
     private void setupSearchAndButtons() {
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
