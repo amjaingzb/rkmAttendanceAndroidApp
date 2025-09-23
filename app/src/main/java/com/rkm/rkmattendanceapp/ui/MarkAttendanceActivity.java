@@ -51,7 +51,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     private DevoteeListAdapter checkedInAdapter;
     private ProgressBar searchProgressBar;
     private TextView noResultsTextView;
-    private TextView listHeaderTextView; // NEW: Add the header view variable
+    private TextView listHeaderTextView;
 
     private long eventId = -1;
     private ActivityResultLauncher<Intent> addDevoteeLauncher;
@@ -86,6 +86,8 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         setupSearchAndButtons();
         observeViewModel();
         viewModel.loadEventData(eventId);
+        
+        showPristineState();
     }
 
     private void setupRecyclerViews() {
@@ -93,18 +95,13 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         searchAdapter = new SearchResultAdapter();
         searchResultsRecyclerView.setAdapter(searchAdapter);
         
-        // --- START OF WORKFLOW FIX ---
-        // The click listener now shows a confirmation dialog instead of directly marking attendance.
         searchAdapter.setOnSearchResultClickListener(this::showConfirmationDialog);
-        // --- END OF WORKFLOW FIX ---
 
         checkedInRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         checkedInAdapter = new DevoteeListAdapter();
         checkedInRecyclerView.setAdapter(checkedInAdapter);
     }
 
-    // --- START OF WORKFLOW FIX ---
-    // This new method builds and shows the confirmation dialog.
     private void showConfirmationDialog(DevoteeDao.EnrichedDevotee enrichedDevotee) {
         String title = enrichedDevotee.devotee().getFullName();
         
@@ -126,7 +123,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                })
                .setNegativeButton("Cancel", null);
 
-        // Conditionally add the "Send Invite" button
         if (enrichedDevotee.whatsAppGroup() == null || enrichedDevotee.whatsAppGroup() == 0) {
             builder.setNeutralButton("Send Invite", (dialog, which) -> {
                 Toast.makeText(this, "Send Invite (not implemented yet)", Toast.LENGTH_SHORT).show();
@@ -135,37 +131,32 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         
         builder.show();
     }
-    // --- END OF WORKFLOW FIX ---
 
     private void observeViewModel() {
-        // ...
         viewModel.getSearchResults().observe(this, results -> {
-            // This flag is no longer needed with the dialog, but is harmless
-            // isSearching = false; 
             searchProgressBar.setVisibility(View.GONE);
 
             if (results != null && !results.isEmpty()) {
-                listHeaderTextView.setText("Search Results"); // NEW
-                listHeaderTextView.setVisibility(View.VISIBLE); // NEW
+                listHeaderTextView.setText("Search Results");
+                listHeaderTextView.setVisibility(View.VISIBLE);
                 noResultsTextView.setVisibility(View.GONE);
                 searchResultsRecyclerView.setVisibility(View.VISIBLE);
                 searchAdapter.setSearchResults(results);
             } else {
                 searchResultsRecyclerView.setVisibility(View.GONE);
                 if (searchEditText.getText().length() >= SEARCH_TRIGGER_LENGTH) {
-                    listHeaderTextView.setVisibility(View.GONE); // NEW
+                    listHeaderTextView.setVisibility(View.GONE);
                     noResultsTextView.setVisibility(View.VISIBLE);
                 }
             }
         });
-        // ... other observers are unchanged
+        
         viewModel.getEventDetails().observe(this, event -> { if (event != null) { setTitle(event.getEventName()); if (getSupportActionBar() != null) { getSupportActionBar().setSubtitle(event.getEventDate()); } } });
         viewModel.getEventStats().observe(this, stats -> { if (stats != null) { statPreReg.setText(String.valueOf(stats.preRegistered)); statAttended.setText(String.valueOf(stats.attended)); statSpotReg.setText(String.valueOf(stats.spotRegistered)); statTotal.setText(String.valueOf(stats.total)); } });
         viewModel.getCheckedInList().observe(this, devotees -> { if (devotees != null) { checkedInAdapter.setDevotees(devotees); } });
         viewModel.getErrorMessage().observe(this, error -> { if (error != null && !error.isEmpty()) { Toast.makeText(this, error, Toast.LENGTH_LONG).show(); } });
     }
 
-    // --- Other methods are mostly unchanged ---
     @Override
     public boolean onCreateOptionsMenu(Menu menu) { getMenuInflater().inflate(R.menu.operator_main_menu, menu); return true; }
     @Override
@@ -192,7 +183,9 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {}
         });
+        // --- START OF TYPO FIX ---
         addNewButton.setOnClickListener(v -> { Intent intent = new Intent(this, AddEditDevoteeActivity.class); String prefillQuery = searchEditText.getText().toString().trim(); if (!prefillQuery.isEmpty()) { intent.putExtra(AddEditDevoteeActivity.EXTRA_PREFILL_QUERY, prefillQuery); } intent.putExtra(AddEditDevoteeActivity.EXTRA_IS_ON_SPOT_REG, true); intent.putExtra(AddEditDevoteeActivity.EXTRA_EVENT_ID, eventId); addDevoteeLauncher.launch(intent); });
+        // --- END OF TYPO FIX ---
     }
     private void showPristineState() { searchInputLayout.setHelperText(null); searchProgressBar.setVisibility(View.GONE); noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE); checkedInLayout.setVisibility(View.VISIBLE); searchAdapter.setSearchResults(new ArrayList<>()); listHeaderTextView.setText("Recently Checked-In"); listHeaderTextView.setVisibility(View.VISIBLE); }
     private void showInsufficientInputState() { searchInputLayout.setHelperText("Enter at least " + SEARCH_TRIGGER_LENGTH + " characters"); searchProgressBar.setVisibility(View.GONE); noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE); checkedInLayout.setVisibility(View.GONE); searchAdapter.setSearchResults(new ArrayList<>()); listHeaderTextView.setVisibility(View.GONE); }
