@@ -48,15 +48,16 @@
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
             
-        <!-- NEW: Report Activities -->
         <activity
             android:name=".ui.reports.ReportEventListActivity"
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
+        
+        <!-- NEW: Devotee Activity Report Activity -->
         <activity
-            android:name=".ui.reports.ReportAttendanceListActivity"
+            android:name=".ui.reports.ReportDevoteeActivity"
             android:exported="false"
-            android:parentActivityName=".ui.reports.ReportEventListActivity" />
+            android:parentActivityName=".ui.AdminMainActivity" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

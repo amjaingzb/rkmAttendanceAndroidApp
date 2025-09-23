@@ -20,13 +20,19 @@
     <string name="export_failed">Export failed. See logs for details.</string>
     <string name="share_export_title">Share Devotee Export</string>
     <string name="share_attendance_title">Share Attendance Export</string>
-
-    <!-- NEW: Attendance By Event Report Strings -->
     <string name="report_attendance_by_event_title">Attendance By Event</string>
     <string name="report_attendance_by_event_subtitle">View and export attendee lists for specific events.</string>
     <string name="title_activity_report_event_list">Select an Event</string>
-    <string name="title_activity_report_attendance_list">Event Attendees</string>
     <string name="total_attended_format">Total Attended: %d</string>
     <string name="action_export_csv">Export as CSV</string>
+    
+    <!-- NEW: Devotee Activity Report Strings -->
+    <string name="report_devotee_activity_title">Devotee Activity Report</string>
+    <string name="report_devotee_activity_subtitle">Rank all devotees by attendance and view their engagement.</string>
+    <string name="title_activity_report_devotee">Devotee Activity</string>
+    <string name="total_attendance_format">%d Events Attended</string>
+    <string name="last_seen_format">Last seen: %s</string>
+    <string name="whatsapp_group_format">Group: %d</string>
+    <string name="not_in_group">Not in Group</string>
 
 </resources>

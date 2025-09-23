@@ -18,6 +18,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.card.MaterialCardView;
 import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.ui.reports.ReportDevoteeActivity;
 import com.rkm.rkmattendanceapp.ui.reports.ReportEventListActivity;
 import com.rkm.rkmattendanceapp.util.AppLogger;
 
@@ -29,6 +30,7 @@ public class ReportsFragment extends Fragment {
     private TextView exportSubtitleText;
     private MaterialCardView exportCard;
     private MaterialCardView attendanceByEventCard;
+    private MaterialCardView devoteeActivityCard; // NEW
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -56,6 +58,7 @@ public class ReportsFragment extends Fragment {
         exportSubtitleText = view.findViewById(R.id.text_export_devotee_subtitle);
         exportCard = view.findViewById(R.id.card_export_devotee_list);
         attendanceByEventCard = view.findViewById(R.id.card_attendance_by_event);
+        devoteeActivityCard = view.findViewById(R.id.card_devotee_activity); // NEW
     }
 
     private void setupClickListeners() {
@@ -70,22 +73,25 @@ public class ReportsFragment extends Fragment {
             Intent intent = new Intent(getActivity(), ReportEventListActivity.class);
             startActivity(intent);
         });
+        
+        // NEW: Click listener for the new report
+        devoteeActivityCard.setOnClickListener(v -> {
+            AppLogger.d(TAG, "Devotee Activity card clicked.");
+            Intent intent = new Intent(getActivity(), ReportDevoteeActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void observeViewModel() {
         reportsViewModel.getCounterStats().observe(getViewLifecycleOwner(), this::updateStatsUI);
-
         reportsViewModel.getErrorMessage().observe(getViewLifecycleOwner(), message -> {
-            if (message != null && !message.isEmpty()) {
-                Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
-            }
+            if (message != null && !message.isEmpty()) Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
         });
-
         reportsViewModel.getShareableFileUri().observe(getViewLifecycleOwner(), uri -> {
             if (uri != null) {
                 AppLogger.d(TAG, "Received shareable URI: " + uri);
                 shareCsvFile(uri);
-                reportsViewModel.onShareIntentHandled(); // Reset the event
+                reportsViewModel.onShareIntentHandled();
             }
         });
     }
