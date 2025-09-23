@@ -15,8 +15,7 @@
         android:layout_height="100dp"
         android:layout_marginBottom="32dp"
         android:contentDescription="App Logo"
-        android:src="@android:drawable/sym_def_app_icon"
-        app:tint="?attr/colorPrimary" />
+        android:src="@drawable/seva_connect_nobg" />
 
     <TextView
         android:layout_width="wrap_content"
