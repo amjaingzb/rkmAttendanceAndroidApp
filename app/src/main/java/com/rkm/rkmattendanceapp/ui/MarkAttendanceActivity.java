@@ -66,10 +66,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
 
-    // === START OF NEW CODE ===
-    // STEP 2.1: Add a variable to hold the fetched invite details.
     private AttendanceRepository.WhatsAppInvite whatsAppInviteDetails;
-    // === END OF NEW CODE ===
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -136,17 +133,19 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                .setNegativeButton("Cancel", null);
 
         if (enrichedDevotee.whatsAppGroup() == null || enrichedDevotee.whatsAppGroup() == 0) {
-            // STEP 2.2: Update the button's click listener to call our new method.
-            builder.setNeutralButton("Send Invite", (dialog, which) -> {
+            // === START OF WORKFLOW CHANGE ===
+            // STEP 1: Change the button text and its behavior to perform both actions.
+            builder.setNeutralButton("Send Invite & Mark Present", (dialog, which) -> {
+                // Call both methods to combine the actions into a single tap.
+                viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
                 dispatchWhatsAppInvite(enrichedDevotee.devotee());
             });
+            // === END OF WORKFLOW CHANGE ===
         }
         
         builder.show();
     }
 
-    // === START OF NEW CODE ===
-    // STEP 2.3: New method to construct and launch the WhatsApp Intent.
     private void dispatchWhatsAppInvite(Devotee devotee) {
         if (whatsAppInviteDetails == null || TextUtils.isEmpty(whatsAppInviteDetails.link) || TextUtils.isEmpty(whatsAppInviteDetails.messageTemplate)) {
             Toast.makeText(this, "WhatsApp invite details not configured.", Toast.LENGTH_LONG).show();
@@ -154,30 +153,31 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         }
 
         String fullMessage = whatsAppInviteDetails.messageTemplate + whatsAppInviteDetails.link;
-        // Prepend "91" country code for the WhatsApp API.
         String phoneForApi = "91" + devotee.getMobileE164();
 
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW);
             String url = "https://api.whatsapp.com/send?phone=" + phoneForApi + "&text=" + URLEncoder.encode(fullMessage, "UTF-8");
             intent.setData(Uri.parse(url));
+
+            // === START OF UX FIX ===
+            // STEP 2: Set the package to open WhatsApp directly, bypassing the chooser.
+            intent.setPackage("com.whatsapp");
+            // === END OF UX FIX ===
+
             startActivity(intent);
         } catch (UnsupportedEncodingException e) {
-            // This should never happen with "UTF-8"
             Toast.makeText(this, "Error preparing invite message.", Toast.LENGTH_SHORT).show();
         } catch (ActivityNotFoundException e) {
+            // This now correctly handles the case where WhatsApp is not installed.
             Toast.makeText(this, "WhatsApp is not installed on this device.", Toast.LENGTH_LONG).show();
         }
     }
-    // === END OF NEW CODE ===
 
     private void observeViewModel() {
-        // === START OF NEW CODE ===
-        // STEP 2.4: Observe the LiveData and store the invite details.
         viewModel.getWhatsAppInvite().observe(this, invite -> {
             this.whatsAppInviteDetails = invite;
         });
-        // === END OF NEW CODE ===
 
         viewModel.getSearchResults().observe(this, results -> {
             searchProgressBar.setVisibility(View.GONE);
