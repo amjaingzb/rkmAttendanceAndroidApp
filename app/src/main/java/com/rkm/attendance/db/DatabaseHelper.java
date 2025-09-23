@@ -5,11 +5,14 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "devotees.db";
-    private static final int DATABASE_VERSION = 1;
+    // STEP 1.1: Increment the database version. This is critical to trigger onUpgrade.
+    private static final int DATABASE_VERSION = 2;
+    private static final String TAG = "DatabaseHelper";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -21,6 +24,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         // We use "IF NOT EXISTS" to make this operation safe even if called unexpectedly.
 
         // 1. Devotee Table
+        // STEP 1.2: Add the new columns to the initial table creation schema.
         db.execSQL("CREATE TABLE IF NOT EXISTS devotee (\n" +
                 "  devotee_id   INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
                 "  full_name    TEXT NOT NULL,\n" +
@@ -30,6 +34,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "  age          INTEGER,\n" +
                 "  email        TEXT,\n" +
                 "  gender       TEXT,\n" +
+                "  aadhaar      TEXT,\n" + // NEW
+                "  pan          TEXT,\n" + // NEW
                 "  extra_json   TEXT,\n" +
                 "  created_at   TEXT DEFAULT CURRENT_TIMESTAMP,\n" +
                 "  updated_at   TEXT DEFAULT CURRENT_TIMESTAMP\n" +
@@ -106,31 +112,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // This is the key: Check if we are upgrading from a desktop DB.
-        if (oldVersion == 0) {
-            // This is a database file from the desktop. The schema should
-            // already match what onCreate would do. We just need to let the
-            // helper know the upgrade is "done" without wiping any data.
-            // We do nothing here. The helper will automatically set the
-            // version number to 1 in the file after this method returns.
-            return;
-        }
+        AppLogger.w(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
 
-        // This is the original "destructive" upgrade path for any other
-        // future upgrades during development (e.g., from v1 to v2).
-        db.execSQL("DROP TABLE IF EXISTS attendance");
-        db.execSQL("DROP TABLE IF EXISTS event");
-        db.execSQL("DROP TABLE IF EXISTS devotee");
-        db.execSQL("DROP TABLE IF EXISTS fuzzy_merge_log");
-        db.execSQL("DROP TABLE IF EXISTS whatsapp_group_map");
-        db.execSQL("DROP TABLE IF EXISTS app_config"); // Also drop the new table
-        onCreate(db);
+        // STEP 1.3: This is the most important part. We add the new columns
+        // to the existing devotee table without deleting any data.
+        if (oldVersion < 2) {
+            AppLogger.d(TAG, "Applying schema changes for version 2...");
+            db.execSQL("ALTER TABLE devotee ADD COLUMN aadhaar TEXT");
+            db.execSQL("ALTER TABLE devotee ADD COLUMN pan TEXT");
+            AppLogger.d(TAG, "Successfully added aadhaar and pan columns to devotee table.");
+        }
     }
     
     @Override
     public void onConfigure(SQLiteDatabase db) {
         super.onConfigure(db);
-        // Enable foreign key constraints
         db.setForeignKeyConstraintsEnabled(true);
     }
 }

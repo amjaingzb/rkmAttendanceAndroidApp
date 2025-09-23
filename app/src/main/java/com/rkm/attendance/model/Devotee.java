@@ -17,14 +17,18 @@ public class Devotee {
     private String mobileE164;
     private String address;
     private Integer age;
-    private String extraJson;
     private String email;
     private String gender;
+    private String aadhaar; // NEW
+    private String pan;     // NEW
+    private String extraJson;
 
     public Devotee() {}
 
+    // STEP 2.1: Update the main constructor to include the new fields.
     public Devotee(Long devoteeId, String fullName, String nameNorm, String mobileE164,
-                   String address, Integer age, String email, String gender, String extraJson) {
+                   String address, Integer age, String email, String gender,
+                   String aadhaar, String pan, String extraJson) {
         this.devoteeId = devoteeId;
         this.fullName = fullName;
         this.nameNorm = nameNorm;
@@ -33,9 +37,12 @@ public class Devotee {
         this.age = age;
         this.email = email;
         this.gender = gender;
+        this.aadhaar = aadhaar;
+        this.pan = pan;
         this.extraJson = extraJson;
     }
 
+    // STEP 2.2: Update the merge logic for the new fields.
     public void mergeWith(Devotee other) {
         if (other == null) return;
 
@@ -54,19 +61,20 @@ public class Devotee {
         if (isNotBlank(other.gender)) {
             this.gender = other.gender;
         }
+        if (isNotBlank(other.aadhaar)) {
+            this.aadhaar = other.aadhaar;
+        }
+        if (isNotBlank(other.pan)) {
+            this.pan = other.pan;
+        }
         
-        // --- START OF FIX #1 ---
-        // Implement the correct age merge logic.
         if (other.age != null && other.age > 0 && other.age < 100) {
             if (this.age == null || this.age <= 0) {
-                // If current age is invalid, take the new one.
                 this.age = other.age;
             } else {
-                // Both are valid, so take the greater of the two.
                 this.age = Math.max(this.age, other.age);
             }
         }
-        // --- END OF FIX #1 ---
         
         if (isNotBlank(other.extraJson)) {
             if (!isNotBlank(this.extraJson)) {
@@ -108,6 +116,12 @@ public class Devotee {
     public void setEmail(String email) { this.email = email; }
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }
+
+    // STEP 2.3: Add getters and setters for the new fields.
+    public String getAadhaar() { return aadhaar; }
+    public void setAadhaar(String aadhaar) { this.aadhaar = aadhaar; }
+    public String getPan() { return pan; }
+    public void setPan(String pan) { this.pan = pan; }
 
     @Override public boolean equals(Object o) { if (this == o) return true; if (o == null || getClass() != o.getClass()) return false; Devotee devotee = (Devotee) o; return Objects.equals(mobileE164, devotee.mobileE164) && Objects.equals(nameNorm, devotee.nameNorm); }
     @Override public int hashCode() { return Objects.hash(mobileE164, nameNorm); }

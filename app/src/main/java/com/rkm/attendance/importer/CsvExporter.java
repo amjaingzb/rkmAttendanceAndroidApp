@@ -16,18 +16,11 @@ public class CsvExporter {
 
     private static final String TAG = "CsvExporter";
 
-    /**
-     * Exports the full list of enriched devotees to a temporary CSV file and returns its shareable URI.
-     * @param context The application context.
-     * @param devotees The list of enriched devotees to export.
-     * @param fileProviderAuthority The authority string for the FileProvider.
-     * @return A content URI for the generated file, suitable for sharing.
-     * @throws Exception if the file cannot be created or written.
-     */
+    // STEP 6.1: Add the new fields to the exported CSV header and data rows.
     public Uri exportDevotees(Context context, List<DevoteeDao.EnrichedDevotee> devotees, String fileProviderAuthority) throws Exception {
         String[] headers = {
-                "Full Name", "Mobile Number", "Address", "Age",
-                "Email", "Gender", "WhatsApp Group", "Total Attendance",
+                "Full Name", "Mobile Number", "Address", "Age", "Email", "Gender",
+                "Aadhaar", "PAN", "WhatsApp Group", "Total Attendance",
                 "Last Attended Date", "Extra JSON"
         };
 
@@ -49,6 +42,8 @@ public class CsvExporter {
                     enriched.devotee().getAge() != null ? String.valueOf(enriched.devotee().getAge()) : "",
                     enriched.devotee().getEmail(),
                     enriched.devotee().getGender(),
+                    enriched.devotee().getAadhaar(),
+                    enriched.devotee().getPan(),
                     enriched.whatsAppGroup() != null ? String.valueOf(enriched.whatsAppGroup()) : "N/A",
                     String.valueOf(enriched.cumulativeAttendance()),
                     enriched.lastAttendanceDate(),
@@ -62,14 +57,6 @@ public class CsvExporter {
         return FileProvider.getUriForFile(context, fileProviderAuthority, file);
     }
 
-    /**
-     * Exports a simple list of attendees for a single event.
-     * @param context The application context.
-     * @param devotees The list of basic devotee objects to export.
-     * @param fileProviderAuthority The authority string for the FileProvider.
-     * @return A content URI for the generated file.
-     * @throws Exception if the file cannot be created or written.
-     */
     public Uri exportSimpleDevoteeList(Context context, List<Devotee> devotees, String fileProviderAuthority) throws Exception {
         String[] headers = {"Full Name", "Mobile Number"};
 

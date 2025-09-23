@@ -33,11 +33,13 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
 
     private AddEditDevoteeViewModel viewModel;
 
-    private TextInputLayout mobileInputLayout; // NEW: Reference to the layout for setting errors
+    private TextInputLayout mobileInputLayout;
     private TextInputEditText nameEditText;
     private TextInputEditText mobileEditText;
     private TextInputEditText emailEditText;
     private TextInputEditText addressEditText;
+    private TextInputEditText aadhaarEditText; // NEW
+    private TextInputEditText panEditText;     // NEW
     private TextInputEditText ageEditText;
     private AutoCompleteTextView genderAutoComplete;
 
@@ -55,13 +57,14 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
             getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_close);
         }
 
-        // --- START OF FIX #1 ---
-        mobileInputLayout = findViewById(R.id.text_input_layout_mobile); // Get the layout
-        // --- END OF FIX #1 ---
+        // STEP 2.1: Bind the new view elements.
+        mobileInputLayout = findViewById(R.id.text_input_layout_mobile);
         nameEditText = findViewById(R.id.edit_text_name);
         mobileEditText = findViewById(R.id.edit_text_mobile);
         emailEditText = findViewById(R.id.edit_text_email);
         addressEditText = findViewById(R.id.edit_text_address);
+        aadhaarEditText = findViewById(R.id.edit_text_aadhaar);
+        panEditText = findViewById(R.id.edit_text_pan);
         ageEditText = findViewById(R.id.edit_text_age);
         genderAutoComplete = findViewById(R.id.auto_complete_gender);
 
@@ -71,19 +74,16 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
 
         viewModel = new ViewModelProvider(this).get(AddEditDevoteeViewModel.class);
 
-        // --- START OF FIX #1 ---
-        // Add a TextWatcher to clear the error when the user starts typing
         mobileEditText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                mobileInputLayout.setError(null); // Clear the error
+                mobileInputLayout.setError(null);
             }
             @Override
             public void afterTextChanged(Editable s) {}
         });
-        // --- END OF FIX #1 ---
 
         Intent intent = getIntent();
         if (intent.hasExtra(EXTRA_IS_ON_SPOT_REG)) {
@@ -112,12 +112,15 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
     }
 
     private void observeViewModel() {
+        // STEP 2.2: Populate the new fields when loading an existing devotee.
         viewModel.getDevotee().observe(this, devotee -> {
             if (devotee != null) {
                 nameEditText.setText(devotee.getFullName());
                 mobileEditText.setText(devotee.getMobileE164());
                 emailEditText.setText(devotee.getEmail());
                 addressEditText.setText(devotee.getAddress());
+                aadhaarEditText.setText(devotee.getAadhaar());
+                panEditText.setText(devotee.getPan());
                 if (devotee.getAge() != null) {
                     ageEditText.setText(String.valueOf(devotee.getAge()));
                 }
@@ -143,10 +146,7 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
         String mobileRaw = mobileEditText.getText().toString().trim();
         String mobileNorm = DevoteeDao.normalizePhone(mobileRaw);
         
-        // --- START OF FIX #1 ---
-        // Use inline error messages for better UX
         if (TextUtils.isEmpty(name)) {
-            // While we already check for this, it's good practice
             Toast.makeText(this, "Please enter a valid name", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -154,11 +154,13 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
             mobileInputLayout.setError("Mobile number must be 10 digits");
             return;
         }
-        mobileInputLayout.setError(null); // Clear error if validation passes
-        // --- END OF FIX #1 ---
+        mobileInputLayout.setError(null);
 
+        // STEP 2.3: Read the values from the new fields.
         String email = emailEditText.getText().toString().trim();
         String address = addressEditText.getText().toString().trim();
+        String aadhaar = aadhaarEditText.getText().toString().trim();
+        String pan = panEditText.getText().toString().trim();
         String ageStr = ageEditText.getText().toString().trim();
         String gender = genderAutoComplete.getText().toString().trim();
 
@@ -171,9 +173,11 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
                 return;
             }
         }
+        
+        // STEP 2.4: Include the new fields when creating the Devotee object.
         Devotee devoteeToSave = new Devotee(
                 currentDevoteeId == NEW_DEVOTEE_ID ? null : currentDevoteeId, name, null,
-                mobileNorm, address, age, email, gender, null
+                mobileNorm, address, age, email, gender, aadhaar, pan, null
         );
         viewModel.saveDevotee(devoteeToSave, isOnSpotMode, eventIdForOnSpot);
     }

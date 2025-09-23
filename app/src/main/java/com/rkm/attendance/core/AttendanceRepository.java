@@ -96,11 +96,14 @@ public class AttendanceRepository {
     public int deleteDevotees(List<Long> devoteeIds) {
         return devoteeDao.deleteByIds(devoteeIds);
     }
+    
+    // STEP 4.1: Update the call to resolveOrCreateDevotee to pass the new fields.
     public Devotee saveOrMergeDevoteeFromAdmin(Devotee devoteeFromForm) {
         long finalId = devoteeDao.resolveOrCreateDevotee(
                 devoteeFromForm.getFullName(), devoteeFromForm.getMobileE164(),
                 devoteeFromForm.getAddress(), devoteeFromForm.getAge(),
-                devoteeFromForm.getEmail(), devoteeFromForm.getGender()
+                devoteeFromForm.getEmail(), devoteeFromForm.getGender(),
+                devoteeFromForm.getAadhaar(), devoteeFromForm.getPan()
         );
         Devotee definitiveRecord = devoteeDao.getById(finalId);
         definitiveRecord.mergeWith(devoteeFromForm);

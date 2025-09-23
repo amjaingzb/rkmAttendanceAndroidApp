@@ -26,6 +26,7 @@ public class CsvImporter {
         public int processed, inserted, updatedChanged, updatedNoChange, skipped;
     }
 
+    // STEP 3.1: Update toDevotee to parse aadhaar and pan from the CSV row.
     public Devotee toDevotee(Map<String, String> row, ImportMapping mapping) throws Exception {
         String fullName = value(row, mapping, "full_name");
         String mobile = value(row, mapping, "mobile");
@@ -35,6 +36,8 @@ public class CsvImporter {
         Integer age = parseAge(value(row, mapping, "age"));
         String email = value(row, mapping, "email");
         String gender = value(row, mapping, "gender");
+        String aadhaar = value(row, mapping, "aadhaar"); // NEW
+        String pan = value(row, mapping, "pan");         // NEW
         String nameNorm = DevoteeDao.normalizeName(fullName);
         String mobileNorm = DevoteeDao.normalizePhone(mobile);
 
@@ -43,7 +46,8 @@ public class CsvImporter {
         Map<String, Object> extras = new LinkedHashMap<>();
         Set<String> mappedHeaders = new HashSet<>();
         
-        for(String target : new String[]{"full_name", "mobile", "address", "age", "email", "gender"}){
+        // Also exclude the new fields from being added to 'extras'
+        for(String target : new String[]{"full_name", "mobile", "address", "age", "email", "gender", "aadhaar", "pan"}){
             String header = headerFor(mapping, target);
             if(header != null) mappedHeaders.add(header);
         }
@@ -56,9 +60,10 @@ public class CsvImporter {
         }
         
         String extraJson = extras.isEmpty() ? null : om.writeValueAsString(extras);
-        return new Devotee(null, fullName, nameNorm, mobileNorm, address, age, email, gender, extraJson);
+        return new Devotee(null, fullName, nameNorm, mobileNorm, address, age, email, gender, aadhaar, pan, extraJson);
     }
     
+    // STEP 3.2: Update guessTargets to recognize common headers for the new fields.
     public static Map<String, String> guessTargets(List<String> headers, ImportType importType) {
         Map<String, String> finalMapping = new LinkedHashMap<>();
         Set<String> usedTargets = new HashSet<>();
@@ -78,19 +83,18 @@ public class CsvImporter {
             for (String s : Arrays.asList("age","years")) syn.put(norm.apply(s), "age");
             for (String s : Arrays.asList("email","e-mail","emailid","emailaddress","mail")) syn.put(norm.apply(s), "email");
             for (String s : Arrays.asList("gender","sex")) syn.put(norm.apply(s), "gender");
+            for (String s : Arrays.asList("aadhaar", "aadhar", "aadhaarno", "aadharnumber")) syn.put(norm.apply(s), "aadhaar");
+            for (String s : Arrays.asList("pan", "pancard", "panno", "pannumber")) syn.put(norm.apply(s), "pan");
         }
 
         for (String header : headers) {
             String k = norm.apply(header);
             String guessedTarget = syn.get(k);
 
-            // --- START OF FIX ---
-            // The fallback logic for partial matches is restored here.
             if (guessedTarget == null && importType != ImportType.WHATSAPP) {
                 if (k.contains("mobile") || k.contains("phone") || k.contains("contact")) guessedTarget="mobile";
                 else if (k.contains("name")) guessedTarget="full_name";
             }
-            // --- END OF FIX ---
 
             if (guessedTarget != null) {
                 if (!usedTargets.contains(guessedTarget)) {

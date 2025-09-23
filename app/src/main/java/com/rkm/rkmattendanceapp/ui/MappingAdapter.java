@@ -38,14 +38,15 @@ public class MappingAdapter extends RecyclerView.Adapter<MappingAdapter.ViewHold
         List<String> values = new ArrayList<>();
         List<String> labels = new ArrayList<>();
         
+        // STEP 5.1: Add the new fields to the list of available mapping targets.
         switch (importType) {
             case WHATSAPP:
                 values.addAll(Arrays.asList("DROP", "phone", "whatsAppGroupId"));
                 labels.addAll(Arrays.asList("Drop", "Phone Number", "WhatsApp Group ID"));
                 break;
             default: // DEVOTEE and ATTENDANCE
-                values.addAll(Arrays.asList("DROP", "RETAIN", "full_name", "mobile", "address", "age", "email", "gender"));
-                labels.addAll(Arrays.asList("Drop", "Retain", "Full Name", "Mobile Number", "Address", "Age", "Email", "Gender"));
+                values.addAll(Arrays.asList("DROP", "RETAIN", "full_name", "mobile", "address", "age", "email", "gender", "aadhaar", "pan"));
+                labels.addAll(Arrays.asList("Drop", "Retain", "Full Name", "Mobile Number", "Address", "Age", "Email", "Gender", "Aadhaar Number", "PAN Number"));
                 if (privilege == Privilege.SUPER_ADMIN && importType == ImportType.ATTENDANCE) {
                     values.add("count");
                     labels.add("Count (Attendance)");
@@ -56,10 +57,7 @@ public class MappingAdapter extends RecyclerView.Adapter<MappingAdapter.ViewHold
         this.targetValues = values.toArray(new String[0]);
         this.targetLabels = labels.toArray(new String[0]);
 
-        // --- START OF FIX ---
-        // The method call is now corrected to pass the importType
         Map<String, String> guessedMapping = CsvImporter.guessTargets(csvHeaders, importType);
-        // --- END OF FIX ---
         
         for (int i = 0; i < csvHeaders.size(); i++) {
             String guessedTarget = guessedMapping.get(csvHeaders.get(i));

@@ -6,15 +6,8 @@ import com.rkm.attendance.model.Devotee;
 
 import java.util.Map;
 
-/**
- * A simple parser class dedicated to processing rows from an attendance CSV.
- * It is responsible for parsing a row into a temporary Devotee object and extracting the count.
- */
 public class AttendanceImporter {
 
-    /**
-     * A simple data holder for the result of parsing one row.
-     */
     public static class ParsedAttendanceRow {
         public final Devotee devotee;
         public final int count;
@@ -25,13 +18,7 @@ public class AttendanceImporter {
         }
     }
 
-    /**
-     * Parses a single row from a CSV into a transient Devotee object and an attendance count.
-     * This method does NOT save anything to the database.
-     * @param row The map representing the CSV row.
-     * @param mapping The mapping configuration from the UI.
-     * @return A ParsedAttendanceRow object, or null if mandatory fields are missing.
-     */
+    // STEP 4.1: Update parseRow to handle the new fields.
     public ParsedAttendanceRow parseRow(Map<String, String> row, ImportMapping mapping) {
         String fullName = value(row, mapping, "full_name");
         String mobile = value(row, mapping, "mobile");
@@ -43,6 +30,8 @@ public class AttendanceImporter {
         Integer age = parseAge(value(row, mapping, "age"));
         String email = value(row, mapping, "email");
         String gender = value(row, mapping, "gender");
+        String aadhaar = value(row, mapping, "aadhaar"); // NEW
+        String pan = value(row, mapping, "pan");         // NEW
         String nameNorm = DevoteeDao.normalizeName(fullName);
         String mobileNorm = DevoteeDao.normalizePhone(mobile);
 
@@ -50,16 +39,13 @@ public class AttendanceImporter {
             return null;
         }
 
-        // For attendance import, we don't need to process extra_json.
-        // The devotee record will be enriched, but we don't add new extra fields here.
-        Devotee parsedDevotee = new Devotee(null, fullName, nameNorm, mobileNorm, address, age, email, gender, null);
+        Devotee parsedDevotee = new Devotee(null, fullName, nameNorm, mobileNorm, address, age, email, gender, aadhaar, pan, null);
 
         int count = parseCount(value(row, mapping, "count"));
 
         return new ParsedAttendanceRow(parsedDevotee, count);
     }
 
-    // --- UTILITY METHODS (copied for self-sufficiency) ---
     private static boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
     private static Integer parseAge(String s) { if (s == null) return null; String d = s.replaceAll("[^0-9]", ""); if (d.isEmpty()) return null; try { int age = Integer.parseInt(d); return (age > 0 && age < 100) ? age : null; } catch (NumberFormatException e) { return null; } }
     private static String headerFor(ImportMapping mapping, String target) { for (Map.Entry<String, String> entry : mapping.asMap().entrySet()) { if (target.equalsIgnoreCase(entry.getValue())) { return entry.getKey(); } } return null; }

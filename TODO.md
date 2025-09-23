@@ -8,6 +8,7 @@
 7.  In fact lets add that to requiremetns. Lets logging be so generic that later we can turn if off completely , select severity , redirect the logs to db etc ..
 8. Modify the masted db schema for adhaar , pan optional fields. correct change should be propagted for all add devotee , import devotee and whereevr devotee is silently being inserted into the master (say from pre-reg data). idelntify all such places, 
 9. whatsapp to an attendee groupjoin link
+10. file names should have date and time in suggest name ... export etc 
 
 
 
