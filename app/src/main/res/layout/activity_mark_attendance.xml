@@ -22,16 +22,18 @@
             android:padding="12dp">
 
             <!-- Labels -->
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Pre-Registered" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/>
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Attended" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/>
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Spot Reg" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/>
-            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Total" android:textAppearance="?attr/textAppearanceLabelMedium" android:textColor="#B0B0B0"/>
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Pre-Registered" android:textAppearance="?attr/textAppearanceBody2" android:textColor="@android:color/white"/>
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Attended" android:textAppearance="?attr/textAppearanceBody2" android:textColor="@android:color/white"/>
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Spot Reg" android:textAppearance="?attr/textAppearanceBody2" android:textColor="@android:color/white"/>
+            <TextView android:layout_columnWeight="1" android:gravity="center" android:text="Total" android:textAppearance="?attr/textAppearanceBody2" android:textColor="@android:color/white"/>
 
+            <!-- === START OF NUMBER FONT SIZE FIX === -->
             <!-- Counts -->
-            <TextView android:id="@+id/text_stat_pre_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="150" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/>
-            <TextView android:id="@+id/text_stat_attended" android:layout_columnWeight="1" android:gravity="center" tools:text="125" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/>
-            <TextView android:id="@+id/text_stat_spot_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="12" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/>
-            <TextView android:id="@+id/text_stat_total" android:layout_columnWeight="1" android:gravity="center" tools:text="137" android:textAppearance="?attr/textAppearanceHeadlineSmall" android:textStyle="bold" android:textColor="@android:color/white"/>
+            <TextView android:id="@+id/text_stat_pre_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="150" android:textAppearance="?attr/textAppearanceHeadlineMedium" android:textStyle="bold" android:textColor="@android:color/white"/>
+            <TextView android:id="@+id/text_stat_attended" android:layout_columnWeight="1" android:gravity="center" tools:text="125" android:textAppearance="?attr/textAppearanceHeadlineMedium" android:textStyle="bold" android:textColor="@android:color/white"/>
+            <TextView android:id="@+id/text_stat_spot_reg" android:layout_columnWeight="1" android:gravity="center" tools:text="12" android:textAppearance="?attr/textAppearanceHeadlineMedium" android:textStyle="bold" android:textColor="@android:color/white"/>
+            <TextView android:id="@+id/text_stat_total" android:layout_columnWeight="1" android:gravity="center" tools:text="137" android:textAppearance="?attr/textAppearanceHeadlineMedium" android:textStyle="bold" android:textColor="@android:color/white"/>
+            <!-- === END OF NUMBER FONT SIZE FIX === -->
 
         </GridLayout>
     </com.google.android.material.card.MaterialCardView>
@@ -73,7 +75,6 @@
 
     </LinearLayout>
 
-    <!-- === START OF STYLING FIX === -->
     <!-- This is our dynamic, stateful header with corrected styling -->
     <TextView
         android:id="@+id/text_list_header"
@@ -87,7 +88,6 @@
         android:textColor="?android:attr/textColorPrimary"
         tools:text="Recently Checked-In"
         tools:visibility="visible"/>
-    <!-- === END OF STYLING FIX === -->
 
     <!-- Content Area (with FrameLayout to overlay search results) -->
     <FrameLayout
