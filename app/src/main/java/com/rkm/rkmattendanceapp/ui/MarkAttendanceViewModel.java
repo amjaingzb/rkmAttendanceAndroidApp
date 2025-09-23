@@ -26,6 +26,11 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
     private final MutableLiveData<List<DevoteeDao.EnrichedDevotee>> searchResults = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
 
+    // === START OF NEW CODE ===
+    // STEP 1.1: Add LiveData to hold the invite configuration.
+    private final MutableLiveData<AttendanceRepository.WhatsAppInvite> whatsAppInvite = new MutableLiveData<>();
+    // === END OF NEW CODE ===
+
     public MarkAttendanceViewModel(@NonNull Application application) {
         super(application);
         this.repository = ((AttendanceApplication) application).repository;
@@ -37,6 +42,11 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
     public LiveData<List<DevoteeDao.EnrichedDevotee>> getSearchResults() { return searchResults; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
 
+    // === START OF NEW CODE ===
+    // STEP 1.2: Expose the LiveData for the UI to observe.
+    public LiveData<AttendanceRepository.WhatsAppInvite> getWhatsAppInvite() { return whatsAppInvite; }
+    // === END OF NEW CODE ===
+
     public void loadEventData(long eventId) {
         this.currentEventId = eventId;
         new Thread(() -> {
@@ -44,6 +54,13 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
                 Event event = repository.getEventById(eventId);
                 eventDetails.postValue(event);
                 refreshStatsAndCheckedInList();
+
+                // === START OF NEW CODE ===
+                // STEP 1.3: Fetch the invite details when the screen loads.
+                AttendanceRepository.WhatsAppInvite invite = repository.getWhatsAppInviteDetails();
+                whatsAppInvite.postValue(invite);
+                // === END OF NEW CODE ===
+
             } catch (Exception e) {
                 e.printStackTrace();
                 errorMessage.postValue("Failed to load event data.");
@@ -74,14 +91,10 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
                 repository.markDevoteeAsPresent(currentEventId, devoteeId);
                 refreshStatsAndCheckedInList();
 
-                // --- START OF WORKFLOW FIX ---
-                // The search results MUST be re-queried to show the new "Present" status.
-                // This makes the "refresh-in-place" work correctly after the dialog closes.
                 if (lastSearchQuery != null && lastSearchQuery.length() >= 3) {
                     List<DevoteeDao.EnrichedDevotee> updatedResults = repository.searchDevoteesForEvent(lastSearchQuery, currentEventId);
                     searchResults.postValue(updatedResults);
                 }
-                // --- END OF WORKFLOW FIX ---
 
             } catch (Exception e) {
                 e.printStackTrace();

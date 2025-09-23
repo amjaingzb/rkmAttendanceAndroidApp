@@ -7,19 +7,18 @@ import android.database.sqlite.SQLiteDatabase;
 public class ConfigDao {
     private final SQLiteDatabase db;
 
-    // --- NEW: Define constants for the PIN keys ---
     public static final String KEY_SUPER_ADMIN_PIN = "SUPER_ADMIN_PIN";
     public static final String KEY_EVENT_COORDINATOR_PIN = "EVENT_COORDINATOR_PIN";
+    // === START OF NEW CODE ===
+    // STEP 2.1: Add constants for the new config keys.
+    public static final String KEY_WHATSAPP_INVITE_LINK = "WHATSAPP_INVITE_LINK";
+    public static final String KEY_WHATSAPP_INVITE_MESSAGE = "WHATSAPP_INVITE_MESSAGE";
+    // === END OF NEW CODE ===
 
     public ConfigDao(SQLiteDatabase db) {
         this.db = db;
     }
 
-    /**
-     * Retrieves a configuration value from the database.
-     * @param key The key of the config value to retrieve.
-     * @return The string value, or null if the key doesn't exist.
-     */
     public String getValue(String key) {
         String[] columns = {"config_value"};
         String selection = "config_key = ?";
@@ -33,11 +32,6 @@ public class ConfigDao {
         }
     }
 
-    /**
-     * Checks if the provided PIN matches the one stored for the Super Admin.
-     * @param pin The PIN to check.
-     * @return true if the PIN is correct, false otherwise.
-     */
     public boolean checkSuperAdminPin(String pin) {
         if (pin == null || pin.trim().isEmpty()) {
             return false;
@@ -46,11 +40,6 @@ public class ConfigDao {
         return pin.equals(storedPin);
     }
 
-    /**
-     * Checks if the provided PIN matches the one stored for the Event Coordinator.
-     * @param pin The PIN to check.
-     * @return true if the PIN is correct, false otherwise.
-     */
     public boolean checkEventCoordinatorPin(String pin) {
         if (pin == null || pin.trim().isEmpty()) {
             return false;

@@ -2,11 +2,14 @@
 package com.rkm.rkmattendanceapp.ui;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -28,9 +31,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import com.rkm.attendance.core.AttendanceRepository;
 import com.rkm.attendance.db.DevoteeDao;
+import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 
 public class MarkAttendanceActivity extends AppCompatActivity {
@@ -58,6 +65,11 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
+
+    // === START OF NEW CODE ===
+    // STEP 2.1: Add a variable to hold the fetched invite details.
+    private AttendanceRepository.WhatsAppInvite whatsAppInviteDetails;
+    // === END OF NEW CODE ===
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,18 +136,51 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                .setNegativeButton("Cancel", null);
 
         if (enrichedDevotee.whatsAppGroup() == null || enrichedDevotee.whatsAppGroup() == 0) {
+            // STEP 2.2: Update the button's click listener to call our new method.
             builder.setNeutralButton("Send Invite", (dialog, which) -> {
-                Toast.makeText(this, "Send Invite (not implemented yet)", Toast.LENGTH_SHORT).show();
+                dispatchWhatsAppInvite(enrichedDevotee.devotee());
             });
         }
         
         builder.show();
     }
 
+    // === START OF NEW CODE ===
+    // STEP 2.3: New method to construct and launch the WhatsApp Intent.
+    private void dispatchWhatsAppInvite(Devotee devotee) {
+        if (whatsAppInviteDetails == null || TextUtils.isEmpty(whatsAppInviteDetails.link) || TextUtils.isEmpty(whatsAppInviteDetails.messageTemplate)) {
+            Toast.makeText(this, "WhatsApp invite details not configured.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String fullMessage = whatsAppInviteDetails.messageTemplate + whatsAppInviteDetails.link;
+        // Prepend "91" country code for the WhatsApp API.
+        String phoneForApi = "91" + devotee.getMobileE164();
+
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            String url = "https://api.whatsapp.com/send?phone=" + phoneForApi + "&text=" + URLEncoder.encode(fullMessage, "UTF-8");
+            intent.setData(Uri.parse(url));
+            startActivity(intent);
+        } catch (UnsupportedEncodingException e) {
+            // This should never happen with "UTF-8"
+            Toast.makeText(this, "Error preparing invite message.", Toast.LENGTH_SHORT).show();
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "WhatsApp is not installed on this device.", Toast.LENGTH_LONG).show();
+        }
+    }
+    // === END OF NEW CODE ===
+
     private void observeViewModel() {
+        // === START OF NEW CODE ===
+        // STEP 2.4: Observe the LiveData and store the invite details.
+        viewModel.getWhatsAppInvite().observe(this, invite -> {
+            this.whatsAppInviteDetails = invite;
+        });
+        // === END OF NEW CODE ===
+
         viewModel.getSearchResults().observe(this, results -> {
             searchProgressBar.setVisibility(View.GONE);
-
             if (results != null && !results.isEmpty()) {
                 listHeaderTextView.setText("Search Results");
                 listHeaderTextView.setVisibility(View.VISIBLE);
@@ -183,9 +228,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {}
         });
-        // --- START OF TYPO FIX ---
         addNewButton.setOnClickListener(v -> { Intent intent = new Intent(this, AddEditDevoteeActivity.class); String prefillQuery = searchEditText.getText().toString().trim(); if (!prefillQuery.isEmpty()) { intent.putExtra(AddEditDevoteeActivity.EXTRA_PREFILL_QUERY, prefillQuery); } intent.putExtra(AddEditDevoteeActivity.EXTRA_IS_ON_SPOT_REG, true); intent.putExtra(AddEditDevoteeActivity.EXTRA_EVENT_ID, eventId); addDevoteeLauncher.launch(intent); });
-        // --- END OF TYPO FIX ---
     }
     private void showPristineState() { searchInputLayout.setHelperText(null); searchProgressBar.setVisibility(View.GONE); noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE); checkedInLayout.setVisibility(View.VISIBLE); searchAdapter.setSearchResults(new ArrayList<>()); listHeaderTextView.setText("Recently Checked-In"); listHeaderTextView.setVisibility(View.VISIBLE); }
     private void showInsufficientInputState() { searchInputLayout.setHelperText("Enter at least " + SEARCH_TRIGGER_LENGTH + " characters"); searchProgressBar.setVisibility(View.GONE); noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE); checkedInLayout.setVisibility(View.GONE); searchAdapter.setSearchResults(new ArrayList<>()); listHeaderTextView.setVisibility(View.GONE); }

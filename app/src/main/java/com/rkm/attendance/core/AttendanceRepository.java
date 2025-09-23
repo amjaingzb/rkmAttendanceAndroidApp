@@ -36,6 +36,18 @@ public class AttendanceRepository {
     private final SQLiteDatabase database;
     private static final String TAG = "AttendanceRepository";
 
+    // === START OF NEW CODE ===
+    // STEP 3.1: A simple data class to hold the invite details.
+    public static class WhatsAppInvite {
+        public final String link;
+        public final String messageTemplate;
+        public WhatsAppInvite(String link, String messageTemplate) {
+            this.link = link;
+            this.messageTemplate = messageTemplate;
+        }
+    }
+    // === END OF NEW CODE ===
+
     public AttendanceRepository(SQLiteDatabase database) {
         this.database = database;
         this.devoteeDao = new DevoteeDao(database);
@@ -44,15 +56,23 @@ public class AttendanceRepository {
         this.configDao = new ConfigDao(database);
     }
 
+    // === START OF NEW CODE ===
+    // STEP 3.2: New method to fetch the config values from the DAO.
+    public WhatsAppInvite getWhatsAppInviteDetails() {
+        String link = configDao.getValue(ConfigDao.KEY_WHATSAPP_INVITE_LINK);
+        String message = configDao.getValue(ConfigDao.KEY_WHATSAPP_INVITE_MESSAGE);
+        return new WhatsAppInvite(link, message);
+    }
+    // === END OF NEW CODE ===
+
     // --- Config / PIN Methods ---
+    // ... (rest of the file is unchanged) ...
     public boolean checkSuperAdminPin(String pin) {
         return configDao.checkSuperAdminPin(pin);
     }
     public boolean checkEventCoordinatorPin(String pin) {
         return configDao.checkEventCoordinatorPin(pin);
     }
-
-    // --- Event Methods ---
     public List<Event> getAllEvents() {
         return eventDao.listAll();
     }
@@ -85,8 +105,6 @@ public class AttendanceRepository {
     public Event getActiveEvent() {
         return eventDao.findCurrentlyActiveEvent();
     }
-
-    // --- Devotee Methods ---
     public Devotee getDevoteeById(long devoteeId) {
         return devoteeDao.getById(devoteeId);
     }
@@ -96,8 +114,6 @@ public class AttendanceRepository {
     public int deleteDevotees(List<Long> devoteeIds) {
         return devoteeDao.deleteByIds(devoteeIds);
     }
-    
-    // STEP 4.1: Update the call to resolveOrCreateDevotee to pass the new fields.
     public Devotee saveOrMergeDevoteeFromAdmin(Devotee devoteeFromForm) {
         long finalId = devoteeDao.resolveOrCreateDevotee(
                 devoteeFromForm.getFullName(), devoteeFromForm.getMobileE164(),
@@ -113,8 +129,6 @@ public class AttendanceRepository {
     public List<EnrichedDevotee> getAllEnrichedDevotees() {
         return devoteeDao.getAllEnrichedDevotees();
     }
-
-    // --- Attendance Methods ---
     public boolean markDevoteeAsPresent(long eventId, long devoteeId) {
         EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devoteeId, eventId);
         if (status != null && status.count > 0) { return false; }
@@ -146,8 +160,6 @@ public class AttendanceRepository {
                         .thenComparing(e -> e.devotee().getFullName(), String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
     }
-
-    // --- Stats and Reporting Methods ---
     public DevoteeDao.CounterStats getCounterStats() {
         return devoteeDao.getCounterStats();
     }
@@ -157,8 +169,6 @@ public class AttendanceRepository {
     public List<EventDao.EventWithAttendance> getEventsWithAttendance() {
         return eventDao.getEventsWithAttendanceCounts();
     }
-
-    // --- Import Methods ---
     public CsvImporter.ImportStats importMasterDevoteeList(Context context, Uri uri, ImportMapping mapping) throws Exception {
         CsvImporter importer = new CsvImporter(database);
         CsvImporter.ImportStats stats = new CsvImporter.ImportStats();
@@ -189,7 +199,6 @@ public class AttendanceRepository {
         }
         return stats;
     }
-    
     public CsvImporter.ImportStats importAttendanceList(Context context, Uri uri, ImportMapping mapping, long eventId) throws Exception {
         AttendanceImporter importer = new AttendanceImporter();
         CsvImporter.ImportStats stats = new CsvImporter.ImportStats();
@@ -200,9 +209,7 @@ public class AttendanceRepository {
             Map<String, String> row;
             while((row = csvReader.readMap()) != null) { allRows.add(row); }
         }
-
         if (allRows.isEmpty()) { return stats; }
-
         database.beginTransaction();
         try {
             for (Map<String, String> row : allRows) {
@@ -220,7 +227,6 @@ public class AttendanceRepository {
         } finally {
             database.endTransaction();
         }
-        
         database.beginTransaction();
         try {
             for (Map<String, String> row : allRows) {
@@ -245,7 +251,6 @@ public class AttendanceRepository {
         stats.processed = allRows.size();
         return stats;
     }
-    
     public WhatsAppGroupImporter.Stats importWhatsAppGroups(Context context, Uri uri, ImportMapping mapping) throws Exception {
         WhatsAppGroupImporter importer = new WhatsAppGroupImporter(database);
         try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
