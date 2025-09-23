@@ -12,6 +12,8 @@ import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.attendance.importer.CsvExporter;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
 import com.rkm.rkmattendanceapp.util.AppLogger;
+
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,10 +40,22 @@ public class ReportDevoteeViewModel extends AndroidViewModel {
         new Thread(() -> {
             try {
                 List<DevoteeDao.EnrichedDevotee> devotees = repository.getAllEnrichedDevotees();
-                // Sort the list by cumulative attendance, descending
+
+                // --- START OF SORTING FIX ---
+                // Implement the new, multi-level sorting logic.
+                Comparator<DevoteeDao.EnrichedDevotee> byLastSeen = Comparator
+                        .comparing(DevoteeDao.EnrichedDevotee::lastAttendanceDate, Comparator.nullsLast(Comparator.reverseOrder()));
+                
+                Comparator<DevoteeDao.EnrichedDevotee> byAttendanceCount = Comparator
+                        .comparingInt(DevoteeDao.EnrichedDevotee::cumulativeAttendance).reversed();
+                
+                Comparator<DevoteeDao.EnrichedDevotee> byName = Comparator
+                        .comparing(d -> d.devotee().getFullName());
+
                 List<DevoteeDao.EnrichedDevotee> sortedList = devotees.stream()
-                        .sorted((d1, d2) -> Integer.compare(d2.cumulativeAttendance(), d1.cumulativeAttendance()))
+                        .sorted(byLastSeen.thenComparing(byAttendanceCount).thenComparing(byName))
                         .collect(Collectors.toList());
+                // --- END OF SORTING FIX ---
                 
                 cachedList = sortedList; // Cache the sorted list
                 devoteeList.postValue(sortedList);
