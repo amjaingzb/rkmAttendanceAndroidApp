@@ -4,8 +4,10 @@
 11. stop logging for production or redirect... 
 2. sync with gdrive -- export import db
 6. extend this for receiving donations , recording upi xaction 4 digits, cash or upi, sending receipt. Pan/adhaar wil be mandatory here 
-11. where  to fit about us, version ,developer email..
-
+7. verify for whatsApp invite to number not in  contacts
+. error handling around mappings.. if some spinner is already mapped , dont reuse 
+. improve mapping intelligence , adhaar vs aadhaar 
+. ui itself have restrictions for mobile number , email, pan,adhaar for data validations 
 
 ###TAG-CONVERSATION-2025-09-23 19:14:45
 Done 
@@ -13,6 +15,7 @@ Done
 9. whatsapp to an attendee groupjoin link
 12..  from operator if we go to admin mode and then press the back button , and then navigate back to activity it comes back to operator mode... some thing broken there ... 
 10. file names should have date and time in suggest name ... export etc 
+11. where  to fit about us, version ,developer email..
 
 
 DEFERRED FEATURES

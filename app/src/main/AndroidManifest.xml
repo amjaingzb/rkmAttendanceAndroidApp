@@ -57,10 +57,13 @@
             android:name=".ui.reports.ReportDevoteeActivity"
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
-
-        <!-- NEW: Register the AboutActivity -->
         <activity
             android:name=".ui.AboutActivity"
+            android:exported="false" />
+        
+        <!-- NEW: Register the BackupRestoreActivity -->
+        <activity
+            android:name=".ui.BackupRestoreActivity"
             android:exported="false" />
 
         <provider
