@@ -25,21 +25,23 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Overall Statistics" android:textSize="18sp" android:textStyle="bold" android:textColor="?android:attr/textColorPrimary"/>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:gravity="center_vertical" android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Total Devotee Records:" android:textSize="16sp" android:textColor="#BDBDBD"/>
-                    <TextView android:id="@+id/text_total_devotees" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="450" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
+                
+                <LinearLayout android:id="@+id/layout_total_devotees_parent" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:gravity="center_vertical" android:orientation="horizontal">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Total Devotee Records:" android:textSize="16sp" android:textColor="?android:attr/textColorSecondary"/>
+                    <TextView android:id="@+id/text_total_devotees" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="450" android:textSize="20sp" android:textStyle="bold" android:textColor="?attr/colorOnSurface"/>
+                </LinearLayout>
+                
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Mapped WhatsApp Numbers:" android:textSize="16sp" android:textColor="?android:attr/textColorSecondary"/>
+                    <TextView android:id="@+id/text_total_whatsapp" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="320" android:textSize="20sp" android:textStyle="bold" android:textColor="?attr/colorOnSurface"/>
                 </LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Mapped WhatsApp Numbers:" android:textSize="16sp" android:textColor="#BDBDBD"/>
-                    <TextView android:id="@+id/text_total_whatsapp" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="320" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Devotees in WhatsApp Group:" android:textSize="16sp" android:textColor="?android:attr/textColorSecondary"/>
+                    <TextView android:id="@+id/text_devotees_in_whatsapp" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="315" android:textSize="20sp" android:textStyle="bold" android:textColor="?attr/colorOnSurface"/>
                 </LinearLayout>
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Devotees in WhatsApp Group:" android:textSize="16sp" android:textColor="#BDBDBD"/>
-                    <TextView android:id="@+id/text_devotees_in_whatsapp" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="315" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
-                </LinearLayout>
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:gravity="center_vertical" android:orientation="horizontal">
-                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Devotees with Attendance:" android:textSize="16sp" android:textColor="#BDBDBD"/>
-                    <TextView android:id="@+id/text_devotees_with_attendance" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="280" android:textSize="20sp" android:textStyle="bold" android:textColor="#FFFFFF"/>
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Devotees with Attendance:" android:textSize="16sp" android:textColor="?android:attr/textColorSecondary"/>
+                    <TextView android:id="@+id/text_devotees_with_attendance" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="280" android:textSize="20sp" android:textStyle="bold" android:textColor="?attr/colorOnSurface"/>
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -54,8 +56,6 @@
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="?android:attr/textColorPrimary"/>
-
-        <!-- The "Full Devotee List" card has been REMOVED -->
         
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_attendance_by_event"
@@ -70,7 +70,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- UPDATED: This is now the main Master Devotee Report -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_devotee_activity"
             android:layout_width="match_parent"

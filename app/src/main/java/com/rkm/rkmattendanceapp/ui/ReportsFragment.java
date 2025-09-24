@@ -27,7 +27,6 @@ public class ReportsFragment extends Fragment {
     private ReportsViewModel reportsViewModel;
     private TextView totalDevoteesText, totalWhatsappText, devoteesInWhatsappText, devoteesWithAttendanceText;
     
-    // The redundant exportCard and its subtitle TextView have been removed.
     private MaterialCardView attendanceByEventCard;
     private MaterialCardView devoteeActivityCard;
 
@@ -80,8 +79,6 @@ public class ReportsFragment extends Fragment {
                 Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
             }
         });
-        
-        // The shareableFileUri observer is no longer needed in this fragment
     }
 
     private void updateStatsUI(DevoteeDao.CounterStats stats) {
