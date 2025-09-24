@@ -10,9 +10,11 @@ import com.rkm.attendance.core.OverlapException;
 import com.rkm.attendance.core.AttendanceRepository;
 import com.rkm.attendance.model.Event;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 public class AddEditEventViewModel extends AndroidViewModel {
 
+    private static final String TAG = "AddEditEventViewModel";
     private final AttendanceRepository repository;
     private final MutableLiveData<Event> event = new MutableLiveData<>();
     private final MutableLiveData<Boolean> saveFinished = new MutableLiveData<>(false);
@@ -33,14 +35,12 @@ public class AddEditEventViewModel extends AndroidViewModel {
                 Event e = repository.getEventById(eventId);
                 event.postValue(e);
             } catch (Exception e) {
-                e.printStackTrace();
+                AppLogger.e(TAG, "Failed to load event with ID: " + eventId, e);
                 errorMessage.postValue("Failed to load event details.");
             }
         }).start();
     }
     
-    // --- START OF FIX ---
-    // This method now correctly calls the refactored repository method.
     public void saveEvent(Event eventToSave) {
         new Thread(() -> {
             try {
@@ -59,10 +59,9 @@ public class AddEditEventViewModel extends AndroidViewModel {
             } catch (OverlapException e) {
                 errorMessage.postValue(e.getMessage());
             } catch (Exception e) {
-                e.printStackTrace();
+                AppLogger.e(TAG, "Failed to save event", e);
                 errorMessage.postValue("Save failed: " + e.getMessage());
             }
         }).start();
     }
-    // --- END OF FIX ---
 }

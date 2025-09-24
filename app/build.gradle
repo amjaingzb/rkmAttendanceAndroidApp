@@ -7,6 +7,13 @@ android {
     namespace 'com.rkm.rkmattendanceapp'
     compileSdk 34
 
+    // === START OF BUILDCONFIG FIX ===
+    // Explicitly enable the generation of the BuildConfig.java file.
+    buildFeatures {
+        buildConfig true
+    }
+    // === END OF BUILDCONFIG FIX ===
+
     defaultConfig {
         applicationId "com.rkm.rkmattendanceapp"
         minSdk 26

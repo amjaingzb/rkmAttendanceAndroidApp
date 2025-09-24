@@ -12,9 +12,11 @@ import com.rkm.attendance.importer.CsvImporter;
 import com.rkm.attendance.importer.ImportMapping;
 import com.rkm.attendance.importer.WhatsAppGroupImporter;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 public class MappingViewModel extends AndroidViewModel {
 
+    private static final String TAG = "MappingViewModel";
     private final AttendanceRepository repository;
     private final MutableLiveData<Boolean> isLoading = new MutableLiveData<>(false);
     private final MutableLiveData<CsvImporter.ImportStats> importStats = new MutableLiveData<>();
@@ -36,7 +38,7 @@ public class MappingViewModel extends AndroidViewModel {
                 CsvImporter.ImportStats stats = repository.importMasterDevoteeList(getApplication(), fileUri, mapping);
                 importStats.postValue(stats);
             } catch (Exception e) {
-                e.printStackTrace();
+                AppLogger.e(TAG, "Failed during devotee import", e);
                 errorMessage.postValue(e.getMessage());
             } finally {
                 isLoading.postValue(false);
@@ -51,7 +53,7 @@ public class MappingViewModel extends AndroidViewModel {
                 CsvImporter.ImportStats stats = repository.importAttendanceList(getApplication(), fileUri, mapping, eventId);
                 importStats.postValue(stats);
             } catch (Exception e) {
-                e.printStackTrace();
+                AppLogger.e(TAG, "Failed during attendance import for event ID: " + eventId, e);
                 errorMessage.postValue(e.getMessage());
             } finally {
                 isLoading.postValue(false);
@@ -59,29 +61,25 @@ public class MappingViewModel extends AndroidViewModel {
         }).start();
     }
 
-    // --- START OF FIX #2 ---
-    // This method now correctly receives the stats and translates them for the UI.
     public void startWhatsAppImport(Uri fileUri, ImportMapping mapping) {
         isLoading.setValue(true);
         new Thread(() -> {
             try {
                 WhatsAppGroupImporter.Stats whatsAppStats = repository.importWhatsAppGroups(getApplication(), fileUri, mapping);
                 
-                // Translate from WhatsApp stats to the generic CsvImporter stats for the dialog
                 CsvImporter.ImportStats finalStats = new CsvImporter.ImportStats();
                 finalStats.processed = whatsAppStats.processed;
-                finalStats.updatedChanged = whatsAppStats.insertedOrUpdated; // We'll show "updated" for clarity
+                finalStats.updatedChanged = whatsAppStats.insertedOrUpdated;
                 finalStats.skipped = whatsAppStats.skipped;
                 
                 importStats.postValue(finalStats);
 
             } catch (Exception e) {
-                e.printStackTrace();
+                AppLogger.e(TAG, "Failed during WhatsApp import", e);
                 errorMessage.postValue(e.getMessage());
             } finally {
                 isLoading.postValue(false);
             }
         }).start();
     }
-    // --- END OF FIX #2 ---
 }

@@ -11,11 +11,14 @@ import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.attendance.model.Event;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
+import com.rkm.rkmattendanceapp.util.AppLogger;
+
 import java.util.List;
 import com.rkm.attendance.db.EventDao;
 
 public class MarkAttendanceViewModel extends AndroidViewModel {
 
+    private static final String TAG = "MarkAttendanceVM";
     private final AttendanceRepository repository;
     private long currentEventId = -1;
     private String lastSearchQuery = null;
@@ -25,11 +28,7 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
     private final MutableLiveData<List<Devotee>> checkedInList = new MutableLiveData<>();
     private final MutableLiveData<List<DevoteeDao.EnrichedDevotee>> searchResults = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
-
-    // === START OF NEW CODE ===
-    // STEP 1.1: Add LiveData to hold the invite configuration.
     private final MutableLiveData<AttendanceRepository.WhatsAppInvite> whatsAppInvite = new MutableLiveData<>();
-    // === END OF NEW CODE ===
 
     public MarkAttendanceViewModel(@NonNull Application application) {
         super(application);
@@ -41,11 +40,7 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
     public LiveData<List<Devotee>> getCheckedInList() { return checkedInList; }
     public LiveData<List<DevoteeDao.EnrichedDevotee>> getSearchResults() { return searchResults; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
-
-    // === START OF NEW CODE ===
-    // STEP 1.2: Expose the LiveData for the UI to observe.
     public LiveData<AttendanceRepository.WhatsAppInvite> getWhatsAppInvite() { return whatsAppInvite; }
-    // === END OF NEW CODE ===
 
     public void loadEventData(long eventId) {
         this.currentEventId = eventId;
@@ -54,15 +49,10 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
                 Event event = repository.getEventById(eventId);
                 eventDetails.postValue(event);
                 refreshStatsAndCheckedInList();
-
-                // === START OF NEW CODE ===
-                // STEP 1.3: Fetch the invite details when the screen loads.
                 AttendanceRepository.WhatsAppInvite invite = repository.getWhatsAppInviteDetails();
                 whatsAppInvite.postValue(invite);
-                // === END OF NEW CODE ===
-
             } catch (Exception e) {
-                e.printStackTrace();
+                AppLogger.e(TAG, "Failed to load data for event ID: " + eventId, e);
                 errorMessage.postValue("Failed to load event data.");
             }
         }).start();
@@ -79,7 +69,7 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
                 List<DevoteeDao.EnrichedDevotee> results = repository.searchDevoteesForEvent(query, currentEventId);
                 searchResults.postValue(results);
             } catch (Exception e) {
-                e.printStackTrace();
+                AppLogger.e(TAG, "Search failed for query: " + query, e);
                 errorMessage.postValue("Search failed.");
             }
         }).start();
@@ -97,7 +87,7 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
                 }
 
             } catch (Exception e) {
-                e.printStackTrace();
+                AppLogger.e(TAG, "Failed to mark attendance for devotee ID: " + devoteeId, e);
                 errorMessage.postValue("Failed to mark attendance.");
             }
         }).start();
@@ -110,7 +100,7 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
             eventStats.postValue(stats);
             checkedInList.postValue(checkedIn);
         } catch (Exception e) {
-            e.printStackTrace();
+            AppLogger.e(TAG, "Failed to refresh stats/checked-in list for event ID: " + currentEventId, e);
             errorMessage.postValue("Failed to refresh data.");
         }
     }

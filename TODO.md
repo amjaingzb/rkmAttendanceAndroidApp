@@ -1,8 +1,4 @@
 ================== Extra features not yet self refined ===========
-1. Log data base changes 
-7.  In fact lets add that to requiremetns. Lets logging be so generic that later we can turn if off completely , select severity , redirect the logs to db etc ..
-11. stop logging for production or redirect... 
-2. sync with gdrive -- export import db
 6. extend this for receiving donations , recording upi xaction 4 digits, cash or upi, sending receipt. Pan/adhaar wil be mandatory here 
 7. verify for whatsApp invite to number not in  contacts
 . error handling around mappings.. if some spinner is already mapped , dont reuse 
@@ -16,6 +12,12 @@ Done
 12..  from operator if we go to admin mode and then press the back button , and then navigate back to activity it comes back to operator mode... some thing broken there ... 
 10. file names should have date and time in suggest name ... export etc 
 11. where  to fit about us, version ,developer email..
+2. sync with gdrive -- export import db
+7.  In fact lets add that to requiremetns. Lets logging be so generic that later we can turn if off completely , select severity , redirect the logs to db etc ..
+11. stop logging for production or redirect... 
+
+scoped out 
+1. Log data base changes (defer .. redundant now becoz of import export )
 
 
 DEFERRED FEATURES
@@ -129,3 +131,9 @@ We will create a new screen (a new Activity) dedicated to changing these PINs.
 This feature is the final piece of the security and administration puzzle, giving the Super Admin full control over the application's access credentials.
 
 Does this plan for the PIN Management feature align with your vision?
+
+
+###TAG-CONVERSATION-2025-09-24 13:20:55
+
+Refer to Readme-BackupRestore.md
+we have implemented only V1 .. V2 features are deferred 

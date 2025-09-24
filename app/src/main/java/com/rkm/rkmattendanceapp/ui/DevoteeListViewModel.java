@@ -9,6 +9,7 @@ import androidx.lifecycle.MutableLiveData;
 import com.rkm.attendance.core.AttendanceRepository;
 import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,11 +17,11 @@ import java.util.stream.Collectors;
 
 public class DevoteeListViewModel extends AndroidViewModel {
 
+    private static final String TAG = "DevoteeListViewModel";
     private final AttendanceRepository repository;
     private final MutableLiveData<List<DevoteeDao.EnrichedDevotee>> devoteeList = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
 
-    // Keep the full list in memory for fast filtering
     private List<DevoteeDao.EnrichedDevotee> fullDevoteeList = new ArrayList<>();
 
     public DevoteeListViewModel(@NonNull Application application) {
@@ -42,13 +43,12 @@ public class DevoteeListViewModel extends AndroidViewModel {
                 fullDevoteeList = repository.getAllEnrichedDevotees();
                 devoteeList.postValue(fullDevoteeList);
             } catch (Exception e) {
-                e.printStackTrace();
+                AppLogger.e(TAG, "Failed to load all devotees", e);
                 errorMessage.postValue("Failed to load devotees: " + e.getMessage());
             }
         }).start();
     }
 
-    // New method for filtering
     public void filterDevotees(String query) {
         if (query == null || query.trim().isEmpty()) {
             devoteeList.setValue(fullDevoteeList);
@@ -57,7 +57,6 @@ public class DevoteeListViewModel extends AndroidViewModel {
 
         String lowerCaseQuery = query.toLowerCase();
 
-        // Perform filtering on the in-memory list
         List<DevoteeDao.EnrichedDevotee> filteredList = fullDevoteeList.stream()
                 .filter(enriched -> {
                     String name = enriched.devotee().getFullName().toLowerCase();

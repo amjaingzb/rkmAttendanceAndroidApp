@@ -13,8 +13,11 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 public class AboutActivity extends AppCompatActivity {
+
+    private static final String TAG = "AboutActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +44,7 @@ public class AboutActivity extends AppCompatActivity {
             PackageInfo pInfo = getPackageManager().getPackageInfo(getPackageName(), 0);
             return pInfo.versionName;
         } catch (PackageManager.NameNotFoundException e) {
-            e.printStackTrace();
+            AppLogger.e(TAG, "Could not get package info to retrieve version name", e);
             return "N/A";
         }
     }

@@ -7,7 +7,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -34,6 +33,7 @@ import com.opencsv.CSVReader;
 import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 
 public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.OnDevoteeClickListener {
 
+    private static final String TAG = "DevoteeListFragment";
     private DevoteeListViewModel devoteeListViewModel;
     private AdminViewModel adminViewModel;
     private DevoteeListAdapter adapter;
@@ -53,7 +54,6 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
     private ActivityResultLauncher<String> filePickerLauncher;
     private ActivityResultLauncher<Intent> mappingActivityLauncher;
     
-    // Use the new, public ImportType enum
     private ImportType currentImportType = null;
 
     @Override
@@ -107,7 +107,7 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
             mappingActivityLauncher.launch(intent);
 
         } catch (Exception e) {
-            Log.e("DevoteeListFragment", "File selection error", e);
+            AppLogger.e(TAG, "File selection error", e);
             Toast.makeText(getContext(), "Error reading file: " + e.getMessage(), Toast.LENGTH_LONG).show();
         } finally {
             currentImportType = null;
@@ -144,7 +144,6 @@ public class DevoteeListFragment extends Fragment implements DevoteeListAdapter.
         }, getViewLifecycleOwner(), Lifecycle.State.RESUMED);
     }
 
-    // --- No changes to the methods below ---
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) { return inflater.inflate(R.layout.fragment_devotee_list, container, false); }
     @Override

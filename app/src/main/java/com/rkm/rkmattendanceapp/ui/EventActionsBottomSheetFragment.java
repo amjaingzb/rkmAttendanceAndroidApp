@@ -10,6 +10,7 @@ import androidx.annotation.Nullable;
 
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -54,10 +55,8 @@ public class EventActionsBottomSheetFragment extends BottomSheetDialogFragment {
         View editAction = view.findViewById(R.id.action_edit_event);
         View importAction = view.findViewById(R.id.action_import_attendance);
 
-        // Rule: "Delete" is only for Super Admins
         deleteAction.setVisibility(privilege == Privilege.SUPER_ADMIN ? View.VISIBLE : View.GONE);
         
-        // Rule: Coordinators cannot edit or import for past events
         boolean isPast = isDateInPast(eventDate);
         if (privilege == Privilege.EVENT_COORDINATOR && isPast) {
             editAction.setEnabled(false);
@@ -100,7 +99,7 @@ public class EventActionsBottomSheetFragment extends BottomSheetDialogFragment {
             todayCal.set(Calendar.MILLISECOND, 0);
             return eventDate.before(todayCal.getTime());
         } catch (ParseException e) {
-            e.printStackTrace();
+            AppLogger.e(TAG, "Could not parse event date string: " + dateStr, e);
             return false;
         }
     }

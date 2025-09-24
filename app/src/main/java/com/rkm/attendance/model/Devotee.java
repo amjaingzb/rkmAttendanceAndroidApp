@@ -1,16 +1,16 @@
 // In: com/rkm/attendance/model/Devotee.java
 package com.rkm.attendance.model;
 
-import android.util.Log;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 
 public class Devotee {
+    private static final String TAG = "DevoteeModel";
     private Long devoteeId;
     private String fullName;
     private String nameNorm;
@@ -19,13 +19,12 @@ public class Devotee {
     private Integer age;
     private String email;
     private String gender;
-    private String aadhaar; // NEW
-    private String pan;     // NEW
+    private String aadhaar;
+    private String pan;
     private String extraJson;
 
     public Devotee() {}
 
-    // STEP 2.1: Update the main constructor to include the new fields.
     public Devotee(Long devoteeId, String fullName, String nameNorm, String mobileE164,
                    String address, Integer age, String email, String gender,
                    String aadhaar, String pan, String extraJson) {
@@ -42,7 +41,6 @@ public class Devotee {
         this.extraJson = extraJson;
     }
 
-    // STEP 2.2: Update the merge logic for the new fields.
     public void mergeWith(Devotee other) {
         if (other == null) return;
 
@@ -88,7 +86,7 @@ public class Devotee {
                     existingMap.putAll(newMap);
                     this.extraJson = mapper.writeValueAsString(existingMap);
                 } catch (IOException e) {
-                    Log.e("DevoteeMerge", "Failed to merge extraJson fields", e);
+                    AppLogger.e(TAG, "Failed to merge extraJson fields", e);
                 }
             }
         }
@@ -116,8 +114,6 @@ public class Devotee {
     public void setEmail(String email) { this.email = email; }
     public String getGender() { return gender; }
     public void setGender(String gender) { this.gender = gender; }
-
-    // STEP 2.3: Add getters and setters for the new fields.
     public String getAadhaar() { return aadhaar; }
     public void setAadhaar(String aadhaar) { this.aadhaar = aadhaar; }
     public String getPan() { return pan; }

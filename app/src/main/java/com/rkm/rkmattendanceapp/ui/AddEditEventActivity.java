@@ -18,6 +18,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.rkm.attendance.model.Event;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -31,6 +32,7 @@ import java.util.Locale;
 
 public class AddEditEventActivity extends AppCompatActivity {
 
+    private static final String TAG = "AddEditEventActivity";
     public static final String EXTRA_EVENT_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_EVENT_ID";
     public static final String EXTRA_PRIVILEGE = "com.rkm.rkmattendanceapp.ui.EXTRA_PRIVILEGE";
     public static final long NEW_EVENT_ID = -1;
@@ -135,13 +137,12 @@ public class AddEditEventActivity extends AppCompatActivity {
             selectedFromTime = fromDateTime.toLocalTime();
             selectedUntilTime = untilDateTime.toLocalTime();
         } catch (Exception e) {
-            e.printStackTrace();
+            AppLogger.e(TAG, "Could not parse date/time from loaded event", e);
         }
         updateDateAndTimeViews();
     }
 
     private void saveEvent() {
-        // Clear previous errors before validating
         fromTimeInputLayout.setError(null);
         untilTimeInputLayout.setError(null);
 
@@ -186,7 +187,7 @@ public class AddEditEventActivity extends AppCompatActivity {
             Date today = todayCal.getTime();
             return eventDate.before(today);
         } catch (ParseException e) {
-            e.printStackTrace();
+            AppLogger.e(TAG, "Could not parse date string to check if in past: " + dateStr, e);
             return false;
         }
     }
@@ -196,11 +197,8 @@ public class AddEditEventActivity extends AppCompatActivity {
         fromTimeEditText.setText(selectedFromTime.format(TIME_FORMATTER));
         untilTimeEditText.setText(selectedUntilTime.format(TIME_FORMATTER));
         
-        // --- START OF FIX ---
-        // Clear any existing errors whenever the time is updated.
         fromTimeInputLayout.setError(null);
         untilTimeInputLayout.setError(null);
-        // --- END OF FIX ---
     }
 
     private void showDatePicker() {
