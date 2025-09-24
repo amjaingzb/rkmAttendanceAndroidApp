@@ -11,9 +11,11 @@ import android.os.Looper;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -24,8 +26,10 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -37,13 +41,16 @@ import com.rkm.attendance.core.AttendanceRepository;
 import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MarkAttendanceActivity extends AppCompatActivity {
 
+    private static final String TAG = "MarkAttendanceActivity";
     public static final String EXTRA_EVENT_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_EVENT_ID";
     private static final int SEARCH_TRIGGER_LENGTH = 3;
     private static final long SEARCH_DEBOUNCE_DELAY_MS = 300;
@@ -100,6 +107,45 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         
         showPristineState();
     }
+    
+    // === START OF BANDAID FIX ===
+    private void applySubtitleFix() {
+        try {
+            Toolbar toolbar = findToolbar(getWindow().getDecorView());
+            if (toolbar != null && getSupportActionBar() != null) {
+                for (int i = 0; i < toolbar.getChildCount(); i++) {
+                    View child = toolbar.getChildAt(i);
+                    if (child instanceof TextView) {
+                        TextView tv = (TextView) child;
+                        CharSequence subtitle = getSupportActionBar().getSubtitle();
+                        if (subtitle != null && subtitle.equals(tv.getText())) {
+                            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12); // Hardcoded small size
+                            return;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            AppLogger.w(TAG, "Failed to apply subtitle bandaid fix.", e);
+        }
+    }
+
+    private Toolbar findToolbar(View view) {
+        if (view instanceof Toolbar) {
+            return (Toolbar) view;
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup viewGroup = (ViewGroup) view;
+            for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                Toolbar found = findToolbar(viewGroup.getChildAt(i));
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+    // === END OF BANDAID FIX ===
 
     private void setupRecyclerViews() {
         searchResultsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -206,6 +252,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         viewModel.getWhatsAppInvite().observe(this, invite -> {
             this.whatsAppInviteDetails = invite;
         });
+
         viewModel.getSearchResults().observe(this, results -> {
             searchProgressBar.setVisibility(View.GONE);
             if (results != null && !results.isEmpty()) {
@@ -222,7 +269,18 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 }
             }
         });
-        viewModel.getEventDetails().observe(this, event -> { if (event != null) { setTitle(event.getEventName()); if (getSupportActionBar() != null) { getSupportActionBar().setSubtitle(event.getEventDate()); } } });
+        
+        viewModel.getEventDetails().observe(this, event -> {
+            if (event != null) {
+                setTitle(event.getEventName());
+                ActionBar actionBar = getSupportActionBar();
+                if (actionBar != null) {
+                    actionBar.setSubtitle(event.getEventDate());
+                    // Apply the bandaid fix after the subtitle is set.
+                    applySubtitleFix();
+                }
+            }
+        });
         viewModel.getEventStats().observe(this, stats -> { if (stats != null) { statPreReg.setText(String.valueOf(stats.preRegistered)); statAttended.setText(String.valueOf(stats.attended)); statSpotReg.setText(String.valueOf(stats.spotRegistered)); statTotal.setText(String.valueOf(stats.total)); } });
         viewModel.getCheckedInList().observe(this, devotees -> { if (devotees != null) { checkedInAdapter.setDevotees(devotees); } });
         viewModel.getErrorMessage().observe(this, error -> { if (error != null && !error.isEmpty()) { Toast.makeText(this, error, Toast.LENGTH_LONG).show(); } });
@@ -238,8 +296,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int itemId = item.getItemId();
         if (itemId == R.id.action_admin_login) {
-            Intent intent = new Intent(this, RoleSelectionActivity.class);
-            startActivity(intent);
+            startActivity(new Intent(this, RoleSelectionActivity.class));
             return true;
         } else if (itemId == R.id.action_about) {
             startActivity(new Intent(this, AboutActivity.class));

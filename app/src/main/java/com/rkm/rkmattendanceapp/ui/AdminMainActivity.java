@@ -4,14 +4,19 @@ package com.rkm.rkmattendanceapp.ui;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
@@ -19,6 +24,7 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -26,6 +32,7 @@ import java.util.Set;
 
 public class AdminMainActivity extends AppCompatActivity {
 
+    private static final String TAG = "AdminMainActivity";
     public static final String EXTRA_PRIVILEGE = "com.rkm.rkmattendanceapp.ui.EXTRA_PRIVILEGE";
 
     private NavController navController;
@@ -63,8 +70,11 @@ public class AdminMainActivity extends AppCompatActivity {
         adminViewModel.currentPrivilege.observe(this, privilege -> {
             if (privilege == null) return;
 
-            if (getSupportActionBar() != null) {
-                getSupportActionBar().setSubtitle(getRoleSubtitle(privilege));
+            ActionBar actionBar = getSupportActionBar();
+            if (actionBar != null) {
+                actionBar.setSubtitle(getRoleSubtitle(privilege));
+                // Apply the bandaid fix after the subtitle is set.
+                applySubtitleFix();
             }
 
             navView.getMenu().findItem(R.id.nav_devotees).setVisible(privilege == Privilege.SUPER_ADMIN);
@@ -81,13 +91,51 @@ public class AdminMainActivity extends AppCompatActivity {
                 .findFragmentById(R.id.nav_host_fragment);
         navController = navHostFragment.getNavController();
 
-        // === START OF COMPILATION FIX ===
-        // The extra 'this' argument has been removed.
         NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-        // === END OF COMPILATION FIX ===
         
         NavigationUI.setupWithNavController(navView, navController);
     }
+    
+    // === START OF BANDAID FIX ===
+    private void applySubtitleFix() {
+        // This is a last-resort bandaid. It attempts to find the subtitle TextView
+        // and force its font size to a small, safe value.
+        try {
+            Toolbar toolbar = findToolbar(getWindow().getDecorView());
+            if (toolbar != null && getSupportActionBar() != null) {
+                for (int i = 0; i < toolbar.getChildCount(); i++) {
+                    View child = toolbar.getChildAt(i);
+                    if (child instanceof TextView) {
+                        TextView tv = (TextView) child;
+                        CharSequence subtitle = getSupportActionBar().getSubtitle();
+                        if (subtitle != null && subtitle.equals(tv.getText())) {
+                            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12); // Hardcoded small size
+                            return;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            AppLogger.w(TAG, "Failed to apply subtitle bandaid fix.", e);
+        }
+    }
+
+    private Toolbar findToolbar(View view) {
+        if (view instanceof Toolbar) {
+            return (Toolbar) view;
+        }
+        if (view instanceof ViewGroup) {
+            ViewGroup viewGroup = (ViewGroup) view;
+            for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                Toolbar found = findToolbar(viewGroup.getChildAt(i));
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+    // === END OF BANDAID FIX ===
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
