@@ -47,13 +47,20 @@ public class AboutActivity extends AppCompatActivity {
     }
 
     private void sendFeedbackEmail(String version) {
-        String email = "ajay.bhat@gmail.com";
+        String email = "amjain.gzb@gmail.com";
         String subject = "Feedback for SevaConnect Halasuru (v" + version + ")";
+        String body = "\n\n" +
+                      "--------------------\n" +
+                      "Please describe the issue or your suggestion above.\n" +
+                      "App Version: " + version + "\n" +
+                      "--------------------";
+
 
         Intent intent = new Intent(Intent.ACTION_SENDTO);
         intent.setData(Uri.parse("mailto:")); // only email apps should handle this
         intent.putExtra(Intent.EXTRA_EMAIL, new String[]{email});
         intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+        intent.putExtra(Intent.EXTRA_TEXT, body);
 
         try {
             startActivity(intent);

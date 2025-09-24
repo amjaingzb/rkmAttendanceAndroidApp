@@ -50,14 +50,14 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Developed by"
+        android:text="Feedback &amp; Support"
         android:textAppearance="?attr/textAppearanceBody2" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="Amit"
+        android:text="Amit Jain"
         android:textAppearance="?attr/textAppearanceHeadline6" />
 
     <TextView
@@ -71,6 +71,9 @@
         android:padding="8dp"
         android:clickable="true"
         android:focusable="true"
+        android:gravity="center_vertical"
+        android:drawablePadding="8dp"
+        android:drawableEnd="@drawable/ic_send"
         android:background="?attr/selectableItemBackground"/>
 
 </LinearLayout>
