@@ -1,9 +1,13 @@
 ================== Extra features not yet self refined ===========
 6. extend this for receiving donations , recording upi xaction 4 digits, cash or upi, sending receipt. Pan/adhaar wil be mandatory here 
-7. verify for whatsApp invite to number not in  contacts
+7. Deferring all these ...
 . error handling around mappings.. if some spinner is already mapped , dont reuse 
 . improve mapping intelligence , adhaar vs aadhaar 
 . ui itself have restrictions for mobile number , email, pan,adhaar for data validations 
+
+Issues : 
+When we add a new devotee - there is no chance to send them whatsApp invite... perhaps instead of save there could be save and send... 
+refer to screenshots. on redmi 9 prime actual mobile, top view is slightly cutoff 
 
 ###TAG-CONVERSATION-2025-09-23 19:14:45
 Done 
