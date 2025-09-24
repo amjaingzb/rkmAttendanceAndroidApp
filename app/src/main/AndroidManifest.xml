@@ -49,16 +49,19 @@
             android:name=".ui.MappingActivity"
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
-            
         <activity
             android:name=".ui.reports.ReportEventListActivity"
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
-        
         <activity
             android:name=".ui.reports.ReportDevoteeActivity"
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
+
+        <!-- NEW: Register the AboutActivity -->
+        <activity
+            android:name=".ui.AboutActivity"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

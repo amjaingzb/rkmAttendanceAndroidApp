@@ -206,7 +206,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         viewModel.getWhatsAppInvite().observe(this, invite -> {
             this.whatsAppInviteDetails = invite;
         });
-
         viewModel.getSearchResults().observe(this, results -> {
             searchProgressBar.setVisibility(View.GONE);
             if (results != null && !results.isEmpty()) {
@@ -223,7 +222,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 }
             }
         });
-        
         viewModel.getEventDetails().observe(this, event -> { if (event != null) { setTitle(event.getEventName()); if (getSupportActionBar() != null) { getSupportActionBar().setSubtitle(event.getEventDate()); } } });
         viewModel.getEventStats().observe(this, stats -> { if (stats != null) { statPreReg.setText(String.valueOf(stats.preRegistered)); statAttended.setText(String.valueOf(stats.attended)); statSpotReg.setText(String.valueOf(stats.spotRegistered)); statTotal.setText(String.valueOf(stats.total)); } });
         viewModel.getCheckedInList().observe(this, devotees -> { if (devotees != null) { checkedInAdapter.setDevotees(devotees); } });
@@ -236,18 +234,19 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         return true;
     }
 
-    // === START OF NAVIGATION FIX ===
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.action_admin_login) {
-            // Use a standard Intent without flags or finish() for natural navigation.
+        int itemId = item.getItemId();
+        if (itemId == R.id.action_admin_login) {
             Intent intent = new Intent(this, RoleSelectionActivity.class);
             startActivity(intent);
+            return true;
+        } else if (itemId == R.id.action_about) {
+            startActivity(new Intent(this, AboutActivity.class));
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
-    // === END OF NAVIGATION FIX ===
 
     private void bindViews() {
         statPreReg = findViewById(R.id.text_stat_pre_reg);
