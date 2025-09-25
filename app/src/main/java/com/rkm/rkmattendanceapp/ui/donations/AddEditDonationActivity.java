@@ -22,15 +22,17 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.textfield.TextInputLayout;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
 import com.rkm.rkmattendanceapp.ui.AddEditDevoteeActivity;
+import com.rkm.rkmattendanceapp.util.AppLogger;
 
 public class AddEditDonationActivity extends AppCompatActivity {
+    
+    private static final String TAG = "AddEditDonationActivity";
 
     public static final String EXTRA_DEVOTEE_ID = "com.rkm.rkmattendanceapp.ui.donations.EXTRA_DEVOTEE_ID";
 
@@ -181,19 +183,18 @@ public class AddEditDonationActivity extends AppCompatActivity {
     }
 
     private void validateDevoteeAndSetSaveState(Devotee devotee) {
-        if (saveDonationMenuItem == null || devotee == null) {
-            return;
-        }
+        if (devotee == null) return;
 
         boolean isAddressValid = isNotBlank(devotee.getAddress());
         boolean isIdValid = isNotBlank(devotee.getPan()) || isNotBlank(devotee.getAadhaar());
-
         boolean isRecordComplete = isAddressValid && isIdValid;
 
-        saveDonationMenuItem.setEnabled(isRecordComplete);
-        Drawable icon = saveDonationMenuItem.getIcon();
-        if (icon != null) {
-            icon.mutate().setAlpha(isRecordComplete ? 255 : 130);
+        if (saveDonationMenuItem != null) {
+            saveDonationMenuItem.setEnabled(isRecordComplete);
+            Drawable icon = saveDonationMenuItem.getIcon();
+            if (icon != null) {
+                icon.mutate().setAlpha(isRecordComplete ? 255 : 130);
+            }
         }
         
         missingFieldsWarningText.setVisibility(isRecordComplete ? View.GONE : View.VISIBLE);
@@ -230,9 +231,10 @@ public class AddEditDonationActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.add_edit_donation_menu, menu);
         saveDonationMenuItem = menu.findItem(R.id.action_save_donation);
-        // Initially disable until devotee data is loaded and validated
-        saveDonationMenuItem.setEnabled(false);
-        saveDonationMenuItem.getIcon().mutate().setAlpha(130);
+        if (saveDonationMenuItem != null) {
+            saveDonationMenuItem.setEnabled(false);
+            saveDonationMenuItem.getIcon().mutate().setAlpha(130);
+        }
         return true;
     }
 
