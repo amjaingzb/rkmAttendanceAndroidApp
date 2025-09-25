@@ -6,8 +6,9 @@
 . ui itself have restrictions for mobile number , email, pan,adhaar for data validations 
 
 Issues : 
+icon trouble
 When we add a new devotee - there is no chance to send them whatsApp invite... perhaps instead of save there could be save and send... 
-refer to screenshots. on redmi 9 prime actual mobile, top view is slightly cutoff 
+refer to screenshots. on redmi 9 prime actual mobile, top view is slightly cutoff  (hack mode fix done by reducing the size to a small value... more intensive fix of replacing the stock toolbar with our own deferred)
 
 ###TAG-CONVERSATION-2025-09-23 19:14:45
 Done 

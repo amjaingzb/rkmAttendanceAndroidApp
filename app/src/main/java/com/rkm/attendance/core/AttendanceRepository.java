@@ -4,8 +4,6 @@ package com.rkm.attendance.core;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
-import android.util.Log;
-
 import com.opencsv.CSVReaderHeaderAware;
 import com.rkm.attendance.db.*;
 import com.rkm.attendance.db.DevoteeDao.EnrichedDevotee;
@@ -16,7 +14,6 @@ import com.rkm.attendance.importer.CsvImporter;
 import com.rkm.attendance.importer.ImportMapping;
 import com.rkm.attendance.importer.WhatsAppGroupImporter;
 import com.rkm.rkmattendanceapp.util.AppLogger;
-
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
@@ -28,6 +25,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+
 public class AttendanceRepository {
     private final DevoteeDao devoteeDao;
     private final EventDao eventDao;
@@ -36,8 +34,6 @@ public class AttendanceRepository {
     private final SQLiteDatabase database;
     private static final String TAG = "AttendanceRepository";
 
-    // === START OF NEW CODE ===
-    // STEP 3.1: A simple data class to hold the invite details.
     public static class WhatsAppInvite {
         public final String link;
         public final String messageTemplate;
@@ -46,7 +42,6 @@ public class AttendanceRepository {
             this.messageTemplate = messageTemplate;
         }
     }
-    // === END OF NEW CODE ===
 
     public AttendanceRepository(SQLiteDatabase database) {
         this.database = database;
@@ -56,29 +51,27 @@ public class AttendanceRepository {
         this.configDao = new ConfigDao(database);
     }
 
-    // === START OF NEW CODE ===
-    // STEP 3.2: New method to fetch the config values from the DAO.
     public WhatsAppInvite getWhatsAppInviteDetails() {
         String link = configDao.getValue(ConfigDao.KEY_WHATSAPP_INVITE_LINK);
         String message = configDao.getValue(ConfigDao.KEY_WHATSAPP_INVITE_MESSAGE);
         return new WhatsAppInvite(link, message);
     }
-    // === END OF NEW CODE ===
 
-    // --- Config / PIN Methods ---
-    // ... (rest of the file is unchanged) ...
-    public boolean checkSuperAdminPin(String pin) {
-        return configDao.checkSuperAdminPin(pin);
+    public EnrichedDevotee getEnrichedDevoteeById(long devoteeId, long eventId) {
+        Devotee devotee = devoteeDao.getById(devoteeId);
+        if (devotee == null) return null;
+        
+        EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devotee.getDevoteeId(), eventId);
+        EventStatus eventStatus = (status == null) ? EventStatus.WALK_IN : (status.count > 0 ? EventStatus.PRESENT : EventStatus.PRE_REGISTERED);
+        Integer whatsAppGroup = devoteeDao.getWhatsAppGroup(devotee.getMobileE164());
+        
+        return new EnrichedDevotee(devotee, whatsAppGroup, 0, null, eventStatus);
     }
-    public boolean checkEventCoordinatorPin(String pin) {
-        return configDao.checkEventCoordinatorPin(pin);
-    }
-    public List<Event> getAllEvents() {
-        return eventDao.listAll();
-    }
-    public Event getEventById(long eventId) {
-        return eventDao.get(eventId);
-    }
+
+    public boolean checkSuperAdminPin(String pin) { return configDao.checkSuperAdminPin(pin); }
+    public boolean checkEventCoordinatorPin(String pin) { return configDao.checkEventCoordinatorPin(pin); }
+    public List<Event> getAllEvents() { return eventDao.listAll(); }
+    public Event getEventById(long eventId) { return eventDao.get(eventId); }
     public long createEvent(String name, String date, String remark, String activeFrom, String activeUntil) throws OverlapException {
         if (name == null || name.trim().isEmpty()) { throw new IllegalArgumentException("Event Name is mandatory."); }
         if (date == null || date.trim().isEmpty()) { throw new IllegalArgumentException("Event Date is mandatory."); }
@@ -99,21 +92,11 @@ public class AttendanceRepository {
         if (eventDao.hasOverlap(event.getActiveFromTs(), event.getActiveUntilTs(), event.getEventId())) { throw new OverlapException("Time window overlaps with an existing event."); }
         eventDao.update(event);
     }
-    public void deleteEvent(long eventId) {
-        eventDao.delete(eventId);
-    }
-    public Event getActiveEvent() {
-        return eventDao.findCurrentlyActiveEvent();
-    }
-    public Devotee getDevoteeById(long devoteeId) {
-        return devoteeDao.getById(devoteeId);
-    }
-    public void updateDevotee(Devotee devotee) {
-        devoteeDao.update(devotee);
-    }
-    public int deleteDevotees(List<Long> devoteeIds) {
-        return devoteeDao.deleteByIds(devoteeIds);
-    }
+    public void deleteEvent(long eventId) { eventDao.delete(eventId); }
+    public Event getActiveEvent() { return eventDao.findCurrentlyActiveEvent(); }
+    public Devotee getDevoteeById(long devoteeId) { return devoteeDao.getById(devoteeId); }
+    public void updateDevotee(Devotee devotee) { devoteeDao.update(devotee); }
+    public int deleteDevotees(List<Long> devoteeIds) { return devoteeDao.deleteByIds(devoteeIds); }
     public Devotee saveOrMergeDevoteeFromAdmin(Devotee devoteeFromForm) {
         long finalId = devoteeDao.resolveOrCreateDevotee(
                 devoteeFromForm.getFullName(), devoteeFromForm.getMobileE164(),
@@ -126,9 +109,13 @@ public class AttendanceRepository {
         devoteeDao.update(definitiveRecord);
         return definitiveRecord;
     }
-    public List<EnrichedDevotee> getAllEnrichedDevotees() {
-        return devoteeDao.getAllEnrichedDevotees();
+    public List<EnrichedDevotee> getAllEnrichedDevotees() { return devoteeDao.getAllEnrichedDevotees(); }
+
+    public long addNewDevoteeOnSpot(Devotee newDevoteeData) {
+        Devotee mergedDevotee = saveOrMergeDevoteeFromAdmin(newDevoteeData);
+        return mergedDevotee.getDevoteeId();
     }
+
     public boolean markDevoteeAsPresent(long eventId, long devoteeId) {
         EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devoteeId, eventId);
         if (status != null && status.count > 0) { return false; }
@@ -139,14 +126,8 @@ public class AttendanceRepository {
         }
         return true;
     }
-    public long onSpotRegisterAndMarkPresent(long eventId, Devotee newDevoteeData) {
-        Devotee mergedDevotee = saveOrMergeDevoteeFromAdmin(newDevoteeData);
-        markDevoteeAsPresent(eventId, mergedDevotee.getDevoteeId());
-        return mergedDevotee.getDevoteeId();
-    }
-    public List<Devotee> getCheckedInAttendeesForEvent(long eventId) {
-        return eventDao.findCheckedInAttendeesForEvent(eventId);
-    }
+
+    public List<Devotee> getCheckedInAttendeesForEvent(long eventId) { return eventDao.findCheckedInAttendeesForEvent(eventId); }
     public List<EnrichedDevotee> searchDevoteesForEvent(String query, long eventId) {
         List<Devotee> allMatches = devoteeDao.searchSimpleDevotees(query);
         return allMatches.stream()
@@ -160,15 +141,9 @@ public class AttendanceRepository {
                         .thenComparing(e -> e.devotee().getFullName(), String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
     }
-    public DevoteeDao.CounterStats getCounterStats() {
-        return devoteeDao.getCounterStats();
-    }
-    public EventDao.EventStats getEventStats(long eventId) {
-        return eventDao.getEventStats(eventId);
-    }
-    public List<EventDao.EventWithAttendance> getEventsWithAttendance() {
-        return eventDao.getEventsWithAttendanceCounts();
-    }
+    public DevoteeDao.CounterStats getCounterStats() { return devoteeDao.getCounterStats(); }
+    public EventDao.EventStats getEventStats(long eventId) { return eventDao.getEventStats(eventId); }
+    public List<EventDao.EventWithAttendance> getEventsWithAttendance() { return eventDao.getEventsWithAttendanceCounts(); }
     public CsvImporter.ImportStats importMasterDevoteeList(Context context, Uri uri, ImportMapping mapping) throws Exception {
         CsvImporter importer = new CsvImporter(database);
         CsvImporter.ImportStats stats = new CsvImporter.ImportStats();

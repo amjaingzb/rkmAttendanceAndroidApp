@@ -18,21 +18,17 @@ public class AddEditDevoteeViewModel extends AndroidViewModel {
     private final MutableLiveData<Devotee> devotee = new MutableLiveData<>();
     private final MutableLiveData<Boolean> saveFinished = new MutableLiveData<>(false);
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+    private final MutableLiveData<Long> newDevoteeId = new MutableLiveData<>();
 
     public AddEditDevoteeViewModel(@NonNull Application application) {
         super(application);
         this.repository = ((AttendanceApplication) application).repository;
     }
 
-    public LiveData<Devotee> getDevotee() {
-        return devotee;
-    }
-    public LiveData<Boolean> getSaveFinished() {
-        return saveFinished;
-    }
-    public LiveData<String> getErrorMessage() {
-        return errorMessage;
-    }
+    public LiveData<Devotee> getDevotee() { return devotee; }
+    public LiveData<Boolean> getSaveFinished() { return saveFinished; }
+    public LiveData<String> getErrorMessage() { return errorMessage; }
+    public LiveData<Long> getNewDevoteeId() { return newDevoteeId; }
 
     public void loadDevotee(long devoteeId) {
         new Thread(() -> {
@@ -50,10 +46,13 @@ public class AddEditDevoteeViewModel extends AndroidViewModel {
         new Thread(() -> {
             try {
                 if (isOnSpotRegistration) {
-                    repository.onSpotRegisterAndMarkPresent(eventId, devoteeToSave);
+                    long savedDevoteeId = repository.addNewDevoteeOnSpot(devoteeToSave);
+                    newDevoteeId.postValue(savedDevoteeId);
                 } else {
                     if (devoteeToSave.getDevoteeId() == null) {
-                        repository.saveOrMergeDevoteeFromAdmin(devoteeToSave);
+                        Devotee savedDevotee = repository.saveOrMergeDevoteeFromAdmin(devoteeToSave);
+                        long savedDevoteeId = savedDevotee.getDevoteeId();
+                        newDevoteeId.postValue(savedDevoteeId);
                     } else {
                         repository.updateDevotee(devoteeToSave);
                     }

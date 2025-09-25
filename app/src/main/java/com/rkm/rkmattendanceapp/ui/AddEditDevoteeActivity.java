@@ -28,24 +28,20 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
     public static final String EXTRA_PREFILL_QUERY = "com.rkm.rkmattendanceapp.ui.EXTRA_PREFILL_QUERY";
     public static final String EXTRA_IS_ON_SPOT_REG = "com.rkm.rkmattendanceapp.ui.EXTRA_IS_ON_SPOT_REG";
     public static final String EXTRA_EVENT_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_EVENT_ID";
+    // NEW: Key for the result data
+    public static final String RESULT_EXTRA_NEW_DEVOTEE_ID = "com.rkm.rkmattendanceapp.ui.RESULT_EXTRA_NEW_DEVOTEE_ID";
 
     public static final long NEW_DEVOTEE_ID = -1;
 
     private AddEditDevoteeViewModel viewModel;
-
     private TextInputLayout mobileInputLayout;
-    private TextInputEditText nameEditText;
-    private TextInputEditText mobileEditText;
-    private TextInputEditText emailEditText;
-    private TextInputEditText addressEditText;
-    private TextInputEditText aadhaarEditText; // NEW
-    private TextInputEditText panEditText;     // NEW
-    private TextInputEditText ageEditText;
+    private TextInputEditText nameEditText, mobileEditText, emailEditText, addressEditText, aadhaarEditText, panEditText, ageEditText;
     private AutoCompleteTextView genderAutoComplete;
 
     private long currentDevoteeId = NEW_DEVOTEE_ID;
     private boolean isOnSpotMode = false;
     private long eventIdForOnSpot = -1;
+    private long newDevoteeIdToReturn = -1; // Variable to hold the new ID
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,16 +53,7 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
             getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_close);
         }
 
-        // STEP 2.1: Bind the new view elements.
-        mobileInputLayout = findViewById(R.id.text_input_layout_mobile);
-        nameEditText = findViewById(R.id.edit_text_name);
-        mobileEditText = findViewById(R.id.edit_text_mobile);
-        emailEditText = findViewById(R.id.edit_text_email);
-        addressEditText = findViewById(R.id.edit_text_address);
-        aadhaarEditText = findViewById(R.id.edit_text_aadhaar);
-        panEditText = findViewById(R.id.edit_text_pan);
-        ageEditText = findViewById(R.id.edit_text_age);
-        genderAutoComplete = findViewById(R.id.auto_complete_gender);
+        bindViews();
 
         String[] genders = new String[]{"", "Male", "Female", "Other"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, genders);
@@ -110,9 +97,20 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
         }
         observeViewModel();
     }
+    
+    private void bindViews() {
+        mobileInputLayout = findViewById(R.id.text_input_layout_mobile);
+        nameEditText = findViewById(R.id.edit_text_name);
+        mobileEditText = findViewById(R.id.edit_text_mobile);
+        emailEditText = findViewById(R.id.edit_text_email);
+        addressEditText = findViewById(R.id.edit_text_address);
+        aadhaarEditText = findViewById(R.id.edit_text_aadhaar);
+        panEditText = findViewById(R.id.edit_text_pan);
+        ageEditText = findViewById(R.id.edit_text_age);
+        genderAutoComplete = findViewById(R.id.auto_complete_gender);
+    }
 
     private void observeViewModel() {
-        // STEP 2.2: Populate the new fields when loading an existing devotee.
         viewModel.getDevotee().observe(this, devotee -> {
             if (devotee != null) {
                 nameEditText.setText(devotee.getFullName());
@@ -127,13 +125,26 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
                 genderAutoComplete.setText(devotee.getGender(), false);
             }
         });
+        
+        viewModel.getNewDevoteeId().observe(this, id -> {
+            if (id != null) {
+                newDevoteeIdToReturn = id;
+            }
+        });
+        
         viewModel.getSaveFinished().observe(this, finished -> {
             if (finished != null && finished) {
                 Toast.makeText(this, "Devotee saved", Toast.LENGTH_SHORT).show();
-                setResult(RESULT_OK);
+                
+                Intent resultIntent = new Intent();
+                if (newDevoteeIdToReturn > 0) {
+                    resultIntent.putExtra(RESULT_EXTRA_NEW_DEVOTEE_ID, newDevoteeIdToReturn);
+                }
+                setResult(RESULT_OK, resultIntent);
                 finish();
             }
         });
+
         viewModel.getErrorMessage().observe(this, message -> {
             if (!TextUtils.isEmpty(message)) {
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show();
@@ -156,7 +167,6 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
         }
         mobileInputLayout.setError(null);
 
-        // STEP 2.3: Read the values from the new fields.
         String email = emailEditText.getText().toString().trim();
         String address = addressEditText.getText().toString().trim();
         String aadhaar = aadhaarEditText.getText().toString().trim();
@@ -174,7 +184,6 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
             }
         }
         
-        // STEP 2.4: Include the new fields when creating the Devotee object.
         Devotee devoteeToSave = new Devotee(
                 currentDevoteeId == NEW_DEVOTEE_ID ? null : currentDevoteeId, name, null,
                 mobileNorm, address, age, email, gender, aadhaar, pan, null

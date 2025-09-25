@@ -30,6 +30,8 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
     private final MutableLiveData<AttendanceRepository.WhatsAppInvite> whatsAppInvite = new MutableLiveData<>();
 
+    private final MutableLiveData<DevoteeDao.EnrichedDevotee> newlyAddedDevotee = new MutableLiveData<>();
+
     public MarkAttendanceViewModel(@NonNull Application application) {
         super(application);
         this.repository = ((AttendanceApplication) application).repository;
@@ -41,6 +43,7 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
     public LiveData<List<DevoteeDao.EnrichedDevotee>> getSearchResults() { return searchResults; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
     public LiveData<AttendanceRepository.WhatsAppInvite> getWhatsAppInvite() { return whatsAppInvite; }
+    public LiveData<DevoteeDao.EnrichedDevotee> getNewlyAddedDevotee() { return newlyAddedDevotee; }
 
     public void loadEventData(long eventId) {
         this.currentEventId = eventId;
@@ -56,6 +59,22 @@ public class MarkAttendanceViewModel extends AndroidViewModel {
                 errorMessage.postValue("Failed to load event data.");
             }
         }).start();
+    }
+
+    public void loadNewlyAddedDevotee(long devoteeId) {
+        new Thread(() -> {
+            try {
+                DevoteeDao.EnrichedDevotee devotee = repository.getEnrichedDevoteeById(devoteeId, currentEventId);
+                newlyAddedDevotee.postValue(devotee);
+            } catch (Exception e) {
+                AppLogger.e(TAG, "Failed to load newly added devotee with ID: " + devoteeId, e);
+                errorMessage.postValue("Failed to load devotee details.");
+            }
+        }).start();
+    }
+    
+    public void onDialogShown() {
+        newlyAddedDevotee.setValue(null);
     }
 
     public void searchDevotees(String query) {

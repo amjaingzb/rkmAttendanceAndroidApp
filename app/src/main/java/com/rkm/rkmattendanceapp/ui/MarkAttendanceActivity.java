@@ -22,7 +22,6 @@ import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -34,7 +33,6 @@ import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.rkm.attendance.core.AttendanceRepository;
@@ -42,19 +40,16 @@ import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
 import com.rkm.rkmattendanceapp.util.AppLogger;
-
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MarkAttendanceActivity extends AppCompatActivity {
-
     private static final String TAG = "MarkAttendanceActivity";
     public static final String EXTRA_EVENT_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_EVENT_ID";
     private static final int SEARCH_TRIGGER_LENGTH = 3;
     private static final long SEARCH_DEBOUNCE_DELAY_MS = 300;
-
     private MarkAttendanceViewModel viewModel;
     private TextView statPreReg, statAttended, statSpotReg, statTotal;
     private TextInputLayout searchInputLayout;
@@ -68,13 +63,10 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     private ProgressBar searchProgressBar;
     private TextView noResultsTextView;
     private TextView listHeaderTextView;
-
     private long eventId = -1;
     private ActivityResultLauncher<Intent> addDevoteeLauncher;
-
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
-
     private AttendanceRepository.WhatsAppInvite whatsAppInviteDetails;
 
     @Override
@@ -92,10 +84,14 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         addDevoteeLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        if (searchEditText != null) searchEditText.setText("");
-                        viewModel.loadEventData(eventId);
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        long newDevoteeId = result.getData().getLongExtra(AddEditDevoteeActivity.RESULT_EXTRA_NEW_DEVOTEE_ID, -1);
+                        if (newDevoteeId > 0) {
+                            viewModel.loadNewlyAddedDevotee(newDevoteeId);
+                        }
                     }
+                    if (searchEditText != null) searchEditText.setText("");
+                    viewModel.loadEventData(eventId);
                 });
 
         viewModel = new ViewModelProvider(this).get(MarkAttendanceViewModel.class);
@@ -107,8 +103,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         
         showPristineState();
     }
-    
-    // === START OF BANDAID FIX ===
+
     private void applySubtitleFix() {
         try {
             Toolbar toolbar = findToolbar(getWindow().getDecorView());
@@ -131,29 +126,22 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     }
 
     private Toolbar findToolbar(View view) {
-        if (view instanceof Toolbar) {
-            return (Toolbar) view;
-        }
+        if (view instanceof Toolbar) return (Toolbar) view;
         if (view instanceof ViewGroup) {
             ViewGroup viewGroup = (ViewGroup) view;
             for (int i = 0; i < viewGroup.getChildCount(); i++) {
                 Toolbar found = findToolbar(viewGroup.getChildAt(i));
-                if (found != null) {
-                    return found;
-                }
+                if (found != null) return found;
             }
         }
         return null;
     }
-    // === END OF BANDAID FIX ===
 
     private void setupRecyclerViews() {
         searchResultsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         searchAdapter = new SearchResultAdapter();
         searchResultsRecyclerView.setAdapter(searchAdapter);
-        
         searchAdapter.setOnSearchResultClickListener(this::showConfirmationDialog);
-
         checkedInRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         checkedInAdapter = new DevoteeListAdapter();
         checkedInRecyclerView.setAdapter(checkedInAdapter);
@@ -161,7 +149,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
     private void showConfirmationDialog(DevoteeDao.EnrichedDevotee enrichedDevotee) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_devotee_confirmation, null);
-        
         TextView statusText = dialogView.findViewById(R.id.dialog_text_status);
         TextView mobileText = dialogView.findViewById(R.id.dialog_text_mobile);
         TextView whatsappText = dialogView.findViewById(R.id.dialog_text_whatsapp);
@@ -169,7 +156,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         Button primaryButton = dialogView.findViewById(R.id.dialog_button_primary);
         Button secondaryButton = dialogView.findViewById(R.id.dialog_button_secondary);
         Button negativeButton = dialogView.findViewById(R.id.dialog_button_negative);
-
         if (enrichedDevotee.getEventStatus() == EventStatus.PRE_REGISTERED) {
             statusText.setText("Pre-Registered");
             statusText.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_status_prereg));
@@ -177,9 +163,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             statusText.setText("Walk-in");
             statusText.setBackground(ContextCompat.getDrawable(this, R.drawable.bg_status_walkin));
         }
-
         mobileText.setText(enrichedDevotee.devotee().getMobileE164());
-
         if (enrichedDevotee.whatsAppGroup() != null && enrichedDevotee.whatsAppGroup() > 0) {
             whatsappText.setText("Group: " + enrichedDevotee.whatsAppGroup());
             whatsappIcon.setImageResource(R.drawable.ic_whatsapp_green);
@@ -187,12 +171,10 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             whatsappText.setText("Not in any group");
             whatsappIcon.setImageResource(R.drawable.ic_whatsapp_gray);
         }
-        
         final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(enrichedDevotee.devotee().getFullName())
                 .setView(dialogView)
                 .create();
-
         if (enrichedDevotee.whatsAppGroup() == null || enrichedDevotee.whatsAppGroup() == 0) {
             primaryButton.setText("Send Invite & Mark Present");
             primaryButton.setOnClickListener(v -> {
@@ -200,14 +182,12 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 dispatchWhatsAppInvite(enrichedDevotee.devotee());
                 dialog.dismiss();
             });
-
             secondaryButton.setVisibility(View.VISIBLE);
             secondaryButton.setText("Mark as Present (No Invite)");
             secondaryButton.setOnClickListener(v -> {
                 viewModel.markAttendance(enrichedDevotee.devotee().getDevoteeId());
                 dialog.dismiss();
             });
-
         } else {
             primaryButton.setText("Mark as Present");
             primaryButton.setOnClickListener(v -> {
@@ -216,13 +196,10 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             });
             secondaryButton.setVisibility(View.GONE);
         }
-
         negativeButton.setOnClickListener(v -> dialog.dismiss());
-        
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawableResource(R.drawable.dialog_rounded_background);
         }
-
         dialog.show();
     }
 
@@ -231,10 +208,8 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             Toast.makeText(this, "WhatsApp invite details not configured.", Toast.LENGTH_LONG).show();
             return;
         }
-
         String fullMessage = whatsAppInviteDetails.messageTemplate + whatsAppInviteDetails.link;
         String phoneForApi = "91" + devotee.getMobileE164();
-
         try {
             Intent intent = new Intent(Intent.ACTION_VIEW);
             String url = "https://api.whatsapp.com/send?phone=" + phoneForApi + "&text=" + URLEncoder.encode(fullMessage, "UTF-8");
@@ -249,8 +224,15 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     }
 
     private void observeViewModel() {
-        viewModel.getWhatsAppInvite().observe(this, invite -> {
-            this.whatsAppInviteDetails = invite;
+        viewModel.getWhatsAppInvite().observe(this, invite -> this.whatsAppInviteDetails = invite);
+
+        viewModel.getNewlyAddedDevotee().observe(this, devotee -> {
+            if (devotee != null) {
+                if (devotee.whatsAppGroup() == null || devotee.whatsAppGroup() == 0) {
+                    showConfirmationDialog(devotee);
+                }
+                viewModel.onDialogShown();
+            }
         });
 
         viewModel.getSearchResults().observe(this, results -> {
@@ -276,7 +258,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 ActionBar actionBar = getSupportActionBar();
                 if (actionBar != null) {
                     actionBar.setSubtitle(event.getEventDate());
-                    // Apply the bandaid fix after the subtitle is set.
                     applySubtitleFix();
                 }
             }
@@ -287,11 +268,8 @@ public class MarkAttendanceActivity extends AppCompatActivity {
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.operator_main_menu, menu);
-        return true;
-    }
-
+    public boolean onCreateOptionsMenu(Menu menu) { getMenuInflater().inflate(R.menu.operator_main_menu, menu); return true; }
+    
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int itemId = item.getItemId();
@@ -304,7 +282,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
-
+    
     private void bindViews() {
         statPreReg = findViewById(R.id.text_stat_pre_reg);
         statAttended = findViewById(R.id.text_stat_attended);
@@ -320,7 +298,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         noResultsTextView = findViewById(R.id.text_no_results);
         listHeaderTextView = findViewById(R.id.text_list_header);
     }
-
+    
     private void setupSearchAndButtons() {
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -344,6 +322,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         });
         addNewButton.setOnClickListener(v -> { Intent intent = new Intent(this, AddEditDevoteeActivity.class); String prefillQuery = searchEditText.getText().toString().trim(); if (!prefillQuery.isEmpty()) { intent.putExtra(AddEditDevoteeActivity.EXTRA_PREFILL_QUERY, prefillQuery); } intent.putExtra(AddEditDevoteeActivity.EXTRA_IS_ON_SPOT_REG, true); intent.putExtra(AddEditDevoteeActivity.EXTRA_EVENT_ID, eventId); addDevoteeLauncher.launch(intent); });
     }
+    
     private void showPristineState() { searchInputLayout.setHelperText(null); searchProgressBar.setVisibility(View.GONE); noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE); checkedInLayout.setVisibility(View.VISIBLE); searchAdapter.setSearchResults(new ArrayList<>()); listHeaderTextView.setText("Recently Checked-In"); listHeaderTextView.setVisibility(View.VISIBLE); }
     private void showInsufficientInputState() { searchInputLayout.setHelperText("Enter at least " + SEARCH_TRIGGER_LENGTH + " characters"); searchProgressBar.setVisibility(View.GONE); noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE); checkedInLayout.setVisibility(View.GONE); searchAdapter.setSearchResults(new ArrayList<>()); listHeaderTextView.setVisibility(View.GONE); }
     private void showSearchingState() { searchInputLayout.setHelperText(null); noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE); checkedInLayout.setVisibility(View.GONE); searchProgressBar.setVisibility(View.VISIBLE); listHeaderTextView.setVisibility(View.GONE); }
