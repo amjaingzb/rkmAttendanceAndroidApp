@@ -24,9 +24,11 @@
     <string name="last_seen_format">Last seen: %s</string>
     <string name="whatsapp_group_format">Group: %d</string>
     <string name="not_in_group">Not in Group</string>
-
+    
     <!-- Donation Feature Strings -->
     <string name="donation_purpose_format">Towards: %s</string>
+    <string name="batch_title_format">Current Batch (#%d)</string>
+    <string name="batch_start_time_format">Started: %s</string>
 
     <!-- UPDATED: Strings for the new consolidated report -->
     <string name="report_master_devotee_title">Master Devotee Report</string>

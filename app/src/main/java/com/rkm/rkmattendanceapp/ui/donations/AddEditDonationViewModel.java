@@ -40,10 +40,10 @@ public class AddEditDonationViewModel extends AndroidViewModel {
         }).start();
     }
 
-    public void saveDonation(long devoteeId, double amount, String paymentMethod, String refId, String purpose) {
+    public void saveDonation(long devoteeId, double amount, String paymentMethod, String refId, String purpose, long batchId) {
         new Thread(() -> {
             try {
-                repository.recordDonation(devoteeId, null, amount, paymentMethod, refId, purpose, "DonationCollector");
+                repository.recordDonationInBatch(devoteeId, amount, paymentMethod, refId, purpose, "DonationCollector", batchId);
                 saveFinished.postValue(true);
             } catch (Exception e) {
                 AppLogger.e(TAG, "Failed to save donation", e);

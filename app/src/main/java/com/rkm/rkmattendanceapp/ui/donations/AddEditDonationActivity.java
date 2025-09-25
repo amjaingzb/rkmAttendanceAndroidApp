@@ -33,11 +33,12 @@ import com.rkm.rkmattendanceapp.util.AppLogger;
 public class AddEditDonationActivity extends AppCompatActivity {
     
     private static final String TAG = "AddEditDonationActivity";
-
     public static final String EXTRA_DEVOTEE_ID = "com.rkm.rkmattendanceapp.ui.donations.EXTRA_DEVOTEE_ID";
+    public static final String EXTRA_BATCH_ID = "com.rkm.rkmattendanceapp.ui.donations.EXTRA_BATCH_ID";
 
     private AddEditDonationViewModel viewModel;
     private long currentDevoteeId = -1;
+    private long currentBatchId = -1;
 
     private TextView donorNameText, donorMobileText, donorAddressText, donorEmailText, donorIdLabel, donorIdValue, missingFieldsWarningText;
     private ImageButton editDevoteeButton;
@@ -49,7 +50,7 @@ public class AddEditDonationActivity extends AppCompatActivity {
     
     private ActivityResultLauncher<Intent> editDevoteeLauncher;
     private MenuItem saveDonationMenuItem;
-    private Devotee currentDevotee; // FIX: Store the loaded devotee to resolve race condition
+    private Devotee currentDevotee;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,9 +63,12 @@ public class AddEditDonationActivity extends AppCompatActivity {
             getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_close);
         }
 
-        currentDevoteeId = getIntent().getLongExtra(EXTRA_DEVOTEE_ID, -1);
-        if (currentDevoteeId == -1) {
-            Toast.makeText(this, "Error: No devotee ID provided.", Toast.LENGTH_LONG).show();
+        Intent intent = getIntent();
+        currentDevoteeId = intent.getLongExtra(EXTRA_DEVOTEE_ID, -1);
+        currentBatchId = intent.getLongExtra(EXTRA_BATCH_ID, -1);
+
+        if (currentDevoteeId == -1 || currentBatchId == -1) {
+            Toast.makeText(this, "Error: Missing Devotee or Batch ID.", Toast.LENGTH_LONG).show();
             finish();
             return;
         }
@@ -133,9 +137,9 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private void observeViewModel() {
         viewModel.getDevotee().observe(this, devotee -> {
             if (devotee != null) {
-                this.currentDevotee = devotee; // FIX: Store the devotee data when it arrives
+                this.currentDevotee = devotee;
                 updateDonorInfo(devotee);
-                validateDevoteeAndSetSaveState(); // FIX: Call validation
+                validateDevoteeAndSetSaveState();
             }
         });
         viewModel.getSaveFinished().observe(this, finished -> {
@@ -155,102 +159,49 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private void updateDonorInfo(Devotee devotee) {
         donorNameText.setText(devotee.getFullName());
         donorMobileText.setText(devotee.getMobileE164());
-
-        if (isNotBlank(devotee.getAddress())) {
-            donorAddressText.setText(devotee.getAddress());
-            donorAddressText.setVisibility(View.VISIBLE);
-        } else {
-            donorAddressText.setVisibility(View.GONE);
-        }
-        
-        if (isNotBlank(devotee.getEmail())) {
-            donorEmailText.setText(devotee.getEmail());
-            donorEmailText.setVisibility(View.VISIBLE);
-        } else {
-            donorEmailText.setVisibility(View.GONE);
-        }
-
-        if (isNotBlank(devotee.getPan())) {
-            donorIdLabel.setText("PAN:");
-            donorIdValue.setText(devotee.getPan());
-            donorIdLayout.setVisibility(View.VISIBLE);
-        } else if (isNotBlank(devotee.getAadhaar())) {
-            donorIdLabel.setText("Aadhaar:");
-            donorIdValue.setText(devotee.getAadhaar());
-            donorIdLayout.setVisibility(View.VISIBLE);
-        } else {
-            donorIdLayout.setVisibility(View.GONE);
-        }
+        if (isNotBlank(devotee.getAddress())) { donorAddressText.setText(devotee.getAddress()); donorAddressText.setVisibility(View.VISIBLE); } else { donorAddressText.setVisibility(View.GONE); }
+        if (isNotBlank(devotee.getEmail())) { donorEmailText.setText(devotee.getEmail()); donorEmailText.setVisibility(View.VISIBLE); } else { donorEmailText.setVisibility(View.GONE); }
+        if (isNotBlank(devotee.getPan())) { donorIdLabel.setText("PAN:"); donorIdValue.setText(devotee.getPan()); donorIdLayout.setVisibility(View.VISIBLE); } else if (isNotBlank(devotee.getAadhaar())) { donorIdLabel.setText("Aadhaar:"); donorIdValue.setText(devotee.getAadhaar()); donorIdLayout.setVisibility(View.VISIBLE); } else { donorIdLayout.setVisibility(View.GONE); }
     }
 
-    // FIX: Method no longer needs devotee parameter, it uses the member variable
     private void validateDevoteeAndSetSaveState() {
-        // Now it's safe to check both, as this method is called whenever either is ready
-        if (currentDevotee == null || saveDonationMenuItem == null) {
-            return; 
-        }
-
+        if (currentDevotee == null || saveDonationMenuItem == null) return;
         boolean isAddressValid = isNotBlank(currentDevotee.getAddress());
         boolean isIdValid = isNotBlank(currentDevotee.getPan()) || isNotBlank(currentDevotee.getAadhaar());
         boolean isRecordComplete = isAddressValid && isIdValid;
-
         saveDonationMenuItem.setEnabled(isRecordComplete);
         Drawable icon = saveDonationMenuItem.getIcon();
-        if (icon != null) {
-            icon.mutate().setAlpha(isRecordComplete ? 255 : 130);
-        }
-        
+        if (icon != null) icon.mutate().setAlpha(isRecordComplete ? 255 : 130);
         missingFieldsWarningText.setVisibility(isRecordComplete ? View.GONE : View.VISIBLE);
     }
 
-    private boolean isNotBlank(String s) {
-        return s != null && !s.trim().isEmpty();
-    }
+    private boolean isNotBlank(String s) { return s != null && !s.trim().isEmpty(); }
 
     private void saveDonation() {
         String amountStr = amountEditText.getText().toString().trim();
         String purpose = purposeAutoComplete.getText().toString().trim();
         String paymentMethod = paymentMethodRadioGroup.getCheckedRadioButtonId() == R.id.radio_upi ? "UPI" : "CASH";
         String upiRef = upiRefEditText.getText().toString().trim();
-
-        if (TextUtils.isEmpty(amountStr) || Double.parseDouble(amountStr) <= 0) {
-            Toast.makeText(this, "Please enter a valid amount.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (TextUtils.isEmpty(purpose)) {
-            Toast.makeText(this, "Please specify the purpose of the donation.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if ("UPI".equals(paymentMethod) && TextUtils.isEmpty(upiRef)) {
-            Toast.makeText(this, "Please enter the UPI Reference ID.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
+        if (TextUtils.isEmpty(amountStr) || Double.parseDouble(amountStr) <= 0) { Toast.makeText(this, "Please enter a valid amount.", Toast.LENGTH_SHORT).show(); return; }
+        if (TextUtils.isEmpty(purpose)) { Toast.makeText(this, "Please specify the purpose of the donation.", Toast.LENGTH_SHORT).show(); return; }
+        if ("UPI".equals(paymentMethod) && TextUtils.isEmpty(upiRef)) { Toast.makeText(this, "Please enter the UPI Reference ID.", Toast.LENGTH_SHORT).show(); return; }
         double amount = Double.parseDouble(amountStr);
-        viewModel.saveDonation(currentDevoteeId, amount, paymentMethod, "UPI".equals(paymentMethod) ? upiRef : null, purpose);
+        viewModel.saveDonation(currentDevoteeId, amount, paymentMethod, "UPI".equals(paymentMethod) ? upiRef : null, purpose, currentBatchId);
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.add_edit_donation_menu, menu);
         saveDonationMenuItem = menu.findItem(R.id.action_save_donation);
-        
-        // FIX: Re-run validation in case devotee data arrived before the menu was created
         validateDevoteeAndSetSaveState(); 
-        
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int itemId = item.getItemId();
-        if (itemId == R.id.action_save_donation) {
-            saveDonation();
-            return true;
-        } else if (itemId == android.R.id.home) {
-            finish();
-            return true;
-        }
+        if (itemId == R.id.action_save_donation) { saveDonation(); return true; }
+        else if (itemId == android.R.id.home) { finish(); return true; }
         return super.onOptionsItemSelected(item);
     }
 }

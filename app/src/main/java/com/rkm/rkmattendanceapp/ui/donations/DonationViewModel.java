@@ -19,8 +19,9 @@ public class DonationViewModel extends AndroidViewModel {
     private final AttendanceRepository repository;
 
     private final MutableLiveData<List<Devotee>> searchResults = new MutableLiveData<>();
-    private final MutableLiveData<List<DonationRecord>> todaysDonations = new MutableLiveData<>();
+    private final MutableLiveData<AttendanceRepository.ActiveBatchData> activeBatchData = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
+    private final MutableLiveData<Boolean> batchClosed = new MutableLiveData<>(false);
 
     public DonationViewModel(@NonNull Application application) {
         super(application);
@@ -28,17 +29,35 @@ public class DonationViewModel extends AndroidViewModel {
     }
 
     public LiveData<List<Devotee>> getSearchResults() { return searchResults; }
-    public LiveData<List<DonationRecord>> getTodaysDonations() { return todaysDonations; }
+    public LiveData<AttendanceRepository.ActiveBatchData> getActiveBatchData() { return activeBatchData; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
+    public LiveData<Boolean> getBatchClosed() { return batchClosed; }
 
-    public void loadTodaysDonations() {
+    public void loadOrRefreshActiveBatch() {
         new Thread(() -> {
             try {
-                List<DonationRecord> records = repository.getTodaysDonations();
-                todaysDonations.postValue(records);
+                AttendanceRepository.ActiveBatchData data = repository.getActiveDonationBatchOrCreateNew();
+                activeBatchData.postValue(data);
             } catch (Exception e) {
-                AppLogger.e(TAG, "Failed to load today's donations", e);
-                errorMessage.postValue("Failed to load donations.");
+                AppLogger.e(TAG, "Failed to load active batch data", e);
+                errorMessage.postValue("Failed to load active batch.");
+            }
+        }).start();
+    }
+    
+    public void closeActiveBatch() {
+        AttendanceRepository.ActiveBatchData currentData = activeBatchData.getValue();
+        if (currentData == null || currentData.batch == null) {
+            errorMessage.postValue("No active batch to close.");
+            return;
+        }
+        new Thread(() -> {
+            try {
+                repository.closeActiveBatch(currentData.batch.batchId, "DonationCollector");
+                batchClosed.postValue(true);
+            } catch (Exception e) {
+                AppLogger.e(TAG, "Failed to close batch", e);
+                errorMessage.postValue("Failed to close batch.");
             }
         }).start();
     }
@@ -63,8 +82,7 @@ public class DonationViewModel extends AndroidViewModel {
         new Thread(() -> {
             try {
                 repository.deleteDonation(donationId);
-                // After deleting, reload the list to reflect the change
-                loadTodaysDonations();
+                loadOrRefreshActiveBatch();
             } catch (Exception e) {
                 AppLogger.e(TAG, "Failed to delete donation with ID: " + donationId, e);
                 errorMessage.postValue("Failed to delete donation.");
