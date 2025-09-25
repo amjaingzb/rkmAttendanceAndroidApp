@@ -14,6 +14,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -43,28 +44,25 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Locale;
-import android.icu.text.NumberFormat;
-import android.net.Uri;
-import androidx.cardview.widget.CardView;
-import com.rkm.attendance.core.AttendanceRepository;
 
 public class DonationActivity extends AppCompatActivity {
 
     private static final String TAG = "DonationActivity";
     private static final int SEARCH_TRIGGER_LENGTH = 3;
     private static final long SEARCH_DEBOUNCE_DELAY_MS = 300;
-    private static final String OFFICE_EMAIL = "amjain.gzb@gmail.com"; // CHANGE THIS
+    private static final String OFFICE_EMAIL = "amjain.gzb@gmail.com";
 
     private DonationViewModel viewModel;
     private TextInputEditText searchEditText;
-    private Button addNewButton, depositButton;
+    private Button addNewButton, depositButton, startNewBatchButton, logoutButton;
     private RecyclerView searchResultsRecyclerView, donationsRecyclerView;
     private DevoteeListAdapter searchAdapter;
     private DonationListAdapter donationAdapter;
     private ProgressBar searchProgressBar;
-    private TextView noResultsTextView, listHeaderTextView;
+    private TextView noResultsTextView, listHeaderTextView, batchClosedMessageText;
     private CardView batchSummaryCard;
     private TextView batchTitleText, batchStartTimeText, batchCashText, batchUpiText, batchTotalText;
+    private LinearLayout batchClosedLayout, searchControlsLayout;
     
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
@@ -73,7 +71,7 @@ public class DonationActivity extends AppCompatActivity {
     
     private Long activeBatchId = null;
     private final NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
-    private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a");
+    private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.US);
 
 
     @Override
@@ -87,8 +85,7 @@ public class DonationActivity extends AppCompatActivity {
         setupLaunchers();
         bindViews();
         setupRecyclerViews();
-        setupSearchAndButtons();
-        observeViewModel();
+        setupClickListeners();
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -114,41 +111,30 @@ public class DonationActivity extends AppCompatActivity {
             }
         });
 
+        observeViewModel();
         viewModel.loadOrRefreshActiveBatch();
     }
 
     private void setupLaunchers() {
-        addDonationLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK) {
-                        viewModel.loadOrRefreshActiveBatch();
-                    }
-                    searchEditText.setText("");
-                }
-        );
-
-        addDevoteeLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                        String newPhone = result.getData().getStringExtra(AddEditDevoteeActivity.RESULT_EXTRA_NEW_DEVOTEE_PHONE);
-                        if (newPhone != null && !newPhone.isEmpty()) {
-                            searchEditText.setText(newPhone);
-                            searchEditText.selectAll();
-                        } else {
-                            searchEditText.setText("");
-                        }
-                    } else {
-                        searchEditText.setText("");
-                    }
-                });
+        addDonationLauncher = registerForActivityResult( new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == Activity.RESULT_OK) viewModel.loadOrRefreshActiveBatch();
+            searchEditText.setText("");
+        });
+        addDevoteeLauncher = registerForActivityResult( new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                String newPhone = result.getData().getStringExtra(AddEditDevoteeActivity.RESULT_EXTRA_NEW_DEVOTEE_PHONE);
+                if (newPhone != null && !newPhone.isEmpty()) { searchEditText.setText(newPhone); searchEditText.selectAll(); }
+                else { searchEditText.setText(""); }
+            } else { searchEditText.setText(""); }
+        });
     }
 
     private void bindViews() {
         searchEditText = findViewById(R.id.edit_text_search_devotee);
         addNewButton = findViewById(R.id.button_add_new_devotee);
         depositButton = findViewById(R.id.button_deposit_batch);
+        startNewBatchButton = findViewById(R.id.button_start_new_batch);
+        logoutButton = findViewById(R.id.button_logout);
         searchResultsRecyclerView = findViewById(R.id.recycler_view_search_results);
         donationsRecyclerView = findViewById(R.id.recycler_view_donations);
         searchProgressBar = findViewById(R.id.progress_bar_search);
@@ -160,33 +146,29 @@ public class DonationActivity extends AppCompatActivity {
         batchCashText = findViewById(R.id.text_batch_cash);
         batchUpiText = findViewById(R.id.text_batch_upi);
         batchTotalText = findViewById(R.id.text_batch_total);
+        batchClosedLayout = findViewById(R.id.layout_batch_closed);
+        batchClosedMessageText = findViewById(R.id.text_batch_closed_message);
+        searchControlsLayout = findViewById(R.id.layout_search_controls);
     }
 
     private void setupRecyclerViews() {
         searchResultsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         searchAdapter = new DevoteeListAdapter();
         searchAdapter.setOnDevoteeClickListener(devotee -> {
-            if (activeBatchId == null) {
-                Toast.makeText(this, "Error: No active batch found.", Toast.LENGTH_SHORT).show();
-                return;
-            }
+            if (activeBatchId == null) { Toast.makeText(this, "Error: No active batch found.", Toast.LENGTH_SHORT).show(); return; }
             Intent intent = new Intent(this, AddEditDonationActivity.class);
             intent.putExtra(AddEditDonationActivity.EXTRA_DEVOTEE_ID, devotee.getDevoteeId());
             intent.putExtra(AddEditDonationActivity.EXTRA_BATCH_ID, activeBatchId);
             addDonationLauncher.launch(intent);
         });
         searchResultsRecyclerView.setAdapter(searchAdapter);
-
         donationsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         donationAdapter = new DonationListAdapter();
-        donationAdapter.setOnDonationClickListener(record -> {
-            DonationActionsBottomSheetFragment.newInstance(record.donation.donationId)
-                    .show(getSupportFragmentManager(), DonationActionsBottomSheetFragment.TAG);
-        });
+        donationAdapter.setOnDonationClickListener(record -> DonationActionsBottomSheetFragment.newInstance(record.donation.donationId).show(getSupportFragmentManager(), DonationActionsBottomSheetFragment.TAG));
         donationsRecyclerView.setAdapter(donationAdapter);
     }
 
-    private void setupSearchAndButtons() {
+    private void setupClickListeners() {
         searchEditText.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -194,59 +176,54 @@ public class DonationActivity extends AppCompatActivity {
                 searchHandler.removeCallbacks(searchRunnable);
                 if (query.length() >= SEARCH_TRIGGER_LENGTH) { showSearchingState(); searchRunnable = () -> viewModel.searchDevotees(query); searchHandler.postDelayed(searchRunnable, SEARCH_DEBOUNCE_DELAY_MS); }
                 else if (query.length() > 0) { showInsufficientInputState(); }
-                else { showPristineState(); }
+                else { showActiveBatchState(); }
             }
             public void afterTextChanged(Editable s) {}
         });
-
         addNewButton.setOnClickListener(v -> {
             Intent intent = new Intent(this, AddEditDevoteeActivity.class);
             String prefillQuery = searchEditText.getText().toString().trim();
             if (!prefillQuery.isEmpty()) { intent.putExtra(AddEditDevoteeActivity.EXTRA_PREFILL_QUERY, prefillQuery); }
             addDevoteeLauncher.launch(intent);
         });
-        
         depositButton.setOnClickListener(v -> showDepositConfirmation());
+        startNewBatchButton.setOnClickListener(v -> viewModel.startNewBatch());
+        logoutButton.setOnClickListener(v -> logoutAndReturnToRoleSelection());
     }
 
     private void observeViewModel() {
-        viewModel.getActiveBatchData().observe(this, this::updateBatchUi);
+        viewModel.getActiveBatchData().observe(this, data -> {
+            if (data != null) {
+                showActiveBatchState();
+                updateBatchUi(data);
+            }
+        });
         viewModel.getSearchResults().observe(this, this::updateSearchResultsUi);
-        viewModel.getBatchClosed().observe(this, closed -> {
-            if (closed) {
-                Toast.makeText(this, "Batch closed. Starting new batch.", Toast.LENGTH_LONG).show();
-                viewModel.loadOrRefreshActiveBatch(); // This will auto-create a new one
+        viewModel.getBatchClosedEvent().observe(this, closed -> {
+            if (closed != null && closed) {
+                showBatchClosedState();
             }
         });
         viewModel.getErrorMessage().observe(this, error -> { if (error != null && !error.isEmpty()) { Toast.makeText(this, error, Toast.LENGTH_LONG).show(); } });
     }
 
     private void updateBatchUi(AttendanceRepository.ActiveBatchData data) {
-        if (data == null) { batchSummaryCard.setVisibility(View.GONE); return; }
-        
         this.activeBatchId = data.batch.batchId;
-        
         batchTitleText.setText(getString(R.string.batch_title_format, data.batch.batchId));
         LocalDateTime startTime = LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         batchStartTimeText.setText(getString(R.string.batch_start_time_format, timeFormatter.format(startTime)));
-        
         batchCashText.setText(currencyFormatter.format(data.summary.totalCash));
         batchUpiText.setText(currencyFormatter.format(data.summary.totalUpi));
         batchTotalText.setText(currencyFormatter.format(data.summary.totalCash + data.summary.totalUpi));
-        
         donationAdapter.setDonations(data.donations);
-        
         listHeaderTextView.setVisibility(data.donations.isEmpty() ? View.GONE : View.VISIBLE);
         listHeaderTextView.setText("Donations in this Batch (" + data.donations.size() + ")");
-        
-        batchSummaryCard.setVisibility(View.VISIBLE);
     }
     
     private void updateSearchResultsUi(java.util.List<Devotee> results) {
         searchProgressBar.setVisibility(View.GONE);
         if (results != null && !results.isEmpty()) {
             listHeaderTextView.setText("Search Results");
-            listHeaderTextView.setVisibility(View.VISIBLE);
             noResultsTextView.setVisibility(View.GONE);
             searchResultsRecyclerView.setVisibility(View.VISIBLE);
             searchAdapter.setDevotees(results);
@@ -259,35 +236,46 @@ public class DonationActivity extends AppCompatActivity {
         }
     }
 
-    private void showPristineState() {
-        searchProgressBar.setVisibility(View.GONE);
-        noResultsTextView.setVisibility(View.GONE);
-        searchResultsRecyclerView.setVisibility(View.GONE);
-        searchAdapter.setDevotees(new ArrayList<>());
+    private void showActiveBatchState() {
+        batchSummaryCard.setVisibility(View.VISIBLE);
         donationsRecyclerView.setVisibility(View.VISIBLE);
-        viewModel.loadOrRefreshActiveBatch();
+        searchControlsLayout.setVisibility(View.VISIBLE);
+        searchEditText.setEnabled(true);
+        addNewButton.setEnabled(true);
+        batchClosedLayout.setVisibility(View.GONE);
+        searchResultsRecyclerView.setVisibility(View.GONE);
+        noResultsTextView.setVisibility(View.GONE);
+        searchProgressBar.setVisibility(View.GONE);
+    }
+    
+    private void showBatchClosedState() {
+        batchSummaryCard.setVisibility(View.GONE);
+        donationsRecyclerView.setVisibility(View.GONE);
+        listHeaderTextView.setVisibility(View.GONE);
+        searchControlsLayout.setVisibility(View.VISIBLE); // Keep it visible but disable contents
+        searchEditText.setEnabled(false);
+        searchEditText.setText("");
+        addNewButton.setEnabled(false);
+        batchClosedLayout.setVisibility(View.VISIBLE);
+        AttendanceRepository.ActiveBatchData lastData = viewModel.getActiveBatchData().getValue();
+        if(lastData != null) {
+            batchClosedMessageText.setText(String.format(Locale.US, "Batch #%d successfully closed.\nThank you.", lastData.batch.batchId));
+        }
     }
 
     private void showInsufficientInputState() {
-        searchProgressBar.setVisibility(View.GONE);
-        noResultsTextView.setVisibility(View.GONE);
-        searchResultsRecyclerView.setVisibility(View.GONE);
-        donationsRecyclerView.setVisibility(View.GONE);
-        listHeaderTextView.setVisibility(View.GONE);
+        searchProgressBar.setVisibility(View.GONE); noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE);
+        donationsRecyclerView.setVisibility(View.GONE); listHeaderTextView.setVisibility(View.GONE);
     }
-
     private void showSearchingState() {
-        noResultsTextView.setVisibility(View.GONE);
-        searchResultsRecyclerView.setVisibility(View.GONE);
-        donationsRecyclerView.setVisibility(View.GONE);
-        searchProgressBar.setVisibility(View.VISIBLE);
-        listHeaderTextView.setVisibility(View.GONE);
+        noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE);
+        donationsRecyclerView.setVisibility(View.GONE); searchProgressBar.setVisibility(View.VISIBLE); listHeaderTextView.setVisibility(View.GONE);
     }
     
     private void showDepositConfirmation() {
         new AlertDialog.Builder(this)
             .setTitle("Deposit & Close Batch?")
-            .setMessage("This will finalize the current collection batch and send a summary email to the office. You will not be able to add more donations to this batch.\n\nAre you sure you want to continue?")
+            .setMessage("This will finalize the batch and send a summary email to the office. Are you sure?")
             .setPositiveButton("Yes, Deposit & Close", (dialog, which) -> {
                 sendSummaryEmail();
                 viewModel.closeActiveBatch();
@@ -298,41 +286,17 @@ public class DonationActivity extends AppCompatActivity {
     
     private void sendSummaryEmail() {
         AttendanceRepository.ActiveBatchData data = viewModel.getActiveBatchData().getValue();
-        if (data == null) {
-            Toast.makeText(this, "Could not send email: no active batch data found.", Toast.LENGTH_LONG).show();
-            return;
-        }
-
+        if (data == null) { Toast.makeText(this, "Could not send email: no active batch data found.", Toast.LENGTH_LONG).show(); return; }
         String today = DateTimeFormatter.ofPattern("dd MMM, yyyy").format(LocalDateTime.now());
         String subject = String.format("Donation Collection Summary: Batch #%d (%s)", data.batch.batchId, today);
-        
-        String body = "Donation Collection Summary\n" +
-                      "-----------------------------------\n" +
-                      "Batch ID: " + data.batch.batchId + "\n" +
-                      "Date: " + today + "\n" +
-                      "Collection Period: " + timeFormatter.format(LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))) +
-                      " - " + timeFormatter.format(LocalDateTime.now()) + "\n" +
-                      "Collected By: Donation Collector\n" +
-                      "-----------------------------------\n" +
-                      "Total Donations: " + data.summary.donationCount + "\n" +
-                      "Cash Collected: " + currencyFormatter.format(data.summary.totalCash) + "\n" +
-                      "UPI Collected: " + currencyFormatter.format(data.summary.totalUpi) + "\n" +
-                      "-----------------------------------\n" +
-                      "Grand Total: " + currencyFormatter.format(data.summary.totalCash + data.summary.totalUpi) + "\n" +
-                      "-----------------------------------\n\n" +
-                      "This is an auto-generated email from the SevaConnect Halasuru app.";
-
+        String body = "Donation Collection Summary\n" + "-----------------------------------\n" + "Batch ID: " + data.batch.batchId + "\n" + "Date: " + today + "\n" + "Collection Period: " + timeFormatter.format(LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))) + " - " + timeFormatter.format(LocalDateTime.now()) + "\n" + "Collected By: Donation Collector\n" + "-----------------------------------\n" + "Total Donations: " + data.summary.donationCount + "\n" + "Cash Collected: " + currencyFormatter.format(data.summary.totalCash) + "\n" + "UPI Collected: " + currencyFormatter.format(data.summary.totalUpi) + "\n" + "-----------------------------------\n" + "Grand Total: " + currencyFormatter.format(data.summary.totalCash + data.summary.totalUpi) + "\n" + "-----------------------------------\n\n" + "This is an auto-generated email from the SevaConnect Halasuru app.";
         Intent intent = new Intent(Intent.ACTION_SENDTO);
         intent.setData(Uri.parse("mailto:"));
         intent.putExtra(Intent.EXTRA_EMAIL, new String[]{OFFICE_EMAIL});
         intent.putExtra(Intent.EXTRA_SUBJECT, subject);
         intent.putExtra(Intent.EXTRA_TEXT, body);
-
-        try {
-            startActivity(Intent.createChooser(intent, "Send Summary Email"));
-        } catch (android.content.ActivityNotFoundException ex) {
-            Toast.makeText(this, "There are no email clients installed.", Toast.LENGTH_SHORT).show();
-        }
+        try { startActivity(Intent.createChooser(intent, "Send Summary Email")); }
+        catch (android.content.ActivityNotFoundException ex) { Toast.makeText(this, "There are no email clients installed.", Toast.LENGTH_SHORT).show(); }
     }
 
     @Override

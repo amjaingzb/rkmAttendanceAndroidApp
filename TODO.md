@@ -6,7 +6,9 @@
 3. on submitting the batch it should not autmatically start a batch 
 4. edge case --- what if the volunteer forgets to close... what happens 
 5. volunteer name... or not needed ... unncessary ... 
-
+6. move hardcoded key to db config private static final String OFFICE_EMAIL = "amjain.gzb@gmail.com";
+7. batch time is not correct UTC issue ?
+8. Why private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.US);
 
 ===================
 1.  TEST the whole app with data 

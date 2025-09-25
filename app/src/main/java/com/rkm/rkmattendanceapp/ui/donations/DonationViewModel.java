@@ -21,7 +21,7 @@ public class DonationViewModel extends AndroidViewModel {
     private final MutableLiveData<List<Devotee>> searchResults = new MutableLiveData<>();
     private final MutableLiveData<AttendanceRepository.ActiveBatchData> activeBatchData = new MutableLiveData<>();
     private final MutableLiveData<String> errorMessage = new MutableLiveData<>();
-    private final MutableLiveData<Boolean> batchClosed = new MutableLiveData<>(false);
+    private final MutableLiveData<Boolean> batchClosedEvent = new MutableLiveData<>(false);
 
     public DonationViewModel(@NonNull Application application) {
         super(application);
@@ -31,7 +31,7 @@ public class DonationViewModel extends AndroidViewModel {
     public LiveData<List<Devotee>> getSearchResults() { return searchResults; }
     public LiveData<AttendanceRepository.ActiveBatchData> getActiveBatchData() { return activeBatchData; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
-    public LiveData<Boolean> getBatchClosed() { return batchClosed; }
+    public LiveData<Boolean> getBatchClosedEvent() { return batchClosedEvent; }
 
     public void loadOrRefreshActiveBatch() {
         new Thread(() -> {
@@ -45,6 +45,11 @@ public class DonationViewModel extends AndroidViewModel {
         }).start();
     }
     
+    public void startNewBatch() {
+        batchClosedEvent.setValue(false); // Reset the "closed" state
+        loadOrRefreshActiveBatch();
+    }
+    
     public void closeActiveBatch() {
         AttendanceRepository.ActiveBatchData currentData = activeBatchData.getValue();
         if (currentData == null || currentData.batch == null) {
@@ -54,7 +59,8 @@ public class DonationViewModel extends AndroidViewModel {
         new Thread(() -> {
             try {
                 repository.closeActiveBatch(currentData.batch.batchId, "DonationCollector");
-                batchClosed.postValue(true);
+                activeBatchData.postValue(null); // Clear the active data
+                batchClosedEvent.postValue(true); // Fire the "closed" event
             } catch (Exception e) {
                 AppLogger.e(TAG, "Failed to close batch", e);
                 errorMessage.postValue("Failed to close batch.");
