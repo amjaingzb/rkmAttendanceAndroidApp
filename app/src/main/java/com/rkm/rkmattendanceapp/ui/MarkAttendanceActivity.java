@@ -88,6 +88,9 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                         String newPhone = result.getData().getStringExtra(AddEditDevoteeActivity.RESULT_EXTRA_NEW_DEVOTEE_PHONE);
                         if (newPhone != null && !newPhone.isEmpty()) {
                             searchEditText.setText(newPhone);
+                            // === START OF UX POLISH ===
+                            searchEditText.selectAll();
+                            // === END OF UX POLISH ===
                         } else {
                             searchEditText.setText("");
                             viewModel.loadEventData(eventId);
