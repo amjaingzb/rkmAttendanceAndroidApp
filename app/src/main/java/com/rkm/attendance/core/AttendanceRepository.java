@@ -111,9 +111,8 @@ public class AttendanceRepository {
     }
     public List<EnrichedDevotee> getAllEnrichedDevotees() { return devoteeDao.getAllEnrichedDevotees(); }
 
-    public long addNewDevoteeOnSpot(Devotee newDevoteeData) {
-        Devotee mergedDevotee = saveOrMergeDevoteeFromAdmin(newDevoteeData);
-        return mergedDevotee.getDevoteeId();
+    public Devotee addNewDevoteeOnSpot(Devotee newDevoteeData) {
+        return saveOrMergeDevoteeFromAdmin(newDevoteeData);
     }
 
     public boolean markDevoteeAsPresent(long eventId, long devoteeId) {

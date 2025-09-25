@@ -28,8 +28,7 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
     public static final String EXTRA_PREFILL_QUERY = "com.rkm.rkmattendanceapp.ui.EXTRA_PREFILL_QUERY";
     public static final String EXTRA_IS_ON_SPOT_REG = "com.rkm.rkmattendanceapp.ui.EXTRA_IS_ON_SPOT_REG";
     public static final String EXTRA_EVENT_ID = "com.rkm.rkmattendanceapp.ui.EXTRA_EVENT_ID";
-    // NEW: Key for the result data
-    public static final String RESULT_EXTRA_NEW_DEVOTEE_ID = "com.rkm.rkmattendanceapp.ui.RESULT_EXTRA_NEW_DEVOTEE_ID";
+    public static final String RESULT_EXTRA_NEW_DEVOTEE_PHONE = "com.rkm.rkmattendanceapp.ui.RESULT_EXTRA_NEW_DEVOTEE_PHONE";
 
     public static final long NEW_DEVOTEE_ID = -1;
 
@@ -41,7 +40,7 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
     private long currentDevoteeId = NEW_DEVOTEE_ID;
     private boolean isOnSpotMode = false;
     private long eventIdForOnSpot = -1;
-    private long newDevoteeIdToReturn = -1; // Variable to hold the new ID
+    private Devotee newDevoteeToReturn = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,9 +125,9 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
             }
         });
         
-        viewModel.getNewDevoteeId().observe(this, id -> {
-            if (id != null) {
-                newDevoteeIdToReturn = id;
+        viewModel.getNewDevotee().observe(this, devotee -> {
+            if (devotee != null) {
+                newDevoteeToReturn = devotee;
             }
         });
         
@@ -137,8 +136,8 @@ public class AddEditDevoteeActivity extends AppCompatActivity {
                 Toast.makeText(this, "Devotee saved", Toast.LENGTH_SHORT).show();
                 
                 Intent resultIntent = new Intent();
-                if (newDevoteeIdToReturn > 0) {
-                    resultIntent.putExtra(RESULT_EXTRA_NEW_DEVOTEE_ID, newDevoteeIdToReturn);
+                if (newDevoteeToReturn != null) {
+                    resultIntent.putExtra(RESULT_EXTRA_NEW_DEVOTEE_PHONE, newDevoteeToReturn.getMobileE164());
                 }
                 setResult(RESULT_OK, resultIntent);
                 finish();

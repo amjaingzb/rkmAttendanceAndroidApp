@@ -81,27 +81,22 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             return;
         }
 
-        // === START OF RACE CONDITION FIX ===
         addDevoteeLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
-                    boolean wasNewDevoteeAdded = false;
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                        long newDevoteeId = result.getData().getLongExtra(AddEditDevoteeActivity.RESULT_EXTRA_NEW_DEVOTEE_ID, -1);
-                        if (newDevoteeId > 0) {
-                            wasNewDevoteeAdded = true;
-                            viewModel.loadNewlyAddedDevotee(newDevoteeId);
+                        String newPhone = result.getData().getStringExtra(AddEditDevoteeActivity.RESULT_EXTRA_NEW_DEVOTEE_PHONE);
+                        if (newPhone != null && !newPhone.isEmpty()) {
+                            searchEditText.setText(newPhone);
+                        } else {
+                            searchEditText.setText("");
+                            viewModel.loadEventData(eventId);
                         }
-                    }
-
-                    // Only do a full refresh if we DIDN'T just add a new devotee.
-                    // If we did, we let the auto-dialog logic take over.
-                    if (!wasNewDevoteeAdded) {
-                        if (searchEditText != null) searchEditText.setText("");
+                    } else {
+                        searchEditText.setText("");
                         viewModel.loadEventData(eventId);
                     }
                 });
-        // === END OF RACE CONDITION FIX ===
 
         viewModel = new ViewModelProvider(this).get(MarkAttendanceViewModel.class);
         bindViews();
@@ -123,7 +118,7 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                         TextView tv = (TextView) child;
                         CharSequence subtitle = getSupportActionBar().getSubtitle();
                         if (subtitle != null && subtitle.equals(tv.getText())) {
-                            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12); // Hardcoded small size
+                            tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
                             return;
                         }
                     }
@@ -234,14 +229,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
     private void observeViewModel() {
         viewModel.getWhatsAppInvite().observe(this, invite -> this.whatsAppInviteDetails = invite);
-        viewModel.getNewlyAddedDevotee().observe(this, devotee -> {
-            if (devotee != null) {
-                if (devotee.whatsAppGroup() == null || devotee.whatsAppGroup() == 0) {
-                    showConfirmationDialog(devotee);
-                }
-                viewModel.onDialogShown();
-            }
-        });
         viewModel.getSearchResults().observe(this, results -> {
             searchProgressBar.setVisibility(View.GONE);
             if (results != null && !results.isEmpty()) {
