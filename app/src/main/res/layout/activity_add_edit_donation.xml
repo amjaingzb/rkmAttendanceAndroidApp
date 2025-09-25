@@ -12,63 +12,101 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <TextView
-            android:id="@+id/text_donor_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:textColor="#DE000000"
-            tools:text="donorThree" />
-
-        <TextView
-            android:id="@+id/text_donor_mobile"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="16sp"
-            android:textColor="#8A000000"
-            tools:text="7712345677" />
-
-        <TextView
-            android:id="@+id/text_donor_email"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textSize="16sp"
-            android:textColor="#8A000000"
-            android:visibility="gone"
-            tools:text="amjain.gzb@gmail.com"
-            tools:visibility="visible"/>
-
-        <LinearLayout
-            android:id="@+id/layout_donor_id"
+        <!-- Using ConstraintLayout for better alignment of the edit button -->
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="4dp"
-            android:visibility="gone"
-            tools:visibility="visible">
+            android:layout_height="wrap_content">
 
             <TextView
-                android:id="@+id/text_donor_id_label"
-                android:layout_width="wrap_content"
+                android:id="@+id/text_donor_name"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textSize="16sp"
-                android:textColor="#8A000000"
-                tools:text="PAN:"/>
+                android:layout_marginEnd="8dp"
+                android:textColor="#DE000000"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toStartOf="@+id/button_edit_devotee"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="donorThree A Very Long Name to Test Wrapping" />
+
+            <ImageButton
+                android:id="@+id/button_edit_devotee"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Edit Devotee Details"
+                android:src="@drawable/ic_edit"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
-                android:id="@+id/text_donor_id_value"
+                android:id="@+id/text_donor_mobile"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:textSize="16sp"
+                android:layout_marginTop="4dp"
                 android:textColor="#8A000000"
-                tools:text="pan1234"/>
-        </LinearLayout>
+                android:textSize="16sp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/text_donor_name"
+                tools:text="7712345677" />
 
+            <TextView
+                android:id="@+id/text_donor_address"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#8A000000"
+                android:textSize="16sp"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/text_donor_mobile"
+                tools:text="123 Ashram Lane, Halasuru, Bengaluru"
+                tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/text_donor_email"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#8A000000"
+                android:textSize="16sp"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/text_donor_address"
+                tools:text="amjain.gzb@gmail.com"
+                tools:visibility="visible" />
+
+            <LinearLayout
+                android:id="@+id/layout_donor_id"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/text_donor_email"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/text_donor_id_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#8A000000"
+                    android:textSize="16sp"
+                    tools:text="PAN:" />
+
+                <TextView
+                    android:id="@+id/text_donor_id_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:textColor="#8A000000"
+                    android:textSize="16sp"
+                    tools:text="pan1234" />
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View
             android:layout_width="match_parent"

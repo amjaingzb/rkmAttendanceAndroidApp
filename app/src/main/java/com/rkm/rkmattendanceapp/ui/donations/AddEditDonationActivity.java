@@ -1,6 +1,8 @@
 // In: app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationActivity.java
 package com.rkm.rkmattendanceapp.ui.donations;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Menu;
@@ -9,11 +11,14 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
@@ -21,6 +26,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.textfield.TextInputLayout;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.ui.AddEditDevoteeActivity;
 
 public class AddEditDonationActivity extends AppCompatActivity {
 
@@ -29,12 +35,15 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private AddEditDonationViewModel viewModel;
     private long currentDevoteeId = -1;
 
-    private TextView donorNameText, donorMobileText, donorEmailText, donorIdLabel, donorIdValue;
+    private TextView donorNameText, donorMobileText, donorAddressText, donorEmailText, donorIdLabel, donorIdValue;
+    private ImageButton editDevoteeButton;
     private LinearLayout donorIdLayout;
     private EditText amountEditText, upiRefEditText;
     private AutoCompleteTextView purposeAutoComplete;
     private RadioGroup paymentMethodRadioGroup;
     private TextInputLayout upiRefLayout;
+    
+    private ActivityResultLauncher<Intent> editDevoteeLauncher;
 
 
     @Override
@@ -55,6 +64,7 @@ public class AddEditDonationActivity extends AppCompatActivity {
             return;
         }
 
+        setupLauncher();
         bindViews();
         setupPurposeAutoComplete();
         setupListeners();
@@ -64,10 +74,25 @@ public class AddEditDonationActivity extends AppCompatActivity {
         viewModel.loadDevotee(currentDevoteeId);
     }
 
+    private void setupLauncher() {
+        editDevoteeLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK) {
+                        // The user saved changes. Reload the devotee data to reflect them.
+                        Toast.makeText(this, "Devotee details updated.", Toast.LENGTH_SHORT).show();
+                        viewModel.loadDevotee(currentDevoteeId);
+                    }
+                }
+        );
+    }
+
     private void bindViews() {
         donorNameText = findViewById(R.id.text_donor_name);
         donorMobileText = findViewById(R.id.text_donor_mobile);
+        donorAddressText = findViewById(R.id.text_donor_address);
         donorEmailText = findViewById(R.id.text_donor_email);
+        editDevoteeButton = findViewById(R.id.button_edit_devotee);
         donorIdLayout = findViewById(R.id.layout_donor_id);
         donorIdLabel = findViewById(R.id.text_donor_id_label);
         donorIdValue = findViewById(R.id.text_donor_id_value);
@@ -91,6 +116,12 @@ public class AddEditDonationActivity extends AppCompatActivity {
             } else {
                 upiRefLayout.setVisibility(View.GONE);
             }
+        });
+
+        editDevoteeButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, AddEditDevoteeActivity.class);
+            intent.putExtra(AddEditDevoteeActivity.EXTRA_DEVOTEE_ID, currentDevoteeId);
+            editDevoteeLauncher.launch(intent);
         });
     }
 
@@ -116,6 +147,14 @@ public class AddEditDonationActivity extends AppCompatActivity {
         donorNameText.setText(devotee.getFullName());
         donorMobileText.setText(devotee.getMobileE164());
 
+        // Display Address if available
+        if (isNotBlank(devotee.getAddress())) {
+            donorAddressText.setText(devotee.getAddress());
+            donorAddressText.setVisibility(View.VISIBLE);
+        } else {
+            donorAddressText.setVisibility(View.GONE);
+        }
+        
         // Display Email if available
         if (isNotBlank(devotee.getEmail())) {
             donorEmailText.setText(devotee.getEmail());
@@ -134,7 +173,7 @@ public class AddEditDonationActivity extends AppCompatActivity {
             donorIdValue.setText(devotee.getAadhaar());
             donorIdLayout.setVisibility(View.VISIBLE);
         } else {
-            donorIdLayout.setVisibility(View.GONE); // Hide if no ID is available
+            donorIdLayout.setVisibility(View.GONE);
         }
     }
 

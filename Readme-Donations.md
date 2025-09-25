@@ -225,3 +225,107 @@ I will adhere to your request for code delivery:
 This phased plan minimizes risk. We will be building on a stable base at each step and can test our progress incrementally.
 
 **I am ready to provide the shell script for Phase 1.** Shall we begin?
+
+
+
+###TAG-CONVERSATION-2025-09-25 16:28:58
+Excellent point. This is a crucial piece of functionality for maintaining data quality. A volunteer collecting a donation is in the perfect position to confirm and update a devotee's details.
+
+Mixing complex editing directly into the donation form would make it cluttered. A much cleaner and more powerful approach is to provide a dedicated "Edit" button that launches our existing, comprehensive `AddEditDevoteeActivity`. This reuses code perfectly and keeps each screen focused on its primary task.
+
+### Visual Mockup & Proposed UI Flow
+
+Before we proceed with any code, here is the visual plan for your approval.
+
+**1. The "Record Donation" screen will have a new "Edit" icon and will display the address.**
+
+When you first select a devotee, the screen will look like this. Notice the new pencil icon and the address field.
+
+```
++----------------------------------------------------+
+|  X   Record Donation                      [SAVE]   |
++----------------------------------------------------+
+|                                                    |
+|  donorThree                       [EDIT ICON ✏️]  | <--- NEW Edit Button
+|  7712345677                                        |
+|  PAN: pan1234                                      |
+|  123 Math Road, Halasuru, Bengaluru                | <--- NEW Address Field
+|                                                    |
+|  ------------------------------------------------  |
+|                                                    |
+|  [ Amount*                         ]               |
+|                                                    |
+|  Payment Method*                                   |
+|  (o) Cash     ( ) UPI                              |
+|                                                    |
+|  [ Towards (Purpose)*              ]               |
+|                                                    |
++----------------------------------------------------+
+```
+
+**2. Tapping the "Edit" icon launches the familiar `AddEditDevoteeActivity`.**
+
+This is the exact same screen the Super Admin uses. The user can now edit the address, email, PAN, or any other detail.
+
+```
++----------------------------------------------------+
+|  X   Edit Devotee                         [SAVE]   |
++----------------------------------------------------+
+|                                                    |
+|  [ Full Name: donorThree           ]               |
+|                                                    |
+|  [ Mobile: 7712345677              ]               |
+|                                                    |
+|  [ Email:                           ]               |
+|                                                    |
+|  [ Address: 123 Math Road...       ] <-- EDITABLE  |
+|                                                    |
+|  [ Aadhaar:                         ] <-- EDITABLE  |
+|                                                    |
+|  [ PAN: pan1234                      ] <-- EDITABLE  |
+|                                                    |
+|  ... other fields ...                              |
+|                                                    |
++----------------------------------------------------+
+```
+
+**3. After saving, the user returns to the donation screen, which now shows the updated information.**
+
+The changes are instantly reflected, confirming that the master database has been updated ("back-propagated"). The user can then proceed with recording the donation.
+
+```
++----------------------------------------------------+
+|  X   Record Donation                      [SAVE]   |
++----------------------------------------------------+
+|                                                    |
+|  donorThree                       [EDIT ICON ✏️]  |
+|  7712345677                                        |
+|  PAN: pan1234                                      |
+|  456 Ashram Lane, Halasuru, Bengaluru              | <--- UPDATED Address
+|                                                    |
+|  ------------------------------------------------  |
+|                                                    |
+|  [ Amount*                         ]               |
+|                                                    |
+|  ...                                               |
+|                                                    |
++----------------------------------------------------+
+```
+
+### Technical Plan
+
+To implement this, we will:
+
+1.  **Modify `activity_add_edit_donation.xml`:** Add the `ImageButton` for the edit icon and a `TextView` for the address.
+2.  **Modify `AddEditDonationActivity.java`:**
+    *   Add an `ActivityResultLauncher` to handle the return from `AddEditDevoteeActivity`.
+    *   When the launcher returns a successful result, it will simply call `viewModel.loadDevotee()` again to refresh the displayed data.
+    *   Set an `onClick` listener on the new edit icon to launch `AddEditDevoteeActivity` with the devotee's ID.
+    *   Update the `updateDonorInfo` method to populate the new address `TextView`.
+
+This is an efficient, clean, and highly reusable way to implement the functionality you've requested.
+
+**Does this proposed UI flow and technical plan meet your requirements?** If you approve, I will provide the shell script to apply these changes.
+
+
+
