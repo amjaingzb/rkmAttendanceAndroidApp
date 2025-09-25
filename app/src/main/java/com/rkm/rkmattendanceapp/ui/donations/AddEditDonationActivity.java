@@ -49,7 +49,7 @@ public class AddEditDonationActivity extends AppCompatActivity {
     
     private ActivityResultLauncher<Intent> editDevoteeLauncher;
     private MenuItem saveDonationMenuItem;
-
+    private Devotee currentDevotee; // FIX: Store the loaded devotee to resolve race condition
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,8 +133,9 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private void observeViewModel() {
         viewModel.getDevotee().observe(this, devotee -> {
             if (devotee != null) {
+                this.currentDevotee = devotee; // FIX: Store the devotee data when it arrives
                 updateDonorInfo(devotee);
-                validateDevoteeAndSetSaveState(devotee);
+                validateDevoteeAndSetSaveState(); // FIX: Call validation
             }
         });
         viewModel.getSaveFinished().observe(this, finished -> {
@@ -182,19 +183,21 @@ public class AddEditDonationActivity extends AppCompatActivity {
         }
     }
 
-    private void validateDevoteeAndSetSaveState(Devotee devotee) {
-        if (devotee == null) return;
+    // FIX: Method no longer needs devotee parameter, it uses the member variable
+    private void validateDevoteeAndSetSaveState() {
+        // Now it's safe to check both, as this method is called whenever either is ready
+        if (currentDevotee == null || saveDonationMenuItem == null) {
+            return; 
+        }
 
-        boolean isAddressValid = isNotBlank(devotee.getAddress());
-        boolean isIdValid = isNotBlank(devotee.getPan()) || isNotBlank(devotee.getAadhaar());
+        boolean isAddressValid = isNotBlank(currentDevotee.getAddress());
+        boolean isIdValid = isNotBlank(currentDevotee.getPan()) || isNotBlank(currentDevotee.getAadhaar());
         boolean isRecordComplete = isAddressValid && isIdValid;
 
-        if (saveDonationMenuItem != null) {
-            saveDonationMenuItem.setEnabled(isRecordComplete);
-            Drawable icon = saveDonationMenuItem.getIcon();
-            if (icon != null) {
-                icon.mutate().setAlpha(isRecordComplete ? 255 : 130);
-            }
+        saveDonationMenuItem.setEnabled(isRecordComplete);
+        Drawable icon = saveDonationMenuItem.getIcon();
+        if (icon != null) {
+            icon.mutate().setAlpha(isRecordComplete ? 255 : 130);
         }
         
         missingFieldsWarningText.setVisibility(isRecordComplete ? View.GONE : View.VISIBLE);
@@ -231,10 +234,10 @@ public class AddEditDonationActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.add_edit_donation_menu, menu);
         saveDonationMenuItem = menu.findItem(R.id.action_save_donation);
-        if (saveDonationMenuItem != null) {
-            saveDonationMenuItem.setEnabled(false);
-            saveDonationMenuItem.getIcon().mutate().setAlpha(130);
-        }
+        
+        // FIX: Re-run validation in case devotee data arrived before the menu was created
+        validateDevoteeAndSetSaveState(); 
+        
         return true;
     }
 
