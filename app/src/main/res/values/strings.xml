@@ -24,7 +24,10 @@
     <string name="last_seen_format">Last seen: %s</string>
     <string name="whatsapp_group_format">Group: %d</string>
     <string name="not_in_group">Not in Group</string>
-    
+
+    <!-- Donation Feature Strings -->
+    <string name="donation_purpose_format">Towards: %s</string>
+
     <!-- UPDATED: Strings for the new consolidated report -->
     <string name="report_master_devotee_title">Master Devotee Report</string>
     <string name="report_master_devotee_subtitle">View all devotees sorted by activity. Tap to view or export.</string>

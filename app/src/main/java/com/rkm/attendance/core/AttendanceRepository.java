@@ -13,6 +13,7 @@ import com.rkm.attendance.importer.AttendanceImporter;
 import com.rkm.attendance.importer.CsvImporter;
 import com.rkm.attendance.importer.ImportMapping;
 import com.rkm.attendance.importer.WhatsAppGroupImporter;
+import com.rkm.rkmattendanceapp.ui.donations.DonationRecord;
 import com.rkm.rkmattendanceapp.util.AppLogger;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -31,7 +32,7 @@ public class AttendanceRepository {
     private final EventDao eventDao;
     private final WhatsAppGroupDao whatsAppGroupDao;
     private final ConfigDao configDao;
-    private final DonationDao donationDao; // NEW
+    private final DonationDao donationDao;
     private final SQLiteDatabase database;
     private static final String TAG = "AttendanceRepository";
 
@@ -50,14 +51,24 @@ public class AttendanceRepository {
         this.eventDao = new EventDao(database);
         this.whatsAppGroupDao = new WhatsAppGroupDao(database);
         this.configDao = new ConfigDao(database);
-        this.donationDao = new DonationDao(database); // NEW
+        this.donationDao = new DonationDao(database);
     }
 
-    // --- NEW DONATION METHODS ---
-    public long recordDonation(long devoteeId, Double eventId, double amount, String paymentMethod, String refId, String purpose, String user) {
+    // --- DONATION METHODS ---
+    public long recordDonation(long devoteeId, Long eventId, double amount, String paymentMethod, String refId, String purpose, String user) {
         return donationDao.insert(devoteeId, eventId, amount, paymentMethod, refId, purpose, user);
     }
-    // --- END NEW DONATION METHODS ---
+    public List<DonationRecord> getTodaysDonations() {
+        return donationDao.getTodaysDonations();
+    }
+    public void deleteDonation(long donationId) {
+        donationDao.delete(donationId);
+    }
+    // Search for devotees, but return the simple Devotee object, not EnrichedDevotee
+    public List<Devotee> searchSimpleDevotees(String query) {
+        return devoteeDao.searchSimpleDevotees(query);
+    }
+    // --- END DONATION METHODS ---
 
 
     public WhatsAppInvite getWhatsAppInviteDetails() {
@@ -79,7 +90,7 @@ public class AttendanceRepository {
 
     public boolean checkSuperAdminPin(String pin) { return configDao.checkSuperAdminPin(pin); }
     public boolean checkEventCoordinatorPin(String pin) { return configDao.checkEventCoordinatorPin(pin); }
-    public boolean checkDonationCollectorPin(String pin) { return configDao.checkDonationCollectorPin(pin); } // NEW
+    public boolean checkDonationCollectorPin(String pin) { return configDao.checkDonationCollectorPin(pin); }
     public List<Event> getAllEvents() { return eventDao.listAll(); }
     public Event getEventById(long eventId) { return eventDao.get(eventId); }
     public long createEvent(String name, String date, String remark, String activeFrom, String activeUntil) throws OverlapException {

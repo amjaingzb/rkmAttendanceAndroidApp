@@ -7,34 +7,111 @@
     android:orientation="vertical"
     tools:context=".ui.donations.DonationActivity">
 
-    <!-- This screen will be fully built in Phase 2. -->
-    <!-- For Phase 1, it only needs to exist to be launched after login. -->
-    <!-- We can add a placeholder search bar to connect the workflow. -->
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/text_input_layout_search"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+    <!-- Search Area -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp"
-        app:hintEnabled="false"
-        app:startIconDrawable="@drawable/ic_search">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/edit_text_search_devotee"
-            android:layout_width="match_parent"
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/text_input_layout_search"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:hint="Search Devotee to Record Donation..."
-            android:inputType="text"
-            android:maxLines="1" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:layout_weight="1"
+            app:helperTextEnabled="true"
+            app:hintEnabled="false"
+            app:startIconDrawable="@drawable/ic_search">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/edit_text_search_devotee"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Search Devotee to Record Donation..."
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <Button
+            android:id="@+id/button_add_new_devotee"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Add New" />
+
+    </LinearLayout>
 
     <TextView
-        android:layout_width="match_parent"
+        android:id="@+id/text_list_header"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="List of today's donations will appear here in Phase 2."
-        android:gravity="center"
-        android:layout_margin="16dp"
-        android:textAppearance="?attr/textAppearanceBody1"/>
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
+        android:textAppearance="?attr/textAppearanceHeadline6"
+        android:textColor="?android:attr/textColorPrimary"
+        android:visibility="gone"
+        tools:text="Donations Received Today"
+        tools:visibility="visible" />
+
+    <!-- Content Area (with FrameLayout to overlay search results) -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- List of Today's Donations (Visible by default) -->
+        <LinearLayout
+            android:id="@+id/layout_todays_donations"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recycler_view_donations"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                tools:listitem="@layout/list_item_donation" />
+        </LinearLayout>
+
+        <!-- Search Results (Hidden by default, shown on top) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler_view_search_results"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="?android:attr/colorBackground"
+            android:visibility="gone"
+            tools:listitem="@layout/list_item_devotee"
+            tools:visibility="gone" />
+
+        <ProgressBar
+            android:id="@+id/progress_bar_search"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/text_no_results"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:textAppearance="?attr/textAppearanceBody1"
+            android:visibility="gone"
+            tools:text="No results found." />
+
+        <TextView
+            android:id="@+id/text_no_donations_today"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="No donations recorded today."
+            android:textAppearance="?attr/textAppearanceBody1"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
 </LinearLayout>

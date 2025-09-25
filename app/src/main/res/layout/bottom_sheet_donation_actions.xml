@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <TextView
+        android:id="@+id/action_edit_donation"
+        style="@style/Widget.AppCompat.TextView.SpinnerItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawablePadding="16dp"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:text="Edit Donation"
+        android:background="?android:attr/selectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/action_send_receipt"
+        style="@style/Widget.AppCompat.TextView.SpinnerItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawablePadding="16dp"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:text="Send Receipt (Phase 3)"
+        android:background="?android:attr/selectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/action_delete_donation"
+        style="@style/Widget.AppCompat.TextView.SpinnerItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawablePadding="16dp"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:text="Delete Donation"
+        android:textColor="@android:color/holo_red_dark"
+        android:background="?android:attr/selectableItemBackground"/>
+
+</LinearLayout>
