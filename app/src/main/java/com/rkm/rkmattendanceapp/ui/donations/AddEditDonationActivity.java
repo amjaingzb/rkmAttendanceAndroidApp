@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,7 +21,6 @@ import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.textfield.TextInputLayout;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.R;
-import com.rkm.rkmattendanceapp.ui.AddEditDevoteeActivity;
 
 public class AddEditDonationActivity extends AppCompatActivity {
 
@@ -29,7 +29,8 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private AddEditDonationViewModel viewModel;
     private long currentDevoteeId = -1;
 
-    private TextView donorNameText, donorMobileText;
+    private TextView donorNameText, donorMobileText, donorEmailText, donorIdLabel, donorIdValue;
+    private LinearLayout donorIdLayout;
     private EditText amountEditText, upiRefEditText;
     private AutoCompleteTextView purposeAutoComplete;
     private RadioGroup paymentMethodRadioGroup;
@@ -66,6 +67,10 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private void bindViews() {
         donorNameText = findViewById(R.id.text_donor_name);
         donorMobileText = findViewById(R.id.text_donor_mobile);
+        donorEmailText = findViewById(R.id.text_donor_email);
+        donorIdLayout = findViewById(R.id.layout_donor_id);
+        donorIdLabel = findViewById(R.id.text_donor_id_label);
+        donorIdValue = findViewById(R.id.text_donor_id_value);
         amountEditText = findViewById(R.id.edit_text_amount);
         upiRefEditText = findViewById(R.id.edit_text_upi_ref);
         purposeAutoComplete = findViewById(R.id.autocomplete_purpose);
@@ -106,10 +111,35 @@ public class AddEditDonationActivity extends AppCompatActivity {
     }
 
     private void updateDonorInfo(Devotee devotee) {
-        if (devotee != null) {
-            donorNameText.setText(devotee.getFullName());
-            donorMobileText.setText(devotee.getMobileE164());
+        if (devotee == null) return;
+
+        donorNameText.setText(devotee.getFullName());
+        donorMobileText.setText(devotee.getMobileE164());
+
+        // Display Email if available
+        if (isNotBlank(devotee.getEmail())) {
+            donorEmailText.setText(devotee.getEmail());
+            donorEmailText.setVisibility(View.VISIBLE);
+        } else {
+            donorEmailText.setVisibility(View.GONE);
         }
+
+        // Smart-display Donor ID: Prioritize PAN, then Aadhaar
+        if (isNotBlank(devotee.getPan())) {
+            donorIdLabel.setText("PAN:");
+            donorIdValue.setText(devotee.getPan());
+            donorIdLayout.setVisibility(View.VISIBLE);
+        } else if (isNotBlank(devotee.getAadhaar())) {
+            donorIdLabel.setText("Aadhaar:");
+            donorIdValue.setText(devotee.getAadhaar());
+            donorIdLayout.setVisibility(View.VISIBLE);
+        } else {
+            donorIdLayout.setVisibility(View.GONE); // Hide if no ID is available
+        }
+    }
+
+    private boolean isNotBlank(String s) {
+        return s != null && !s.trim().isEmpty();
     }
 
     private void saveDonation() {
@@ -132,7 +162,7 @@ public class AddEditDonationActivity extends AppCompatActivity {
         }
 
         double amount = Double.parseDouble(amountStr);
-        viewModel.saveDonation(currentDevoteeId, amount, paymentMethod, upiRef, purpose);
+        viewModel.saveDonation(currentDevoteeId, amount, paymentMethod, "UPI".equals(paymentMethod) ? upiRef : null, purpose);
     }
 
     @Override

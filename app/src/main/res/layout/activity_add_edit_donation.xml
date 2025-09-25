@@ -16,7 +16,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Donor Information"
-            android:textAppearance="?attr/textAppearanceLabelLarge"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
             android:textColor="?attr/colorPrimary"/>
 
         <TextView
@@ -25,7 +25,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             tools:text="Amit Jain"
-            android:textAppearance="?attr/textAppearanceTitleLarge"/>
+            android:textAppearance="?attr/textAppearanceHeadline6"
+            android:textColor="?android:attr/textColorPrimary"/>
 
         <TextView
             android:id="@+id/text_donor_mobile"
@@ -33,7 +34,48 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             tools:text="9876543210"
-            android:textAppearance="?attr/textAppearanceBodyMedium" />
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?android:attr/textColorSecondary"/>
+
+        <TextView
+            android:id="@+id/text_donor_email"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            tools:text="amjain.gzb@gmail.com"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?android:attr/textColorSecondary"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+        <LinearLayout
+            android:id="@+id/layout_donor_id"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/text_donor_id_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textStyle="bold"
+                tools:text="PAN:"/>
+
+            <TextView
+                android:id="@+id/text_donor_id_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?android:attr/textColorSecondary"
+                tools:text="ABCDE1234F"/>
+        </LinearLayout>
+
 
         <View
             android:layout_width="match_parent"
@@ -60,9 +102,10 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp"
             android:text="Payment Method*"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?android:attr/textColorSecondary"/>
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="?android:attr/textColorPrimary"/>
 
         <RadioGroup
             android:id="@+id/radio_group_payment_method"
