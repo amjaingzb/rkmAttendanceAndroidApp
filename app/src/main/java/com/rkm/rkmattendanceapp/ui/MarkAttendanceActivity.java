@@ -81,18 +81,27 @@ public class MarkAttendanceActivity extends AppCompatActivity {
             return;
         }
 
+        // === START OF RACE CONDITION FIX ===
         addDevoteeLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
+                    boolean wasNewDevoteeAdded = false;
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                         long newDevoteeId = result.getData().getLongExtra(AddEditDevoteeActivity.RESULT_EXTRA_NEW_DEVOTEE_ID, -1);
                         if (newDevoteeId > 0) {
+                            wasNewDevoteeAdded = true;
                             viewModel.loadNewlyAddedDevotee(newDevoteeId);
                         }
                     }
-                    if (searchEditText != null) searchEditText.setText("");
-                    viewModel.loadEventData(eventId);
+
+                    // Only do a full refresh if we DIDN'T just add a new devotee.
+                    // If we did, we let the auto-dialog logic take over.
+                    if (!wasNewDevoteeAdded) {
+                        if (searchEditText != null) searchEditText.setText("");
+                        viewModel.loadEventData(eventId);
+                    }
                 });
+        // === END OF RACE CONDITION FIX ===
 
         viewModel = new ViewModelProvider(this).get(MarkAttendanceViewModel.class);
         bindViews();
@@ -225,7 +234,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
     private void observeViewModel() {
         viewModel.getWhatsAppInvite().observe(this, invite -> this.whatsAppInviteDetails = invite);
-
         viewModel.getNewlyAddedDevotee().observe(this, devotee -> {
             if (devotee != null) {
                 if (devotee.whatsAppGroup() == null || devotee.whatsAppGroup() == 0) {
@@ -234,7 +242,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 viewModel.onDialogShown();
             }
         });
-
         viewModel.getSearchResults().observe(this, results -> {
             searchProgressBar.setVisibility(View.GONE);
             if (results != null && !results.isEmpty()) {
@@ -251,7 +258,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
                 }
             }
         });
-        
         viewModel.getEventDetails().observe(this, event -> {
             if (event != null) {
                 setTitle(event.getEventName());
@@ -269,7 +275,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) { getMenuInflater().inflate(R.menu.operator_main_menu, menu); return true; }
-    
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int itemId = item.getItemId();
@@ -282,7 +287,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
-    
     private void bindViews() {
         statPreReg = findViewById(R.id.text_stat_pre_reg);
         statAttended = findViewById(R.id.text_stat_attended);
@@ -298,7 +302,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         noResultsTextView = findViewById(R.id.text_no_results);
         listHeaderTextView = findViewById(R.id.text_list_header);
     }
-    
     private void setupSearchAndButtons() {
         searchEditText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -322,7 +325,6 @@ public class MarkAttendanceActivity extends AppCompatActivity {
         });
         addNewButton.setOnClickListener(v -> { Intent intent = new Intent(this, AddEditDevoteeActivity.class); String prefillQuery = searchEditText.getText().toString().trim(); if (!prefillQuery.isEmpty()) { intent.putExtra(AddEditDevoteeActivity.EXTRA_PREFILL_QUERY, prefillQuery); } intent.putExtra(AddEditDevoteeActivity.EXTRA_IS_ON_SPOT_REG, true); intent.putExtra(AddEditDevoteeActivity.EXTRA_EVENT_ID, eventId); addDevoteeLauncher.launch(intent); });
     }
-    
     private void showPristineState() { searchInputLayout.setHelperText(null); searchProgressBar.setVisibility(View.GONE); noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE); checkedInLayout.setVisibility(View.VISIBLE); searchAdapter.setSearchResults(new ArrayList<>()); listHeaderTextView.setText("Recently Checked-In"); listHeaderTextView.setVisibility(View.VISIBLE); }
     private void showInsufficientInputState() { searchInputLayout.setHelperText("Enter at least " + SEARCH_TRIGGER_LENGTH + " characters"); searchProgressBar.setVisibility(View.GONE); noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE); checkedInLayout.setVisibility(View.GONE); searchAdapter.setSearchResults(new ArrayList<>()); listHeaderTextView.setVisibility(View.GONE); }
     private void showSearchingState() { searchInputLayout.setHelperText(null); noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE); checkedInLayout.setVisibility(View.GONE); searchProgressBar.setVisibility(View.VISIBLE); listHeaderTextView.setVisibility(View.GONE); }
