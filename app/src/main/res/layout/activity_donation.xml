@@ -117,11 +117,13 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:layout_marginBottom="4dp"
-        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="?android:attr/textColorPrimary"
         android:visibility="gone"
-        tools:text="Donations in this Batch"
+        tools:text="Donations in this Batch (1)"
         tools:visibility="visible" />
 
     <!-- Content Area -->
