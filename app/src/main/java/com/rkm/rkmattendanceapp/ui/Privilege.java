@@ -10,5 +10,6 @@ import java.io.Serializable;
 public enum Privilege implements Serializable {
     OPERATOR,
     EVENT_COORDINATOR,
-    SUPER_ADMIN
+    SUPER_ADMIN,
+    DONATION_COLLECTOR // NEW: Role for handling donations
 }

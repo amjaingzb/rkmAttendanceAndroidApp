@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.rkm.attendance.core.AttendanceRepository;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.ui.donations.DonationActivity;
 
 public class PinEntryActivity extends AppCompatActivity {
 
@@ -49,10 +50,16 @@ public class PinEntryActivity extends AppCompatActivity {
         pin3 = findViewById(R.id.pin_digit_3);
         pin4 = findViewById(R.id.pin_digit_4);
 
-        if (currentPrivilege == Privilege.SUPER_ADMIN) {
-            title.setText("Enter Super Admin PIN");
-        } else {
-            title.setText("Enter Event Coordinator PIN");
+        switch (currentPrivilege) {
+            case SUPER_ADMIN:
+                title.setText("Enter Super Admin PIN");
+                break;
+            case EVENT_COORDINATOR:
+                title.setText("Enter Event Coordinator PIN");
+                break;
+            case DONATION_COLLECTOR:
+                title.setText("Enter Donation Collector PIN");
+                break;
         }
 
         setupPinTextWatchers();
@@ -82,10 +89,19 @@ public class PinEntryActivity extends AppCompatActivity {
     private void verifyPin(String pin) {
         new Thread(() -> {
             boolean isCorrect;
-            if (currentPrivilege == Privilege.SUPER_ADMIN) {
-                isCorrect = repository.checkSuperAdminPin(pin);
-            } else {
-                isCorrect = repository.checkEventCoordinatorPin(pin);
+            switch (currentPrivilege) {
+                case SUPER_ADMIN:
+                    isCorrect = repository.checkSuperAdminPin(pin);
+                    break;
+                case EVENT_COORDINATOR:
+                    isCorrect = repository.checkEventCoordinatorPin(pin);
+                    break;
+                case DONATION_COLLECTOR:
+                    isCorrect = repository.checkDonationCollectorPin(pin);
+                    break;
+                default:
+                    isCorrect = false;
+                    break;
             }
 
             new Handler(Looper.getMainLooper()).post(() -> {
@@ -100,9 +116,13 @@ public class PinEntryActivity extends AppCompatActivity {
 
     private void onPinSuccess() {
         Toast.makeText(this, "Login Successful", Toast.LENGTH_SHORT).show();
-        Intent intent = new Intent(this, AdminMainActivity.class);
-        // MODIFIED: Pass the privilege to the AdminMainActivity
-        intent.putExtra(AdminMainActivity.EXTRA_PRIVILEGE, currentPrivilege);
+        Intent intent;
+        if (currentPrivilege == Privilege.DONATION_COLLECTOR) {
+            intent = new Intent(this, DonationActivity.class);
+        } else {
+            intent = new Intent(this, AdminMainActivity.class);
+            intent.putExtra(AdminMainActivity.EXTRA_PRIVILEGE, currentPrivilege);
+        }
         startActivity(intent);
         finish();
     }

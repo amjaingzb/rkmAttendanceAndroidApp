@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:app="http://schemas.android.com/apk/res/auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -24,14 +24,25 @@
         android:textAppearance="?attr/textAppearanceHeadline5"
         android:layout_marginBottom="32dp"/>
 
+    <!-- NEW: Donation Collector Button -->
+    <Button
+        android:id="@+id/button_donation_collector"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:text="Donation Collector Login" />
+
     <Button
         android:id="@+id/button_event_coordinator"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Event Coordinator Login"
+        android:layout_marginTop="16dp"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
         android:paddingTop="12dp"
-        android:paddingBottom="12dp"/>
+        android:paddingBottom="12dp"
+        android:text="Event Coordinator Login" />
 
     <Button
         android:id="@+id/button_super_admin"

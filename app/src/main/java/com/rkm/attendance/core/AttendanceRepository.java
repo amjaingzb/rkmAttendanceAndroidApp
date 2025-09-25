@@ -31,6 +31,7 @@ public class AttendanceRepository {
     private final EventDao eventDao;
     private final WhatsAppGroupDao whatsAppGroupDao;
     private final ConfigDao configDao;
+    private final DonationDao donationDao; // NEW
     private final SQLiteDatabase database;
     private static final String TAG = "AttendanceRepository";
 
@@ -49,7 +50,15 @@ public class AttendanceRepository {
         this.eventDao = new EventDao(database);
         this.whatsAppGroupDao = new WhatsAppGroupDao(database);
         this.configDao = new ConfigDao(database);
+        this.donationDao = new DonationDao(database); // NEW
     }
+
+    // --- NEW DONATION METHODS ---
+    public long recordDonation(long devoteeId, Double eventId, double amount, String paymentMethod, String refId, String purpose, String user) {
+        return donationDao.insert(devoteeId, eventId, amount, paymentMethod, refId, purpose, user);
+    }
+    // --- END NEW DONATION METHODS ---
+
 
     public WhatsAppInvite getWhatsAppInviteDetails() {
         String link = configDao.getValue(ConfigDao.KEY_WHATSAPP_INVITE_LINK);
@@ -70,6 +79,7 @@ public class AttendanceRepository {
 
     public boolean checkSuperAdminPin(String pin) { return configDao.checkSuperAdminPin(pin); }
     public boolean checkEventCoordinatorPin(String pin) { return configDao.checkEventCoordinatorPin(pin); }
+    public boolean checkDonationCollectorPin(String pin) { return configDao.checkDonationCollectorPin(pin); } // NEW
     public List<Event> getAllEvents() { return eventDao.listAll(); }
     public Event getEventById(long eventId) { return eventDao.get(eventId); }
     public long createEvent(String name, String date, String remark, String activeFrom, String activeUntil) throws OverlapException {

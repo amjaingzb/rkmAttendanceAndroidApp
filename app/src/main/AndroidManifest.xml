@@ -60,10 +60,17 @@
         <activity
             android:name=".ui.AboutActivity"
             android:exported="false" />
-        
-        <!-- NEW: Register the BackupRestoreActivity -->
+
         <activity
             android:name=".ui.BackupRestoreActivity"
+            android:exported="false" />
+
+        <!-- NEWLY ADDED ACTIVITIES FOR DONATIONS -->
+        <activity
+            android:name=".ui.donations.DonationActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.donations.AddEditDonationActivity"
             android:exported="false" />
 
         <provider

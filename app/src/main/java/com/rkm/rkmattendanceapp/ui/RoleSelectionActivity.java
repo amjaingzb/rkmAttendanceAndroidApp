@@ -4,7 +4,9 @@ package com.rkm.rkmattendanceapp.ui;
 import android.content.Intent;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
+
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.ui.donations.DonationActivity;
 
 public class RoleSelectionActivity extends AppCompatActivity {
 
@@ -12,6 +14,10 @@ public class RoleSelectionActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_role_selection);
+
+        findViewById(R.id.button_donation_collector).setOnClickListener(v -> {
+            launchPinEntry(Privilege.DONATION_COLLECTOR);
+        });
 
         findViewById(R.id.button_event_coordinator).setOnClickListener(v -> {
             launchPinEntry(Privilege.EVENT_COORDINATOR);

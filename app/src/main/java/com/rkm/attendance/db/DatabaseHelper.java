@@ -10,7 +10,7 @@ import com.rkm.rkmattendanceapp.util.AppLogger;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "devotees.db";
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
     private static final String TAG = "DatabaseHelper";
 
     public DatabaseHelper(Context context) {
@@ -19,7 +19,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        // ... (CREATE TABLE statements are unchanged) ...
+        AppLogger.d(TAG, "onCreate: Creating new database schema for version " + DATABASE_VERSION);
+        // This method should contain the complete schema for the LATEST version.
         db.execSQL("CREATE TABLE IF NOT EXISTS devotee (\n" +
                 "  devotee_id   INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
                 "  full_name    TEXT NOT NULL,\n" +
@@ -74,23 +75,37 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "  config_value TEXT\n" +
                 ")");
 
-        // Insert default PINs
+        // NEW v3 table
+        db.execSQL("CREATE TABLE IF NOT EXISTS donations (\n" +
+                "    donation_id         INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+                "    devotee_id          INTEGER NOT NULL,\n" +
+                "    event_id            INTEGER,\n" +
+                "    amount              REAL NOT NULL,\n" +
+                "    payment_method      TEXT NOT NULL, -- 'CASH' or 'UPI'\n" +
+                "    reference_id        TEXT,\n" +
+                "    purpose             TEXT NOT NULL,\n" +
+                "    donation_timestamp  TEXT DEFAULT CURRENT_TIMESTAMP,\n" +
+                "    created_by_user     TEXT,\n" +
+                "    is_receipt_sent     INTEGER DEFAULT 0,\n" +
+                "    FOREIGN KEY (devotee_id) REFERENCES devotee(devotee_id) ON DELETE RESTRICT,\n" +
+                "    FOREIGN KEY (event_id)   REFERENCES event(event_id)   ON DELETE SET NULL\n" +
+                ")");
+
+        // Insert all default values for a fresh install
         insertDefaultPin(db, ConfigDao.KEY_SUPER_ADMIN_PIN, "2222");
         insertDefaultPin(db, ConfigDao.KEY_EVENT_COORDINATOR_PIN, "1111");
-
-        // === START OF NEW CODE ===
-        // STEP 1.1: Insert default values for the new invite feature.
-        // The admin can later change these directly in the database.
+        insertDefaultPin(db, ConfigDao.KEY_DONATION_COLLECTOR_PIN, "3333");
         insertDefaultPin(db, ConfigDao.KEY_WHATSAPP_INVITE_LINK, "https://chat.whatsapp.com/YOUR_INVITE_CODE_HERE");
         insertDefaultPin(db, ConfigDao.KEY_WHATSAPP_INVITE_MESSAGE, "Hello! You are invited to join our RKM group for updates. Please join using this link: ");
-        // === END OF NEW CODE ===
+
+        // CORRECTED: Do NOT call onUpgrade from onCreate.
     }
 
     private void insertDefaultPin(SQLiteDatabase db, String key, String value) {
         ContentValues values = new ContentValues();
         values.put("config_key", key);
         values.put("config_value", value);
-        db.insert("app_config", null, values);
+        db.insertWithOnConflict("app_config", null, values, SQLiteDatabase.CONFLICT_IGNORE);
     }
 
     @Override
@@ -103,8 +118,30 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.execSQL("ALTER TABLE devotee ADD COLUMN pan TEXT");
             AppLogger.d(TAG, "Successfully added aadhaar and pan columns to devotee table.");
         }
+        if (oldVersion < 3) {
+            AppLogger.d(TAG, "Applying schema changes for version 3...");
+            db.execSQL("CREATE TABLE IF NOT EXISTS donations (\n" +
+                    "    donation_id         INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+                    "    devotee_id          INTEGER NOT NULL,\n" +
+                    "    event_id            INTEGER,\n" +
+                    "    amount              REAL NOT NULL,\n" +
+                    "    payment_method      TEXT NOT NULL, -- 'CASH' or 'UPI'\n" +
+                    "    reference_id        TEXT,\n" +
+                    "    purpose             TEXT NOT NULL,\n" +
+                    "    donation_timestamp  TEXT DEFAULT CURRENT_TIMESTAMP,\n" +
+                    "    created_by_user     TEXT,\n" +
+                    "    is_receipt_sent     INTEGER DEFAULT 0,\n" +
+                    "    FOREIGN KEY (devotee_id) REFERENCES devotee(devotee_id) ON DELETE RESTRICT,\n" +
+                    "    FOREIGN KEY (event_id)   REFERENCES event(event_id)   ON DELETE SET NULL\n" +
+                    ")");
+            AppLogger.d(TAG, "Successfully added donations table.");
+
+            // CORRECTED: Insert the default PIN for the new role during an upgrade.
+            insertDefaultPin(db, ConfigDao.KEY_DONATION_COLLECTOR_PIN, "3333");
+            AppLogger.d(TAG, "Inserted default PIN for Donation Collector role.");
+        }
     }
-    
+
     @Override
     public void onConfigure(SQLiteDatabase db) {
         super.onConfigure(db);
