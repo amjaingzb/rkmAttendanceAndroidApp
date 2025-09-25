@@ -1,3 +1,22 @@
+
+###TAG-CONVERSATION-2025-09-25 20:48:11
+
+1. Donor feature in progress. Mostly code is there except for admin reporting section 
+2. there are coupl of UI issues ,
+3. on submitting the batch it should not autmatically start a batch 
+4. edge case --- what if the volunteer forgets to close... what happens 
+5. volunteer name... or not needed ... unncessary ... 
+
+
+===================
+1.  TEST the whole app with data 
+2. Dark and light theme (not really needed - but fix then)
+3. build with real data before demo ...
+
+==================
+
+
+
 ================== Extra features not yet self refined ===========
 6. extend this for receiving donations , recording upi xaction 4 digits, cash or upi, sending receipt. Pan/adhaar wil be mandatory here 
 7. Deferring all these ...

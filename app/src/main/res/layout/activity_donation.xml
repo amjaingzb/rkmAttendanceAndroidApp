@@ -27,18 +27,19 @@
                 android:id="@+id/text_batch_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
-                tools:text="Current Batch (#105)" />
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:textColor="?android:attr/textColorPrimary"
+                tools:text="Current Batch (#1)" />
 
             <TextView
                 android:id="@+id/text_batch_start_time"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodySmall"
+                android:textSize="12sp"
                 android:textColor="?android:attr/textColorSecondary"
-                tools:text="Started: 02:30 PM" />
+                tools:text="Started: 03:03 PM" />
 
-            <!-- Spacer -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="12dp"/>
@@ -50,27 +51,25 @@
                 android:baselineAligned="false">
                 
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="start">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Cash" android:textAppearance="?attr/textAppearanceLabelMedium"/>
-                    <TextView android:id="@+id/text_batch_cash" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="₹5,500.00" android:textAppearance="?attr/textAppearanceBodyLarge" android:textStyle="bold"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Cash" android:textSize="14sp" android:textColor="?android:attr/textColorSecondary"/>
+                    <TextView android:id="@+id/text_batch_cash" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="₹2,200.00" android:textSize="18sp" android:textStyle="bold" android:textColor="?android:attr/textColorPrimary"/>
                 </LinearLayout>
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UPI" android:textAppearance="?attr/textAppearanceLabelMedium"/>
-                    <TextView android:id="@+id/text_batch_upi" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="₹10,200.00" android:textAppearance="?attr/textAppearanceBodyLarge" android:textStyle="bold"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UPI" android:textSize="14sp" android:textColor="?android:attr/textColorSecondary"/>
+                    <TextView android:id="@+id/text_batch_upi" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="₹0.00" android:textSize="18sp" android:textStyle="bold" android:textColor="?android:attr/textColorPrimary"/>
                 </LinearLayout>
                  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="end">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Total" android:textAppearance="?attr/textAppearanceLabelMedium"/>
-                    <TextView android:id="@+id/text_batch_total" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="₹15,700.00" android:textAppearance="?attr/textAppearanceBodyLarge" android:textStyle="bold" android:textColor="?attr/colorPrimary"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Total" android:textSize="14sp" android:textColor="?android:attr/textColorSecondary"/>
+                    <TextView android:id="@+id/text_batch_total" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="₹2,200.00" android:textSize="18sp" android:textStyle="bold" android:textColor="?attr/colorPrimary"/>
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Spacer -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="16dp"/>
 
             <Button
                 android:id="@+id/button_deposit_batch"
-                style="@style/Widget.Material3.Button.TonalButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Deposit &amp; Close Batch" />
