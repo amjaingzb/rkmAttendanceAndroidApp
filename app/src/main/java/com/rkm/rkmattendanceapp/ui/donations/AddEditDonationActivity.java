@@ -3,6 +3,7 @@ package com.rkm.rkmattendanceapp.ui.donations;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Menu;
@@ -21,6 +22,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.textfield.TextInputLayout;
@@ -35,7 +37,7 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private AddEditDonationViewModel viewModel;
     private long currentDevoteeId = -1;
 
-    private TextView donorNameText, donorMobileText, donorAddressText, donorEmailText, donorIdLabel, donorIdValue;
+    private TextView donorNameText, donorMobileText, donorAddressText, donorEmailText, donorIdLabel, donorIdValue, missingFieldsWarningText;
     private ImageButton editDevoteeButton;
     private LinearLayout donorIdLayout;
     private EditText amountEditText, upiRefEditText;
@@ -44,6 +46,7 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private TextInputLayout upiRefLayout;
     
     private ActivityResultLauncher<Intent> editDevoteeLauncher;
+    private MenuItem saveDonationMenuItem;
 
 
     @Override
@@ -79,7 +82,6 @@ public class AddEditDonationActivity extends AppCompatActivity {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK) {
-                        // The user saved changes. Reload the devotee data to reflect them.
                         Toast.makeText(this, "Devotee details updated.", Toast.LENGTH_SHORT).show();
                         viewModel.loadDevotee(currentDevoteeId);
                     }
@@ -96,6 +98,7 @@ public class AddEditDonationActivity extends AppCompatActivity {
         donorIdLayout = findViewById(R.id.layout_donor_id);
         donorIdLabel = findViewById(R.id.text_donor_id_label);
         donorIdValue = findViewById(R.id.text_donor_id_value);
+        missingFieldsWarningText = findViewById(R.id.text_missing_fields_warning);
         amountEditText = findViewById(R.id.edit_text_amount);
         upiRefEditText = findViewById(R.id.edit_text_upi_ref);
         purposeAutoComplete = findViewById(R.id.autocomplete_purpose);
@@ -126,7 +129,12 @@ public class AddEditDonationActivity extends AppCompatActivity {
     }
 
     private void observeViewModel() {
-        viewModel.getDevotee().observe(this, this::updateDonorInfo);
+        viewModel.getDevotee().observe(this, devotee -> {
+            if (devotee != null) {
+                updateDonorInfo(devotee);
+                validateDevoteeAndSetSaveState(devotee);
+            }
+        });
         viewModel.getSaveFinished().observe(this, finished -> {
             if (finished != null && finished) {
                 Toast.makeText(this, "Donation recorded successfully", Toast.LENGTH_SHORT).show();
@@ -142,12 +150,9 @@ public class AddEditDonationActivity extends AppCompatActivity {
     }
 
     private void updateDonorInfo(Devotee devotee) {
-        if (devotee == null) return;
-
         donorNameText.setText(devotee.getFullName());
         donorMobileText.setText(devotee.getMobileE164());
 
-        // Display Address if available
         if (isNotBlank(devotee.getAddress())) {
             donorAddressText.setText(devotee.getAddress());
             donorAddressText.setVisibility(View.VISIBLE);
@@ -155,7 +160,6 @@ public class AddEditDonationActivity extends AppCompatActivity {
             donorAddressText.setVisibility(View.GONE);
         }
         
-        // Display Email if available
         if (isNotBlank(devotee.getEmail())) {
             donorEmailText.setText(devotee.getEmail());
             donorEmailText.setVisibility(View.VISIBLE);
@@ -163,7 +167,6 @@ public class AddEditDonationActivity extends AppCompatActivity {
             donorEmailText.setVisibility(View.GONE);
         }
 
-        // Smart-display Donor ID: Prioritize PAN, then Aadhaar
         if (isNotBlank(devotee.getPan())) {
             donorIdLabel.setText("PAN:");
             donorIdValue.setText(devotee.getPan());
@@ -175,6 +178,25 @@ public class AddEditDonationActivity extends AppCompatActivity {
         } else {
             donorIdLayout.setVisibility(View.GONE);
         }
+    }
+
+    private void validateDevoteeAndSetSaveState(Devotee devotee) {
+        if (saveDonationMenuItem == null || devotee == null) {
+            return;
+        }
+
+        boolean isAddressValid = isNotBlank(devotee.getAddress());
+        boolean isIdValid = isNotBlank(devotee.getPan()) || isNotBlank(devotee.getAadhaar());
+
+        boolean isRecordComplete = isAddressValid && isIdValid;
+
+        saveDonationMenuItem.setEnabled(isRecordComplete);
+        Drawable icon = saveDonationMenuItem.getIcon();
+        if (icon != null) {
+            icon.mutate().setAlpha(isRecordComplete ? 255 : 130);
+        }
+        
+        missingFieldsWarningText.setVisibility(isRecordComplete ? View.GONE : View.VISIBLE);
     }
 
     private boolean isNotBlank(String s) {
@@ -207,6 +229,10 @@ public class AddEditDonationActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.add_edit_donation_menu, menu);
+        saveDonationMenuItem = menu.findItem(R.id.action_save_donation);
+        // Initially disable until devotee data is loaded and validated
+        saveDonationMenuItem.setEnabled(false);
+        saveDonationMenuItem.getIcon().mutate().setAlpha(130);
         return true;
     }
 

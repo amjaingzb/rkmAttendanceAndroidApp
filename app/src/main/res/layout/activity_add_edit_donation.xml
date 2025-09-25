@@ -12,7 +12,6 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Using ConstraintLayout for better alignment of the edit button -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
@@ -28,7 +27,7 @@
                 app:layout_constraintEnd_toStartOf="@+id/button_edit_devotee"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                tools:text="donorThree A Very Long Name to Test Wrapping" />
+                tools:text="NewDonor" />
 
             <ImageButton
                 android:id="@+id/button_edit_devotee"
@@ -49,7 +48,7 @@
                 android:textSize="16sp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/text_donor_name"
-                tools:text="7712345677" />
+                tools:text="1234567897" />
 
             <TextView
                 android:id="@+id/text_donor_address"
@@ -75,7 +74,7 @@
                 android:visibility="gone"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/text_donor_address"
-                tools:text="amjain.gzb@gmail.com"
+                tools:text="blahblah@blahblah.com"
                 tools:visibility="visible" />
 
             <LinearLayout
@@ -106,6 +105,22 @@
                     android:textSize="16sp"
                     tools:text="pan1234" />
             </LinearLayout>
+
+            <!-- FIXED: Warning message is now constrained to a permanently visible element -->
+            <TextView
+                android:id="@+id/text_missing_fields_warning"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="⚠️ Please provide Address &amp; PAN/Aadhaar. Tap the pencil icon to update."
+                android:textColor="@color/purple_700"
+                android:textStyle="bold"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/layout_donor_id"
+                tools:visibility="visible" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <View

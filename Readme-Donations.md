@@ -327,5 +327,83 @@ This is an efficient, clean, and highly reusable way to implement the functional
 
 **Does this proposed UI flow and technical plan meet your requirements?** If you approve, I will provide the shell script to apply these changes.
 
+###TAG-CONVERSATION-2025-09-25 16:42:09
+This is an excellent and critical requirement for ensuring data integrity. You are absolutely right—we should not allow a donation to be recorded against an incomplete devotee record.
+
+Let's refine this. Your mandatory fields are: `Name`, `Mobile`, `Address`, and an `ID` (either PAN or Aadhaar).
+
+### UX/UI Proposal: "Guide the User, Don't Block Them"
+
+Simply disabling the "Save" button without explanation is poor UX. It leaves the user wondering *why* it's disabled. A much better approach is to visually guide them on what to do next.
+
+Here is the proposed user flow:
+
+**Scenario 1: Devotee record is INCOMPLETE**
+
+When the "Record Donation" screen loads and the selected devotee is missing an address or an ID, the UI will look like this:
+
+```
++----------------------------------------------------+
+|  X   Record Donation                      [SAVE]   |  <-- SAVE IS DISABLED (GREYED OUT)
++----------------------------------------------------+
+|                                                    |
+|  donorTwo                         [EDIT ICON ✏️]  |
+|  7712345677                                        |
+|                                                    |
+|  ⚠️ Please provide Address & PAN/Aadhaar.          |  <-- NEW, CLEAR WARNING
+|     Tap the pencil icon to update.                 |
+|                                                    |
+|  ------------------------------------------------  |
+|                                                    |
+|  [ Amount*                         ]               |
+|  ...                                               |
++----------------------------------------------------+
+```
+*   **Key Changes:**
+    1.  The "Save" button in the top-right action bar is **disabled and greyed out.**
+    2.  A new, prominent **warning message** appears directly below the devotee's details, telling the user exactly which fields are missing and instructing them to tap the edit icon. This removes all guesswork.
+
+**Scenario 2: Devotee record is COMPLETE**
+
+After the user taps the edit icon, updates the address/ID in `AddEditDevoteeActivity`, and saves, they return to this screen. It will now automatically update to this state:
+
+```
++----------------------------------------------------+
+|  X   Record Donation                      [SAVE]   |  <-- SAVE IS NOW ENABLED
++----------------------------------------------------+
+|                                                    |
+|  donorTwo                         [EDIT ICON ✏️]  |
+|  7712345677                                        |
+|  PAN: abcd                                         |
+|  123 Math Road, Halasuru                           |
+|                                                    |
+|                                                    |  <-- WARNING IS GONE
+|  ------------------------------------------------  |
+|                                                    |
+|  [ Amount*                         ]               |
+|  ...                                               |
++----------------------------------------------------+
+```
+*   **Key Changes:**
+    1.  The warning message has disappeared.
+    2.  The "Save" button is now **enabled and fully visible**, allowing the user to proceed with recording the donation.
+
+This creates a very clear, intuitive, and non-frustrating workflow for the donation collector.
+
+Regarding your question about the **Email field**: My recommendation is to continue hiding it if it's blank. Displaying "Email: " with nothing after it adds unnecessary clutter to the UI. We should only show fields that contain data.
+
+### Technical Plan
+
+To implement this, we will:
+
+1.  **Modify `activity_add_edit_donation.xml`:** Add a `TextView` for the new warning message, initially hidden.
+2.  **Modify `AddEditDonationActivity.java`:**
+    *   Keep a reference to the "Save" `MenuItem`.
+    *   In the `updateDonorInfo` method (which is called when the devotee data is loaded), we will perform the validation check.
+    *   Based on the validation result, we will call a new helper method that enables/disables the Save button and shows/hides the warning message.
+
+This approach is robust and provides excellent user feedback.
+
+If you approve of this visual and technical plan, I will provide the shell script.
 
 
