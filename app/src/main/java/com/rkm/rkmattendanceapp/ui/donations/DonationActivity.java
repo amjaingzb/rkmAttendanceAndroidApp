@@ -237,12 +237,15 @@ public class DonationActivity extends AppCompatActivity {
     }
 
     private void showActiveBatchState() {
-        // --- START OF FIX ---
-        // Restore the card to its normal, interactive state
         batchSummaryCard.setVisibility(View.VISIBLE);
         batchSummaryCard.setAlpha(1.0f);
         depositButton.setEnabled(true);
+
+        // --- START OF FIX ---
+        // This line was accidentally removed and is critical.
+        donationsRecyclerView.setVisibility(View.VISIBLE);
         // --- END OF FIX ---
+
         searchControlsLayout.setVisibility(View.VISIBLE);
         searchEditText.setEnabled(true);
         addNewButton.setEnabled(true);
@@ -254,23 +257,33 @@ public class DonationActivity extends AppCompatActivity {
 
     private void showBatchClosedState() {
         // --- START OF FIX ---
-        // Instead of hiding the card, keep it visible but disable it to show the user what they just closed.
-        batchSummaryCard.setVisibility(View.VISIBLE);
-        batchSummaryCard.setAlpha(0.7f); // "Grey out" the card
-        depositButton.setEnabled(false); // Disable the button
-        // --- END OF FIX ---
+        // This logic is now more robust and correctly updates the UI state.
 
-        donationsRecyclerView.setVisibility(View.GONE);
-        listHeaderTextView.setVisibility(View.GONE);
-        searchControlsLayout.setVisibility(View.VISIBLE);
+        // 1. Get the last known data *before* it's cleared.
+        AttendanceRepository.ActiveBatchData lastData = viewModel.getActiveBatchData().getValue();
+
+        // 2. Disable the primary controls.
+        depositButton.setEnabled(false);
         searchEditText.setEnabled(false);
         searchEditText.setText("");
         addNewButton.setEnabled(false);
+
+        // 3. Hide the active elements.
+        donationsRecyclerView.setVisibility(View.GONE);
+        listHeaderTextView.setVisibility(View.GONE);
+
+        // 4. Show the "Closed" panel.
         batchClosedLayout.setVisibility(View.VISIBLE);
-        AttendanceRepository.ActiveBatchData lastData = viewModel.getActiveBatchData().getValue();
-        if(lastData != null) {
+        if (lastData != null) {
             batchClosedMessageText.setText(String.format(Locale.US, "Batch #%d successfully closed.\nThank you.", lastData.batch.batchId));
+        } else {
+            batchClosedMessageText.setText("Batch successfully closed.\nThank you.");
         }
+
+        // 5. Keep the summary card visible but greyed out as a final confirmation.
+        batchSummaryCard.setVisibility(View.VISIBLE);
+        batchSummaryCard.setAlpha(0.7f);
+        // --- END OF FIX ---
     }
 
     private void showInsufficientInputState() {
