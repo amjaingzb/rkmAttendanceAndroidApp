@@ -10,7 +10,7 @@ import com.rkm.rkmattendanceapp.util.AppLogger;
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "devotees.db";
-    private static final int DATABASE_VERSION = 4; // UPDATED: Database version incremented
+    private static final int DATABASE_VERSION = 4;
     private static final String TAG = "DatabaseHelper";
 
     public DatabaseHelper(Context context) {
@@ -20,7 +20,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         AppLogger.d(TAG, "onCreate: Creating new database schema for version " + DATABASE_VERSION);
-        // This method should contain the complete schema for the LATEST version.
+        
+        // --- ALL ORIGINAL TABLES AND INDEXES RESTORED ---
         db.execSQL("CREATE TABLE IF NOT EXISTS devotee (\n" +
                 "  devotee_id   INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
                 "  full_name    TEXT NOT NULL,\n" +
@@ -74,13 +75,14 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "  config_key   TEXT PRIMARY KEY NOT NULL,\n" +
                 "  config_value TEXT\n" +
                 ")");
-                
-        // NEW in v4
+        
+        // --- NEW TABLES AND MODIFICATIONS FOR BATCH FEATURE ---
+        // FIX: Removed DEFAULT CURRENT_TIMESTAMP which returns UTC. Will be handled in code.
         db.execSQL("CREATE TABLE IF NOT EXISTS donation_batches (\n" +
                 "    batch_id        INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
-                "    start_ts        TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" +
+                "    start_ts        TEXT NOT NULL,\n" + 
                 "    end_ts          TEXT,\n" +
-                "    status          TEXT NOT NULL, -- 'ACTIVE' or 'DEPOSITED'\n" +
+                "    status          TEXT NOT NULL,\n" +
                 "    deposited_by    TEXT\n" +
                 ")");
 
@@ -95,20 +97,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "    donation_timestamp  TEXT DEFAULT CURRENT_TIMESTAMP,\n" +
                 "    created_by_user     TEXT,\n" +
                 "    is_receipt_sent     INTEGER DEFAULT 0,\n" +
-                "    batch_id            INTEGER NOT NULL,\n" + // NEW in v4
-                "    receipt_number      TEXT UNIQUE,\n" + // NEW in v4
+                "    batch_id            INTEGER NOT NULL,\n" +
+                "    receipt_number      TEXT UNIQUE,\n" +
                 "    FOREIGN KEY (devotee_id) REFERENCES devotee(devotee_id) ON DELETE RESTRICT,\n" +
                 "    FOREIGN KEY (event_id)   REFERENCES event(event_id)   ON DELETE SET NULL,\n" +
                 "    FOREIGN KEY (batch_id)   REFERENCES donation_batches(batch_id) ON DELETE RESTRICT\n" +
                 ")");
 
-        // Insert all default values for a fresh install
+        // --- INSERT DEFAULT VALUES ---
         insertDefaultPin(db, ConfigDao.KEY_SUPER_ADMIN_PIN, "2222");
         insertDefaultPin(db, ConfigDao.KEY_EVENT_COORDINATOR_PIN, "1111");
         insertDefaultPin(db, ConfigDao.KEY_DONATION_COLLECTOR_PIN, "3333");
         insertDefaultPin(db, ConfigDao.KEY_WHATSAPP_INVITE_LINK, "https://chat.whatsapp.com/YOUR_INVITE_CODE_HERE");
         insertDefaultPin(db, ConfigDao.KEY_WHATSAPP_INVITE_MESSAGE, "Hello! You are invited to join our RKM group for updates. Please join using this link: ");
-
     }
 
     private void insertDefaultPin(SQLiteDatabase db, String key, String value) {
@@ -151,9 +152,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
              AppLogger.d(TAG, "Applying schema changes for version 4...");
              db.execSQL("CREATE TABLE IF NOT EXISTS donation_batches (\n" +
                 "    batch_id        INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
-                "    start_ts        TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,\n" +
+                "    start_ts        TEXT NOT NULL,\n" + // Removed default
                 "    end_ts          TEXT,\n" +
-                "    status          TEXT NOT NULL, -- 'ACTIVE' or 'DEPOSITED'\n" +
+                "    status          TEXT NOT NULL,\n" +
                 "    deposited_by    TEXT\n" +
                 ")");
              db.execSQL("ALTER TABLE donations ADD COLUMN batch_id INTEGER NOT NULL DEFAULT 0");

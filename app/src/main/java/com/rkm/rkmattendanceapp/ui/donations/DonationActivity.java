@@ -237,8 +237,12 @@ public class DonationActivity extends AppCompatActivity {
     }
 
     private void showActiveBatchState() {
+        // --- START OF FIX ---
+        // Restore the card to its normal, interactive state
         batchSummaryCard.setVisibility(View.VISIBLE);
-        donationsRecyclerView.setVisibility(View.VISIBLE);
+        batchSummaryCard.setAlpha(1.0f);
+        depositButton.setEnabled(true);
+        // --- END OF FIX ---
         searchControlsLayout.setVisibility(View.VISIBLE);
         searchEditText.setEnabled(true);
         addNewButton.setEnabled(true);
@@ -247,12 +251,18 @@ public class DonationActivity extends AppCompatActivity {
         noResultsTextView.setVisibility(View.GONE);
         searchProgressBar.setVisibility(View.GONE);
     }
-    
+
     private void showBatchClosedState() {
-        batchSummaryCard.setVisibility(View.GONE);
+        // --- START OF FIX ---
+        // Instead of hiding the card, keep it visible but disable it to show the user what they just closed.
+        batchSummaryCard.setVisibility(View.VISIBLE);
+        batchSummaryCard.setAlpha(0.7f); // "Grey out" the card
+        depositButton.setEnabled(false); // Disable the button
+        // --- END OF FIX ---
+
         donationsRecyclerView.setVisibility(View.GONE);
         listHeaderTextView.setVisibility(View.GONE);
-        searchControlsLayout.setVisibility(View.VISIBLE); // Keep it visible but disable contents
+        searchControlsLayout.setVisibility(View.VISIBLE);
         searchEditText.setEnabled(false);
         searchEditText.setText("");
         addNewButton.setEnabled(false);

@@ -13,9 +13,10 @@ public class DonationBatchDao {
         this.db = db;
     }
 
-    public long insertNewBatch() {
+    public long insertNewBatch(String localTimestamp) {
         ContentValues values = new ContentValues();
         values.put("status", "ACTIVE");
+        values.put("start_ts", localTimestamp);
         return db.insertOrThrow("donation_batches", null, values);
     }
 
@@ -33,6 +34,7 @@ public class DonationBatchDao {
         ContentValues values = new ContentValues();
         values.put("status", "DEPOSITED");
         values.put("deposited_by", user);
+        // Use an SQL function to get the current local time for closing
         values.put("end_ts", "strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')");
         db.update("donation_batches", values, "batch_id = ?", new String[]{String.valueOf(batchId)});
     }

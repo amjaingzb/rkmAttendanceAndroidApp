@@ -10,6 +10,9 @@
 7. batch time is not correct UTC issue ?
 8. Why private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.US);
 
+
+same issue in close of batch .... leaving at this point 
+
 ===================
 1.  TEST the whole app with data 
 2. Dark and light theme (not really needed - but fix then)
