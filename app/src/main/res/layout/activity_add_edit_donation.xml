@@ -13,39 +13,33 @@
         android:padding="16dp">
 
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Donor Information"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="?attr/colorPrimary"/>
-
-        <TextView
             android:id="@+id/text_donor_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            tools:text="Amit Jain"
-            android:textAppearance="?attr/textAppearanceHeadline6"
-            android:textColor="?android:attr/textColorPrimary"/>
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="#DE000000"
+            tools:text="donorThree" />
 
         <TextView
             android:id="@+id/text_donor_mobile"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            tools:text="9876543210"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?android:attr/textColorSecondary"/>
+            android:textSize="16sp"
+            android:textColor="#8A000000"
+            tools:text="7712345677" />
 
         <TextView
             android:id="@+id/text_donor_email"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            tools:text="amjain.gzb@gmail.com"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="16sp"
+            android:textColor="#8A000000"
             android:visibility="gone"
+            tools:text="amjain.gzb@gmail.com"
             tools:visibility="visible"/>
 
         <LinearLayout
@@ -61,9 +55,8 @@
                 android:id="@+id/text_donor_id_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?android:attr/textColorSecondary"
-                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="#8A000000"
                 tools:text="PAN:"/>
 
             <TextView
@@ -71,9 +64,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:textAppearance="?attr/textAppearanceBodyMedium"
-                android:textColor="?android:attr/textColorSecondary"
-                tools:text="ABCDE1234F"/>
+                android:textSize="16sp"
+                android:textColor="#8A000000"
+                tools:text="pan1234"/>
         </LinearLayout>
 
 
@@ -104,8 +97,8 @@
             android:layout_marginTop="16dp"
             android:layout_marginBottom="8dp"
             android:text="Payment Method*"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="?android:attr/textColorPrimary"/>
+            android:textSize="18sp"
+            android:textColor="#DE000000" />
 
         <RadioGroup
             android:id="@+id/radio_group_payment_method"
