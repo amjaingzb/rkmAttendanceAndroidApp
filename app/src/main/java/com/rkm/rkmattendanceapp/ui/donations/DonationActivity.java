@@ -237,52 +237,40 @@ public class DonationActivity extends AppCompatActivity {
     }
 
     private void showActiveBatchState() {
-        batchSummaryCard.setVisibility(View.VISIBLE);
-        batchSummaryCard.setAlpha(1.0f);
-        depositButton.setEnabled(true);
-
         // --- START OF FIX ---
-        // This line was accidentally removed and is critical.
+        // Ensure all "active" UI elements are visible
+        batchSummaryCard.setVisibility(View.VISIBLE);
         donationsRecyclerView.setVisibility(View.VISIBLE);
-        // --- END OF FIX ---
-
         searchControlsLayout.setVisibility(View.VISIBLE);
-        searchEditText.setEnabled(true);
-        addNewButton.setEnabled(true);
+
+        // Ensure the "closed" UI is hidden
         batchClosedLayout.setVisibility(View.GONE);
+
+        // Ensure search results are hidden from the previous state
         searchResultsRecyclerView.setVisibility(View.GONE);
         noResultsTextView.setVisibility(View.GONE);
         searchProgressBar.setVisibility(View.GONE);
+        // --- END OF FIX ---
     }
 
     private void showBatchClosedState() {
         // --- START OF FIX ---
-        // This logic is now more robust and correctly updates the UI state.
-
-        // 1. Get the last known data *before* it's cleared.
+        // 1. Get the last known data *before* it's cleared from the ViewModel.
         AttendanceRepository.ActiveBatchData lastData = viewModel.getActiveBatchData().getValue();
 
-        // 2. Disable the primary controls.
-        depositButton.setEnabled(false);
-        searchEditText.setEnabled(false);
-        searchEditText.setText("");
-        addNewButton.setEnabled(false);
-
-        // 3. Hide the active elements.
+        // 2. Hide all the "active" UI elements completely.
+        batchSummaryCard.setVisibility(View.GONE);
         donationsRecyclerView.setVisibility(View.GONE);
         listHeaderTextView.setVisibility(View.GONE);
+        searchControlsLayout.setVisibility(View.GONE); // This hides search and "Add New"
 
-        // 4. Show the "Closed" panel.
+        // 3. Show the "Closed" panel.
         batchClosedLayout.setVisibility(View.VISIBLE);
         if (lastData != null) {
             batchClosedMessageText.setText(String.format(Locale.US, "Batch #%d successfully closed.\nThank you.", lastData.batch.batchId));
         } else {
             batchClosedMessageText.setText("Batch successfully closed.\nThank you.");
         }
-
-        // 5. Keep the summary card visible but greyed out as a final confirmation.
-        batchSummaryCard.setVisibility(View.VISIBLE);
-        batchSummaryCard.setAlpha(0.7f);
         // --- END OF FIX ---
     }
 
