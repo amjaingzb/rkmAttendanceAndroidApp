@@ -30,12 +30,11 @@ public class DonationBatchDao {
         }
     }
 
-    public void closeBatch(long batchId, String user) {
+    public void closeBatch(long batchId, String user, String localTimestamp) {
         ContentValues values = new ContentValues();
         values.put("status", "DEPOSITED");
         values.put("deposited_by", user);
-        // Use an SQL function to get the current local time for closing
-        values.put("end_ts", "strftime('%Y-%m-%d %H:%M:%S', 'now', 'localtime')");
+        values.put("end_ts", localTimestamp);
         db.update("donation_batches", values, "batch_id = ?", new String[]{String.valueOf(batchId)});
     }
 

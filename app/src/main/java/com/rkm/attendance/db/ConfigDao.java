@@ -9,12 +9,10 @@ public class ConfigDao {
 
     public static final String KEY_SUPER_ADMIN_PIN = "SUPER_ADMIN_PIN";
     public static final String KEY_EVENT_COORDINATOR_PIN = "EVENT_COORDINATOR_PIN";
-    public static final String KEY_DONATION_COLLECTOR_PIN = "DONATION_COLLECTOR_PIN"; // NEW
-    // === START OF NEW CODE ===
-    // STEP 2.1: Add constants for the new config keys.
+    public static final String KEY_DONATION_COLLECTOR_PIN = "DONATION_COLLECTOR_PIN";
     public static final String KEY_WHATSAPP_INVITE_LINK = "WHATSAPP_INVITE_LINK";
     public static final String KEY_WHATSAPP_INVITE_MESSAGE = "WHATSAPP_INVITE_MESSAGE";
-    // === END OF NEW CODE ===
+    public static final String KEY_OFFICE_EMAIL = "OFFICE_EMAIL"; // NEW
 
     public ConfigDao(SQLiteDatabase db) {
         this.db = db;
@@ -34,26 +32,19 @@ public class ConfigDao {
     }
 
     public boolean checkSuperAdminPin(String pin) {
-        if (pin == null || pin.trim().isEmpty()) {
-            return false;
-        }
+        if (pin == null || pin.trim().isEmpty()) return false;
         String storedPin = getValue(KEY_SUPER_ADMIN_PIN);
         return pin.equals(storedPin);
     }
 
     public boolean checkEventCoordinatorPin(String pin) {
-        if (pin == null || pin.trim().isEmpty()) {
-            return false;
-        }
+        if (pin == null || pin.trim().isEmpty()) return false;
         String storedPin = getValue(KEY_EVENT_COORDINATOR_PIN);
         return pin.equals(storedPin);
     }
 
-    // NEW: Method to check the donation collector PIN
     public boolean checkDonationCollectorPin(String pin) {
-        if (pin == null || pin.trim().isEmpty()) {
-            return false;
-        }
+        if (pin == null || pin.trim().isEmpty()) return false;
         String storedPin = getValue(KEY_DONATION_COLLECTOR_PIN);
         return pin.equals(storedPin);
     }

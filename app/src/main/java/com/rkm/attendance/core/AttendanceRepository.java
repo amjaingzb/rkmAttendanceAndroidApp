@@ -67,16 +67,19 @@ public class AttendanceRepository {
     public ActiveBatchData getActiveDonationBatchOrCreateNew() {
         DonationBatch activeBatch = donationBatchDao.findActiveBatch();
         if (activeBatch == null) {
-            // FIX: Generate local timestamp here and pass it to the DAO
             String now = SQL_FORMATTER.format(LocalDateTime.now());
             long newBatchId = donationBatchDao.insertNewBatch(now);
-            activeBatch = donationBatchDao.findActiveBatch(); // Re-fetch to get all details
+            activeBatch = donationBatchDao.findActiveBatch();
         }
         
         DonationDao.BatchSummary summary = donationDao.getBatchSummary(activeBatch.batchId);
         List<DonationRecord> donations = donationDao.getDonationsForBatch(activeBatch.batchId);
         
         return new ActiveBatchData(activeBatch, summary, donations);
+    }
+
+    public String getOfficeEmail() {
+        return configDao.getValue(ConfigDao.KEY_OFFICE_EMAIL);
     }
 
     public void recordDonationInBatch(long devoteeId, double amount, String paymentMethod, String refId, String purpose, String user, long batchId) {
@@ -93,7 +96,8 @@ public class AttendanceRepository {
     }
     
     public void closeActiveBatch(long batchId, String user) {
-        donationBatchDao.closeBatch(batchId, user);
+        String now = SQL_FORMATTER.format(LocalDateTime.now());
+        donationBatchDao.closeBatch(batchId, user, now);
     }
     
     public List<Devotee> searchSimpleDevotees(String query) {
