@@ -1,17 +1,10 @@
 
 ###TAG-CONVERSATION-2025-09-25 20:48:11
 
-1. Donor feature in progress. Mostly code is there except for admin reporting section 
-2. there are coupl of UI issues ,
-3. on submitting the batch it should not autmatically start a batch 
-4. edge case --- what if the volunteer forgets to close... what happens 
 5. volunteer name... or not needed ... unncessary ... 
 6. move hardcoded key to db config private static final String OFFICE_EMAIL = "amjain.gzb@gmail.com";
-7. batch time is not correct UTC issue ?
-8. Why private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.US);
 
 
-same issue in close of batch .... leaving at this point 
 
 ===================
 1.  TEST the whole app with data 

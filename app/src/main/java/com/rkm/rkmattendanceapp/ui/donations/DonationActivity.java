@@ -254,21 +254,21 @@ public class DonationActivity extends AppCompatActivity {
     }
 
     private void showBatchClosedState() {
-        // --- START OF FIX ---
-        // 1. Get the last known data *before* it's cleared from the ViewModel.
-        AttendanceRepository.ActiveBatchData lastData = viewModel.getActiveBatchData().getValue();
-
-        // 2. Hide all the "active" UI elements completely.
+        // Hide the active UI elements
         batchSummaryCard.setVisibility(View.GONE);
         donationsRecyclerView.setVisibility(View.GONE);
         listHeaderTextView.setVisibility(View.GONE);
-        searchControlsLayout.setVisibility(View.GONE); // This hides search and "Add New"
+        searchControlsLayout.setVisibility(View.GONE);
 
-        // 3. Show the "Closed" panel.
+        // Show the "Closed" panel
         batchClosedLayout.setVisibility(View.VISIBLE);
-        if (lastData != null) {
-            batchClosedMessageText.setText(String.format(Locale.US, "Batch #%d successfully closed.\nThank you.", lastData.batch.batchId));
+
+        // --- START OF FIX ---
+        // Use the locally stored activeBatchId, which is reliable.
+        if (activeBatchId != null) {
+            batchClosedMessageText.setText(String.format(Locale.US, "Batch #%d successfully closed.\nThank you.", activeBatchId));
         } else {
+            // Fallback for any unexpected edge case
             batchClosedMessageText.setText("Batch successfully closed.\nThank you.");
         }
         // --- END OF FIX ---

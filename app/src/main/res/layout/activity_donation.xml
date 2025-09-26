@@ -147,7 +147,7 @@
             android:visibility="gone"
             tools:listitem="@layout/list_item_devotee" />
             
-        <!-- NEW: Batch Closed State Layout -->
+        <!-- Batch Closed State Layout -->
         <LinearLayout
             android:id="@+id/layout_batch_closed"
             android:layout_width="match_parent"
@@ -164,7 +164,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textSize="20sp"
+                android:textColor="?android:attr/textColorPrimary"
                 tools:text="Batch #2 successfully closed.\nThank you." />
 
             <LinearLayout
