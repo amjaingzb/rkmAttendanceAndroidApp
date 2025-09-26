@@ -269,17 +269,22 @@ public class DonationActivity extends AppCompatActivity {
         noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE);
         donationsRecyclerView.setVisibility(View.GONE); searchProgressBar.setVisibility(View.VISIBLE); listHeaderTextView.setVisibility(View.GONE);
     }
-    
+
     private void showDepositConfirmation() {
+        // --- START OF FIX ---
+        // New, simpler message as requested.
+        String message = "Please deposit the cash in the office. A summary email will automatically be sent.";
+
         new AlertDialog.Builder(this)
-            .setTitle("Deposit & Close Batch?")
-            .setMessage("This will finalize the batch and send a summary email to the office. Are you sure?")
-            .setPositiveButton("Yes, Deposit & Close", (dialog, which) -> {
-                sendSummaryEmail();
-                viewModel.closeActiveBatch();
-            })
-            .setNegativeButton("Cancel", null)
-            .show();
+                .setTitle("Close Batch") // New Title
+                .setMessage(message) // New Message
+                .setPositiveButton("OK", (dialog, which) -> { // New Button Text
+                    sendSummaryEmail();
+                    viewModel.closeActiveBatch();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+        // --- END OF FIX ---
     }
 
     private void sendSummaryEmail() {
