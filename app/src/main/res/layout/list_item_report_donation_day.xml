@@ -18,33 +18,35 @@
             android:id="@+id/text_date"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textSize="18sp"
+            android:textColor="?android:attr/textColorPrimary"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            tools:text="September 26, 2025" />
+            tools:text="September 27, 2025" />
 
         <TextView
             android:id="@+id/text_total_amount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:layout_marginTop="8dp"
+            android:textSize="16sp"
             android:textColor="?attr/colorPrimary"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/text_date"
-            tools:text="Total: ₹25,750.00" />
+            tools:text="Total: ₹48,035.00" />
 
         <TextView
             android:id="@+id/text_summary_details"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:layout_marginTop="4dp"
+            android:textSize="14sp"
             android:textColor="?android:attr/textColorSecondary"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/text_total_amount"
-            tools:text="3 Batches, 52 Donations" />
+            tools:text="2 Batches, 4 Donations" />
 
         <LinearLayout
             android:layout_width="wrap_content"
@@ -61,7 +63,7 @@
                 android:src="@drawable/ic_send"
                 android:contentDescription="Email Daily Report"
                 android:background="?attr/selectableItemBackgroundBorderless"/>
-            
+
             <ImageButton
                 android:id="@+id/button_share"
                 android:layout_width="48dp"
