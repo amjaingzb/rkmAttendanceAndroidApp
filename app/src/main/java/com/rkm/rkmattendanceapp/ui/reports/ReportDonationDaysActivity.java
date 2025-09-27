@@ -109,29 +109,46 @@ public class ReportDonationDaysActivity extends AppCompatActivity implements Rep
         DateTimeFormatter subjectFormatter = DateTimeFormatter.ofPattern("dd MMM, yyyy", Locale.US);
         LocalDate date = LocalDate.parse(summary.date, inputFormatter);
         String subject = "Donation Report: " + subjectFormatter.format(date);
-        
+
         NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
         String body = "Daily Donation Summary for " + subjectFormatter.format(date) + "\n" +
-                      "-----------------------------------\n" +
-                      "Total Amount: " + currencyFormatter.format(summary.totalAmount) + "\n" +
-                      "Total Donations: " + summary.donationCount + "\n" +
-                      "Number of Batches: " + summary.batchCount + "\n" +
-                      "-----------------------------------\n\n" +
-                      "The detailed transaction list is attached.";
+                "-----------------------------------\n" +
+                "Total Amount: " + currencyFormatter.format(summary.totalAmount) + "\n" +
+                "Total Donations: " + summary.donationCount + "\n" +
+                "Number of Batches: " + summary.batchCount + "\n" +
+                "-----------------------------------\n\n" +
+                "The detailed transaction list is attached.";
 
-        Intent emailIntent = new Intent(Intent.ACTION_SEND);
-        emailIntent.setType("message/rfc822");
-        emailIntent.putExtra(Intent.EXTRA_EMAIL, new String[]{officeEmail});
-        emailIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
-        emailIntent.putExtra(Intent.EXTRA_TEXT, body);
-        emailIntent.putExtra(Intent.EXTRA_STREAM, uri);
-        emailIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        
+        // --- START OF FIX: Using the robust, direct-to-Gmail intent ---
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("message/rfc822");
+        intent.putExtra(Intent.EXTRA_EMAIL, new String[]{officeEmail});
+        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+        intent.putExtra(Intent.EXTRA_TEXT, body);
+        intent.putExtra(Intent.EXTRA_STREAM, uri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        // Target Gmail directly to avoid the chooser
+        intent.setPackage("com.google.android.gm");
+
         try {
-            startActivity(Intent.createChooser(emailIntent, "Email Daily Report Via"));
+            startActivity(intent);
         } catch (android.content.ActivityNotFoundException ex) {
-            Toast.makeText(this, "No email clients installed.", Toast.LENGTH_SHORT).show();
+            // If Gmail is not installed, fall back to the generic chooser
+            Intent genericIntent = new Intent(Intent.ACTION_SEND);
+            genericIntent.setType("message/rfc822");
+            genericIntent.putExtra(Intent.EXTRA_EMAIL, new String[]{officeEmail});
+            genericIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
+            genericIntent.putExtra(Intent.EXTRA_TEXT, body);
+            genericIntent.putExtra(Intent.EXTRA_STREAM, uri);
+            genericIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            try {
+                startActivity(Intent.createChooser(genericIntent, "Email Daily Report Via"));
+            } catch (Exception e) {
+                Toast.makeText(this, "No email clients installed.", Toast.LENGTH_SHORT).show();
+            }
         }
+        // --- END OF FIX ---
     }
 
     @Override
@@ -142,7 +159,7 @@ public class ReportDonationDaysActivity extends AppCompatActivity implements Rep
 
     @Override
     public void onEmailClick(DailySummary summary) {
-        // ANNOTATION: Set state and trigger export
+        // ANNOTATION: Set state and trigger export for the EMAIL action
         this.requestedAction = ActionType.EMAIL;
         this.selectedSummary = summary;
         Toast.makeText(this, "Generating email report for " + summary.date + "...", Toast.LENGTH_SHORT).show();
