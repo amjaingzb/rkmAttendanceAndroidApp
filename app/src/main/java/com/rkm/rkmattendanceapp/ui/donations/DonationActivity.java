@@ -68,7 +68,7 @@ public class DonationActivity extends AppCompatActivity {
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
 
-    private ActivityResultLauncher<Intent> addDevoteeLauncher, addDonationLauncher;
+    private ActivityResultLauncher<Intent> addDevoteeLauncher, addDonationLauncher,emailLauncher;
     
     private Long activeBatchId = null;
     private final NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
@@ -123,6 +123,15 @@ public class DonationActivity extends AppCompatActivity {
                 else { searchEditText.setText(""); }
             } else { searchEditText.setText(""); }
         });
+        emailLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    // This code runs regardless of whether the email was sent or cancelled.
+                    // The important thing is that the user's "email sending" task is complete.
+                    AppLogger.d(TAG, "Returned from email client. Closing batch.");
+                    viewModel.closeActiveBatch();
+                }
+        );
     }
 
     private void bindViews() {
@@ -268,39 +277,41 @@ public class DonationActivity extends AppCompatActivity {
             .setMessage(message)
             .setPositiveButton("OK", (dialog, which) -> {
                 sendSummaryEmailWithAttachment();
-                viewModel.closeActiveBatch();
             })
             .setNegativeButton("Cancel", null)
             .show();
     }
-    
+
     private void sendSummaryEmailWithAttachment() {
         AttendanceRepository.ActiveBatchData data = viewModel.getActiveBatchData().getValue();
         if (data == null) { Toast.makeText(this, "Could not send email: no active batch data found.", Toast.LENGTH_LONG).show(); return; }
         String officeEmail = ((AttendanceApplication) getApplication()).repository.getOfficeEmail();
         if (officeEmail == null || officeEmail.isEmpty()) { Toast.makeText(this, "Error: Office email has not been configured.", Toast.LENGTH_LONG).show(); return; }
-        
+
         try {
-            // Step 1: Generate the CSV file
             CsvExporter exporter = new CsvExporter();
             String authority = getApplication().getPackageName() + ".fileprovider";
             Uri csvUri = exporter.exportDonationsForBatch(this, data.batch.batchId, data.donations, authority);
-            
-            // Step 2: Build the email body
+
             String today = DateTimeFormatter.ofPattern("dd MMM, yyyy").format(LocalDateTime.now());
             String subject = String.format("Donation Collection Summary: Batch #%d (%s)", data.batch.batchId, today);
             String body = "Donation Collection Summary\n" + "-----------------------------------\n" + "Batch ID: " + data.batch.batchId + "\n" + "Date: " + today + "\n" + "Collection Period: " + timeFormatter.format(LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))) + " - " + timeFormatter.format(LocalDateTime.now()) + "\n" + "Collected By: Donation Collector\n" + "-----------------------------------\n" + "Total Donations: " + data.summary.donationCount + "\n" + "Cash Collected: " + currencyFormatter.format(data.summary.totalCash) + "\n" + "UPI Collected: " + currencyFormatter.format(data.summary.totalUpi) + "\n" + "-----------------------------------\n" + "Grand Total: " + currencyFormatter.format(data.summary.totalCash + data.summary.totalUpi) + "\n" + "-----------------------------------\n\n" + "Detailed transaction list is attached.\n\n" + "This is an auto-generated email from the SevaConnect Halasuru app.";
-            
-            // Step 3: Create and launch the ACTION_SEND intent
-            Intent intent = new Intent(Intent.ACTION_SEND);
-            intent.setType("message/rfc822"); // Standard email MIME type
+
+            // --- START OF FIX ---
+            // Reverting to the more direct ACTION_SENDTO intent.
+            Intent intent = new Intent(Intent.ACTION_SENDTO);
+            intent.setData(Uri.parse("mailto:")); // This ensures only email apps open.
             intent.putExtra(Intent.EXTRA_EMAIL, new String[]{officeEmail});
             intent.putExtra(Intent.EXTRA_SUBJECT, subject);
             intent.putExtra(Intent.EXTRA_TEXT, body);
             intent.putExtra(Intent.EXTRA_STREAM, csvUri);
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            
-            startActivity(Intent.createChooser(intent, "Send Summary Email"));
+
+            // We need a way to know when the user returns from the email app.
+            // We will use a new ActivityResultLauncher for this.
+            emailLauncher.launch(intent);
+            // --- END OF FIX ---
+
         } catch (Exception e) {
             AppLogger.e(TAG, "Failed to generate or send batch summary email.", e);
             Toast.makeText(this, "Error creating summary attachment: " + e.getMessage(), Toast.LENGTH_LONG).show();
