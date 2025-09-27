@@ -65,13 +65,18 @@
             android:name=".ui.BackupRestoreActivity"
             android:exported="false" />
 
-        <!-- NEWLY ADDED ACTIVITIES FOR DONATIONS -->
         <activity
             android:name=".ui.donations.DonationActivity"
             android:exported="false" />
         <activity
             android:name=".ui.donations.AddEditDonationActivity"
             android:exported="false" />
+            
+        <!-- NEWLY ADDED ACTIVITY FOR DONATION REPORTS -->
+        <activity
+            android:name=".ui.reports.ReportDonationDaysActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.AdminMainActivity" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

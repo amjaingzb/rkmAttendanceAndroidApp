@@ -8,6 +8,7 @@ import com.opencsv.CSVWriter;
 import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.ui.donations.DonationRecord;
+import com.rkm.rkmattendanceapp.ui.reports.models.DonationReportModels;
 import com.rkm.rkmattendanceapp.util.AppLogger;
 import java.io.File;
 import java.io.FileWriter;
@@ -25,120 +26,74 @@ public class CsvExporter {
         return FILENAME_FORMATTER.format(LocalDateTime.now());
     }
 
-    public Uri exportFullDonationRecords(Context context, List<com.rkm.rkmattendanceapp.ui.reports.models.DonationReportModels.FullDonationRecord> records, String date, String fileProviderAuthority) throws Exception {
+    public Uri exportFullDonationRecords(Context context, List<DonationReportModels.FullDonationRecord> records, String date, String fileProviderAuthority) throws Exception {
         String[] headers = {
                 "Donation ID", "Receipt Number", "Timestamp", "Batch ID",
                 "Devotee Name", "Mobile", "Address", "Email", "PAN", "Aadhaar",
                 "Amount", "Payment Method", "Reference ID", "Purpose"
         };
-
         File exportDir = new File(context.getCacheDir(), "exports");
-        if (!exportDir.exists()) {
-            exportDir.mkdirs();
-        }
-
+        if (!exportDir.exists()) exportDir.mkdirs();
+        
         String fileName = String.format(Locale.US, "donations_for_%s_%s.csv", date, generateTimestamp());
         File file = new File(exportDir, fileName);
 
-        AppLogger.d(TAG, "Creating daily donation export file at: " + file.getAbsolutePath());
-
         try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
             writer.writeNext(headers);
-
-            for (com.rkm.rkmattendanceapp.ui.reports.models.DonationReportModels.FullDonationRecord record : records) {
+            for (DonationReportModels.FullDonationRecord record : records) {
                 String[] data = {
-                        String.valueOf(record.donation.donationId),
-                        record.donation.receiptNumber,
-                        record.donation.donationTimestamp,
-                        String.valueOf(record.donation.batchId),
-                        record.devotee.getFullName(),
-                        record.devotee.getMobileE164(),
-                        record.devotee.getAddress(),
-                        record.devotee.getEmail(),
-                        record.devotee.getPan(),
-                        record.devotee.getAadhaar(),
-                        String.valueOf(record.donation.amount),
-                        record.donation.paymentMethod,
-                        record.donation.referenceId,
-                        record.donation.purpose
+                    String.valueOf(record.donation.donationId), record.donation.receiptNumber,
+                    record.donation.donationTimestamp, String.valueOf(record.donation.batchId),
+                    record.devotee.getFullName(), record.devotee.getMobileE164(),
+                    record.devotee.getAddress(), record.devotee.getEmail(),
+                    record.devotee.getPan(), record.devotee.getAadhaar(),
+                    String.valueOf(record.donation.amount), record.donation.paymentMethod,
+                    record.donation.referenceId, record.donation.purpose
                 };
                 writer.writeNext(data);
             }
-            AppLogger.d(TAG, "Successfully wrote " + records.size() + " full donation records to CSV.");
         }
-
         return FileProvider.getUriForFile(context, fileProviderAuthority, file);
     }
 
-    // THIS IS THE NEW, CORRECT METHOD
     public Uri exportDonationsForBatch(Context context, long batchId, List<DonationRecord> donations, String fileProviderAuthority) throws Exception {
-        String[] headers = {
-                "Donation ID", "Receipt Number", "Devotee Name", "Amount", "Payment Method",
-                "Reference ID", "Purpose", "Timestamp"
-        };
-
+        String[] headers = { "Donation ID", "Receipt Number", "Devotee Name", "Amount", "Payment Method", "Reference ID", "Purpose", "Timestamp" };
         File exportDir = new File(context.getCacheDir(), "exports");
-        if (!exportDir.exists()) {
-            exportDir.mkdirs();
-        }
-
+        if (!exportDir.exists()) exportDir.mkdirs();
         String fileName = String.format(Locale.US, "batch_%d_donations_%s.csv", batchId, generateTimestamp());
         File file = new File(exportDir, fileName);
-
-        AppLogger.d(TAG, "Creating batch donation export file at: " + file.getAbsolutePath());
-
         try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
             writer.writeNext(headers);
-
             for (DonationRecord record : donations) {
                 String[] data = {
-                        String.valueOf(record.donation.donationId),
-                        record.donation.receiptNumber,
-                        record.devoteeName,
-                        String.valueOf(record.donation.amount),
-                        record.donation.paymentMethod,
-                        record.donation.referenceId,
-                        record.donation.purpose,
-                        record.donation.donationTimestamp
+                    String.valueOf(record.donation.donationId), record.donation.receiptNumber,
+                    record.devoteeName, String.valueOf(record.donation.amount),
+                    record.donation.paymentMethod, record.donation.referenceId,
+                    record.donation.purpose, record.donation.donationTimestamp
                 };
                 writer.writeNext(data);
             }
-            AppLogger.d(TAG, "Successfully wrote " + donations.size() + " donation records to CSV.");
         }
-
         return FileProvider.getUriForFile(context, fileProviderAuthority, file);
     }
 
-    // THIS IS THE ORIGINAL, CORRECTED METHOD
     public Uri exportDevotees(Context context, List<DevoteeDao.EnrichedDevotee> devotees, String fileProviderAuthority) throws Exception {
-        String[] headers = {
-                "Full Name", "Mobile Number", "Address", "Age", "Email", "Gender",
-                "Aadhaar", "PAN", "WhatsApp Group", "Total Attendance",
-                "Last Attended Date", "Extra JSON"
-        };
+        String[] headers = { "Full Name", "Mobile Number", "Address", "Age", "Email", "Gender", "Aadhaar", "PAN", "WhatsApp Group", "Total Attendance", "Last Attended Date", "Extra JSON" };
         File exportDir = new File(context.getCacheDir(), "exports");
-        if (!exportDir.exists()) {
-            exportDir.mkdirs();
-        }
+        if (!exportDir.exists()) exportDir.mkdirs();
         String fileName = "devotee_export_" + generateTimestamp() + ".csv";
         File file = new File(exportDir, fileName);
-
         try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
             writer.writeNext(headers);
             for (DevoteeDao.EnrichedDevotee enriched : devotees) {
                 String[] data = {
-                        enriched.devotee().getFullName(),
-                        enriched.devotee().getMobileE164(),
-                        enriched.devotee().getAddress(),
-                        enriched.devotee().getAge() != null ? String.valueOf(enriched.devotee().getAge()) : "",
-                        enriched.devotee().getEmail(),
-                        enriched.devotee().getGender(),
-                        enriched.devotee().getAadhaar(),
-                        enriched.devotee().getPan(),
-                        enriched.whatsAppGroup() != null ? String.valueOf(enriched.whatsAppGroup()) : "N/A",
-                        String.valueOf(enriched.cumulativeAttendance()),
-                        enriched.lastAttendanceDate(),
-                        enriched.devotee().getExtraJson()
+                    enriched.devotee().getFullName(), enriched.devotee().getMobileE164(),
+                    enriched.devotee().getAddress(), enriched.devotee().getAge() != null ? String.valueOf(enriched.devotee().getAge()) : "",
+                    enriched.devotee().getEmail(), enriched.devotee().getGender(),
+                    enriched.devotee().getAadhaar(), enriched.devotee().getPan(),
+                    enriched.whatsAppGroup() != null ? String.valueOf(enriched.whatsAppGroup()) : "N/A",
+                    String.valueOf(enriched.cumulativeAttendance()), enriched.lastAttendanceDate(),
+                    enriched.devotee().getExtraJson()
                 };
                 writer.writeNext(data);
             }
@@ -146,22 +101,16 @@ public class CsvExporter {
         return FileProvider.getUriForFile(context, fileProviderAuthority, file);
     }
 
-    // THIS IS THE ORIGINAL, CORRECTED METHOD
     public Uri exportSimpleDevoteeList(Context context, List<Devotee> devotees, String fileProviderAuthority) throws Exception {
         String[] headers = {"Full Name", "Mobile Number"};
         File exportDir = new File(context.getCacheDir(), "exports");
-        if (!exportDir.exists()) {
-            exportDir.mkdirs();
-        }
+        if (!exportDir.exists()) exportDir.mkdirs();
         String fileName = "event_attendance_export_" + generateTimestamp() + ".csv";
         File file = new File(exportDir, fileName);
         try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
             writer.writeNext(headers);
             for (Devotee devotee : devotees) {
-                String[] data = {
-                        devotee.getFullName(),
-                        devotee.getMobileE164()
-                };
+                String[] data = { devotee.getFullName(), devotee.getMobileE164() };
                 writer.writeNext(data);
             }
         }

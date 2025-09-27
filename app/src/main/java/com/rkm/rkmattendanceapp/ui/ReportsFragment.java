@@ -18,6 +18,7 @@ import com.google.android.material.card.MaterialCardView;
 import com.rkm.attendance.db.DevoteeDao;
 import com.rkm.rkmattendanceapp.R;
 import com.rkm.rkmattendanceapp.ui.reports.ReportDevoteeActivity;
+import com.rkm.rkmattendanceapp.ui.reports.ReportDonationDaysActivity;
 import com.rkm.rkmattendanceapp.ui.reports.ReportEventListActivity;
 import com.rkm.rkmattendanceapp.util.AppLogger;
 
@@ -27,8 +28,7 @@ public class ReportsFragment extends Fragment {
     private ReportsViewModel reportsViewModel;
     private TextView totalDevoteesText, totalWhatsappText, devoteesInWhatsappText, devoteesWithAttendanceText;
     
-    private MaterialCardView attendanceByEventCard;
-    private MaterialCardView devoteeActivityCard;
+    private MaterialCardView donationsReportCard, attendanceByEventCard, devoteeActivityCard;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -53,11 +53,18 @@ public class ReportsFragment extends Fragment {
         totalWhatsappText = view.findViewById(R.id.text_total_whatsapp);
         devoteesInWhatsappText = view.findViewById(R.id.text_devotees_in_whatsapp);
         devoteesWithAttendanceText = view.findViewById(R.id.text_devotees_with_attendance);
+        donationsReportCard = view.findViewById(R.id.card_donations_report);
         attendanceByEventCard = view.findViewById(R.id.card_attendance_by_event);
         devoteeActivityCard = view.findViewById(R.id.card_devotee_activity);
     }
 
     private void setupClickListeners() {
+        donationsReportCard.setOnClickListener(v -> {
+            AppLogger.d(TAG, "Donations Report card clicked.");
+            Intent intent = new Intent(getActivity(), ReportDonationDaysActivity.class);
+            startActivity(intent);
+        });
+
         attendanceByEventCard.setOnClickListener(v -> {
             AppLogger.d(TAG, "Attendance by Event card clicked.");
             Intent intent = new Intent(getActivity(), ReportEventListActivity.class);
