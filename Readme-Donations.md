@@ -645,3 +645,7 @@ This is a substantial but crucial phase. Once it's complete, the core functional
 I am ready to provide the shell script for this **New Phase 2**. It will be a large one as it touches all layers of the architecture, but it will deliver the complete volunteer workflow you've designed.
 
 Shall we proceed?
+
+
+###TAG-CONVERSATION-2025-09-27 12:29:18
+edit donation & recipts deferred 
