@@ -297,21 +297,34 @@ public class DonationActivity extends AppCompatActivity {
             String subject = String.format("Donation Collection Summary: Batch #%d (%s)", data.batch.batchId, today);
             String body = "Donation Collection Summary\n" + "-----------------------------------\n" + "Batch ID: " + data.batch.batchId + "\n" + "Date: " + today + "\n" + "Collection Period: " + timeFormatter.format(LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))) + " - " + timeFormatter.format(LocalDateTime.now()) + "\n" + "Collected By: Donation Collector\n" + "-----------------------------------\n" + "Total Donations: " + data.summary.donationCount + "\n" + "Cash Collected: " + currencyFormatter.format(data.summary.totalCash) + "\n" + "UPI Collected: " + currencyFormatter.format(data.summary.totalUpi) + "\n" + "-----------------------------------\n" + "Grand Total: " + currencyFormatter.format(data.summary.totalCash + data.summary.totalUpi) + "\n" + "-----------------------------------\n\n" + "Detailed transaction list is attached.\n\n" + "This is an auto-generated email from the SevaConnect Halasuru app.";
 
-            // --- START OF FIX ---
-            // Reverting to the more direct ACTION_SENDTO intent.
-            Intent intent = new Intent(Intent.ACTION_SENDTO);
-            intent.setData(Uri.parse("mailto:")); // This ensures only email apps open.
+            // --- START OF DEFINITIVE FIX ---
+            // Use the robust ACTION_SEND intent, which is designed for attachments.
+            Intent intent = new Intent(Intent.ACTION_SEND);
+
+            // Set the MIME type for an email
+            intent.setType("message/rfc822");
+
+            // Set email details
             intent.putExtra(Intent.EXTRA_EMAIL, new String[]{officeEmail});
             intent.putExtra(Intent.EXTRA_SUBJECT, subject);
             intent.putExtra(Intent.EXTRA_TEXT, body);
+
+            // Attach the file
             intent.putExtra(Intent.EXTRA_STREAM, csvUri);
+
+            // Grant permission for the receiving app to read the file
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-            // We need a way to know when the user returns from the email app.
-            // We will use a new ActivityResultLauncher for this.
-            emailLauncher.launch(intent);
-            // --- END OF FIX ---
+            // Target Gmail directly to avoid the share chooser
+            intent.setPackage("com.google.android.gm");
 
+            // Use the launcher to close the batch when the user returns
+            emailLauncher.launch(intent);
+            // --- END OF DEFINITIVE FIX ---
+
+        } catch (android.content.ActivityNotFoundException ex) {
+            // This will now catch the case where Gmail is not installed.
+            Toast.makeText(this, "Gmail is not installed. Could not send email.", Toast.LENGTH_LONG).show();
         } catch (Exception e) {
             AppLogger.e(TAG, "Failed to generate or send batch summary email.", e);
             Toast.makeText(this, "Error creating summary attachment: " + e.getMessage(), Toast.LENGTH_LONG).show();
