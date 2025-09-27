@@ -2,7 +2,9 @@
 ###TAG-CONVERSATION-2025-09-26 23:43:46
 1. Donations reports 
 2. Should be sent along with email also at batch close 
+Change Amit Jain to Amit
 3. Screen to edit app_config table ... Can be a developer priv ... 
+4. Improve app ui.. use icons , custom buttons , etc
 
 
 ###TAG-CONVERSATION-2025-09-25 20:48:11

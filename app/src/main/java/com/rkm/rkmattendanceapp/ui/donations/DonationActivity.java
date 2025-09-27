@@ -32,6 +32,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.textfield.TextInputEditText;
 import com.rkm.attendance.core.AttendanceRepository;
+import com.rkm.attendance.importer.CsvExporter;
 import com.rkm.attendance.model.Devotee;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
 import com.rkm.rkmattendanceapp.R;
@@ -79,14 +80,11 @@ public class DonationActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_donation);
         setTitle("Record Donations");
-
         viewModel = new ViewModelProvider(this).get(DonationViewModel.class);
-
         setupLaunchers();
         bindViews();
         setupRecyclerViews();
         setupClickListeners();
-
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -97,7 +95,6 @@ public class DonationActivity extends AppCompatActivity {
                 }
             }
         });
-
         getSupportFragmentManager().setFragmentResultListener(DonationActionsBottomSheetFragment.REQUEST_KEY, this, (requestKey, bundle) -> {
             String action = bundle.getString(DonationActionsBottomSheetFragment.KEY_ACTION);
             long donationId = bundle.getLong(DonationActionsBottomSheetFragment.KEY_DONATION_ID);
@@ -110,7 +107,6 @@ public class DonationActivity extends AppCompatActivity {
                     .show();
             }
         });
-
         observeViewModel();
         viewModel.loadOrRefreshActiveBatch();
     }
@@ -229,10 +225,7 @@ public class DonationActivity extends AppCompatActivity {
             searchAdapter.setDevotees(results);
         } else {
             searchResultsRecyclerView.setVisibility(View.GONE);
-            if (searchEditText.getText().length() >= SEARCH_TRIGGER_LENGTH) {
-                listHeaderTextView.setVisibility(View.GONE);
-                noResultsTextView.setVisibility(View.VISIBLE);
-            }
+            if (searchEditText.getText().length() >= SEARCH_TRIGGER_LENGTH) { listHeaderTextView.setVisibility(View.GONE); noResultsTextView.setVisibility(View.VISIBLE); }
         }
     }
 
@@ -240,8 +233,6 @@ public class DonationActivity extends AppCompatActivity {
         batchSummaryCard.setVisibility(View.VISIBLE);
         donationsRecyclerView.setVisibility(View.VISIBLE);
         searchControlsLayout.setVisibility(View.VISIBLE);
-        searchEditText.setEnabled(true);
-        addNewButton.setEnabled(true);
         batchClosedLayout.setVisibility(View.GONE);
         searchResultsRecyclerView.setVisibility(View.GONE);
         noResultsTextView.setVisibility(View.GONE);
@@ -269,44 +260,51 @@ public class DonationActivity extends AppCompatActivity {
         noResultsTextView.setVisibility(View.GONE); searchResultsRecyclerView.setVisibility(View.GONE);
         donationsRecyclerView.setVisibility(View.GONE); searchProgressBar.setVisibility(View.VISIBLE); listHeaderTextView.setVisibility(View.GONE);
     }
-
+    
     private void showDepositConfirmation() {
-        // --- START OF FIX ---
-        // New, simpler message as requested.
         String message = "Please deposit the cash in the office. A summary email will automatically be sent.";
-
         new AlertDialog.Builder(this)
-                .setTitle("Close Batch") // New Title
-                .setMessage(message) // New Message
-                .setPositiveButton("OK", (dialog, which) -> { // New Button Text
-                    sendSummaryEmail();
-                    viewModel.closeActiveBatch();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-        // --- END OF FIX ---
+            .setTitle("Close Batch")
+            .setMessage(message)
+            .setPositiveButton("OK", (dialog, which) -> {
+                sendSummaryEmailWithAttachment();
+                viewModel.closeActiveBatch();
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
     }
-
-    private void sendSummaryEmail() {
+    
+    private void sendSummaryEmailWithAttachment() {
         AttendanceRepository.ActiveBatchData data = viewModel.getActiveBatchData().getValue();
         if (data == null) { Toast.makeText(this, "Could not send email: no active batch data found.", Toast.LENGTH_LONG).show(); return; }
-
         String officeEmail = ((AttendanceApplication) getApplication()).repository.getOfficeEmail();
-        if (officeEmail == null || officeEmail.isEmpty()) {
-            Toast.makeText(this, "Error: Office email is not configured.", Toast.LENGTH_LONG).show();
-            return;
+        if (officeEmail == null || officeEmail.isEmpty()) { Toast.makeText(this, "Error: Office email has not been configured.", Toast.LENGTH_LONG).show(); return; }
+        
+        try {
+            // Step 1: Generate the CSV file
+            CsvExporter exporter = new CsvExporter();
+            String authority = getApplication().getPackageName() + ".fileprovider";
+            Uri csvUri = exporter.exportDonationsForBatch(this, data.batch.batchId, data.donations, authority);
+            
+            // Step 2: Build the email body
+            String today = DateTimeFormatter.ofPattern("dd MMM, yyyy").format(LocalDateTime.now());
+            String subject = String.format("Donation Collection Summary: Batch #%d (%s)", data.batch.batchId, today);
+            String body = "Donation Collection Summary\n" + "-----------------------------------\n" + "Batch ID: " + data.batch.batchId + "\n" + "Date: " + today + "\n" + "Collection Period: " + timeFormatter.format(LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))) + " - " + timeFormatter.format(LocalDateTime.now()) + "\n" + "Collected By: Donation Collector\n" + "-----------------------------------\n" + "Total Donations: " + data.summary.donationCount + "\n" + "Cash Collected: " + currencyFormatter.format(data.summary.totalCash) + "\n" + "UPI Collected: " + currencyFormatter.format(data.summary.totalUpi) + "\n" + "-----------------------------------\n" + "Grand Total: " + currencyFormatter.format(data.summary.totalCash + data.summary.totalUpi) + "\n" + "-----------------------------------\n\n" + "Detailed transaction list is attached.\n\n" + "This is an auto-generated email from the SevaConnect Halasuru app.";
+            
+            // Step 3: Create and launch the ACTION_SEND intent
+            Intent intent = new Intent(Intent.ACTION_SEND);
+            intent.setType("message/rfc822"); // Standard email MIME type
+            intent.putExtra(Intent.EXTRA_EMAIL, new String[]{officeEmail});
+            intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+            intent.putExtra(Intent.EXTRA_TEXT, body);
+            intent.putExtra(Intent.EXTRA_STREAM, csvUri);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            
+            startActivity(Intent.createChooser(intent, "Send Summary Email"));
+        } catch (Exception e) {
+            AppLogger.e(TAG, "Failed to generate or send batch summary email.", e);
+            Toast.makeText(this, "Error creating summary attachment: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
-
-        String today = DateTimeFormatter.ofPattern("dd MMM, yyyy").format(LocalDateTime.now());
-        String subject = String.format("Donation Collection Summary: Batch #%d (%s)", data.batch.batchId, today);
-        String body = "Donation Collection Summary\n" + "-----------------------------------\n" + "Batch ID: " + data.batch.batchId + "\n" + "Date: " + today + "\n" + "Collection Period: " + timeFormatter.format(LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))) + " - " + timeFormatter.format(LocalDateTime.now()) + "\n" + "Collected By: Donation Collector\n" + "-----------------------------------\n" + "Total Donations: " + data.summary.donationCount + "\n" + "Cash Collected: " + currencyFormatter.format(data.summary.totalCash) + "\n" + "UPI Collected: " + currencyFormatter.format(data.summary.totalUpi) + "\n" + "-----------------------------------\n" + "Grand Total: " + currencyFormatter.format(data.summary.totalCash + data.summary.totalUpi) + "\n" + "-----------------------------------\n\n" + "This is an auto-generated email from the SevaConnect Halasuru app.";
-        Intent intent = new Intent(Intent.ACTION_SENDTO);
-        intent.setData(Uri.parse("mailto:"));
-        intent.putExtra(Intent.EXTRA_EMAIL, new String[]{officeEmail});
-        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
-        intent.putExtra(Intent.EXTRA_TEXT, body);
-        try { startActivity(Intent.createChooser(intent, "Send Summary Email")); }
-        catch (android.content.ActivityNotFoundException ex) { Toast.makeText(this, "There are no email clients installed.", Toast.LENGTH_SHORT).show(); }
     }
 
     @Override
