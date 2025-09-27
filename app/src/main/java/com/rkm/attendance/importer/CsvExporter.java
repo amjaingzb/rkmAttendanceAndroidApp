@@ -25,6 +25,51 @@ public class CsvExporter {
         return FILENAME_FORMATTER.format(LocalDateTime.now());
     }
 
+    public Uri exportFullDonationRecords(Context context, List<com.rkm.rkmattendanceapp.ui.reports.models.DonationReportModels.FullDonationRecord> records, String date, String fileProviderAuthority) throws Exception {
+        String[] headers = {
+                "Donation ID", "Receipt Number", "Timestamp", "Batch ID",
+                "Devotee Name", "Mobile", "Address", "Email", "PAN", "Aadhaar",
+                "Amount", "Payment Method", "Reference ID", "Purpose"
+        };
+
+        File exportDir = new File(context.getCacheDir(), "exports");
+        if (!exportDir.exists()) {
+            exportDir.mkdirs();
+        }
+
+        String fileName = String.format(Locale.US, "donations_for_%s_%s.csv", date, generateTimestamp());
+        File file = new File(exportDir, fileName);
+
+        AppLogger.d(TAG, "Creating daily donation export file at: " + file.getAbsolutePath());
+
+        try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
+            writer.writeNext(headers);
+
+            for (com.rkm.rkmattendanceapp.ui.reports.models.DonationReportModels.FullDonationRecord record : records) {
+                String[] data = {
+                        String.valueOf(record.donation.donationId),
+                        record.donation.receiptNumber,
+                        record.donation.donationTimestamp,
+                        String.valueOf(record.donation.batchId),
+                        record.devotee.getFullName(),
+                        record.devotee.getMobileE164(),
+                        record.devotee.getAddress(),
+                        record.devotee.getEmail(),
+                        record.devotee.getPan(),
+                        record.devotee.getAadhaar(),
+                        String.valueOf(record.donation.amount),
+                        record.donation.paymentMethod,
+                        record.donation.referenceId,
+                        record.donation.purpose
+                };
+                writer.writeNext(data);
+            }
+            AppLogger.d(TAG, "Successfully wrote " + records.size() + " full donation records to CSV.");
+        }
+
+        return FileProvider.getUriForFile(context, fileProviderAuthority, file);
+    }
+
     // THIS IS THE NEW, CORRECT METHOD
     public Uri exportDonationsForBatch(Context context, long batchId, List<DonationRecord> donations, String fileProviderAuthority) throws Exception {
         String[] headers = {
