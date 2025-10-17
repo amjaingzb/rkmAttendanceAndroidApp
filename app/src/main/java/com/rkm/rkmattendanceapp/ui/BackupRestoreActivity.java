@@ -22,6 +22,8 @@ import com.rkm.attendance.core.DatabaseZipper;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
 import com.rkm.rkmattendanceapp.R;
 import com.rkm.rkmattendanceapp.util.AppLogger;
+import com.rkm.rkmattendanceapp.util.BackupStateManager; // ANNOTATION: New import
+
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -87,6 +89,7 @@ public class BackupRestoreActivity extends AppCompatActivity {
             startActivity(Intent.createChooser(shareIntent, "Share Backup Via"));
 
             saveLastBackupTimestamp(getApplicationContext());
+            BackupStateManager.clearDbDirtyFlag(getApplicationContext());
             setResult(Activity.RESULT_OK);
 
         } catch (Exception e) {
@@ -126,6 +129,8 @@ public class BackupRestoreActivity extends AppCompatActivity {
                     DatabaseZipper.unzipDatabase(getApplicationContext(), is);
                 }
 
+                // ANNOTATION: Clear the dirty flag after successful restore
+                BackupStateManager.clearDbDirtyFlag(getApplicationContext());
                 Toast.makeText(this, "Restore successful! App will now restart.", Toast.LENGTH_LONG).show();
 
                 Intent intent = new Intent(this, LauncherActivity.class);

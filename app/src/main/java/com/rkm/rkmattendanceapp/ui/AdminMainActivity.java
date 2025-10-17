@@ -28,6 +28,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.rkm.rkmattendanceapp.R;
 import com.rkm.rkmattendanceapp.ui.settings.SettingsActivity;
 import com.rkm.rkmattendanceapp.util.AppLogger;
+import com.rkm.rkmattendanceapp.util.BackupStateManager;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -164,12 +165,11 @@ public class AdminMainActivity extends AppCompatActivity {
             backupStatusItem.setVisible(true);
 
             long lastBackupTimestamp = BackupRestoreActivity.getLastBackupTimestamp(this);
-//            long sevenDaysAgo = Instant.now().getEpochSecond() - (7 * 24 * 60 * 60);
-            long sevenDaysAgo = Instant.now().getEpochSecond() - 2 * 60;
+            long sevenDaysAgo = Instant.now().getEpochSecond() - (30 * 24 * 60 * 60);
             boolean isStale = lastBackupTimestamp < sevenDaysAgo;
 
             // In the next phase, we'll get this from BackupStateManager
-            boolean isDirty = false; // Placeholder for now
+            boolean isDirty =BackupStateManager.isDbDirty(this);
 
             boolean needsBackup = isStale || isDirty;
 
@@ -229,10 +229,9 @@ public class AdminMainActivity extends AppCompatActivity {
             return true;
         } else if (itemId == R.id.action_backup_status) {
             long lastBackupTimestamp = BackupRestoreActivity.getLastBackupTimestamp(this);
-//            long sevenDaysAgo = Instant.now().getEpochSecond() - (7 * 24 * 60 * 60);
-            long sevenDaysAgo = Instant.now().getEpochSecond() - 2 * 60;
+            long sevenDaysAgo = Instant.now().getEpochSecond() - (30 * 24 * 60 * 60);
             boolean isStale = lastBackupTimestamp < sevenDaysAgo;
-            boolean isDirty = false; // Placeholder, will be replaced by BackupStateManager
+            boolean isDirty = BackupStateManager.isDbDirty(this);
             boolean needsBackup = isStale || isDirty;
 
             String message = getBackupStatusMessage(needsBackup, isStale, isDirty);

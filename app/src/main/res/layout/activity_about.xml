@@ -29,7 +29,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textAppearance="?attr/textAppearanceBody2"
-        tools:text="Version 1.0" />
+        tools:text="Version 1.1" />
 
     <TextView
         android:layout_width="wrap_content"

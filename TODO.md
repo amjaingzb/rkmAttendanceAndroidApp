@@ -3,7 +3,7 @@ Trying to revive the project - tomorrow I have to install the app on math mobile
 So need to focus on absolute imprortant features. 
 1. Amit Jain ---> Amit(done)
 2. Screen to edit app_config table ... (done)
-3. Some portion of Readme-BackupRestore.md are essential like indicating if my copy is dirty,,
+3. Some portion of Readme-BackupRestore.md are essential like indicating if my copy is dirty,, (cloud icon was already there , added click status on it and tint related changes... so after a month or on change it will be yellow ,else green) 
 4. WhatsApp group change ...  (done)
 5. Vijay Mj latest data  (done ..)
 
