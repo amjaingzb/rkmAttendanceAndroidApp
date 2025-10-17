@@ -1,3 +1,12 @@
+###TAG-CONVERSATION-2025-10-17 22:55:56
+Trying to revive the project - tomorrow I have to install the app on math mobile. 
+So need to focus on absolute imprortant features. 
+1. Amit Jain ---> Amit
+2. Screen to edit app_config table ... (or this can also wait and I ac hard code the pwds
+3. Some portion of Readme-BackupRestore.md are essential like indicating if my copy is dirty,,
+4. WhatsApp group ... 
+5. Vijay Mj latest data  (done ..)
+
 
 ###TAG-CONVERSATION-2025-09-26 23:43:46
 1. Donations reports 
@@ -18,6 +27,9 @@ Change Amit Jain to Amit
 1.  TEST the whole app with data 
 2. Dark and light theme (not really needed - but fix then)
 3. build with real data before demo ...
+Bug-todo-tbd when there was an error in csv my app could not handle that  - Oct17-List-13.csv
+Bug-todo-tbd no option to delete a devotee record even for admin ... consider duplicate records e.g. Ruchi 
+
 
 ==================
 

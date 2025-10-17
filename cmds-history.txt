@@ -1,0 +1,29 @@
+ 2153  mv ~/Downloads/ai_studio_code.sh delme_ai_studio_code.sh ; chmod +x delme_ai_studio_code.sh ; vim delme_ai_studio_code.sh
+ 2154  ./delme_ai_studio_code.sh 
+ 2107  cp /home/aj/Desktop/devotees.db /home/aj/Desktop/devotees-old.db
+ 2108  xdg-open/home/aj/Desktop/devotees-old.db
+ 2109  xdg-open /home/aj/Desktop/devotees-old.db
+ 2114  /home/aj/Work/scripts/androidStudioScripts/rkmDb.sh pull
+ 2115  xdg-open /home/aj/Desktop/devotees.db
+ 2081  vim README.md 
+ 2082  ls -lrt 
+ 2084  vimd 
+ 2085  vim
+ 2086  vim README-Sep13-currentState.md 
+ 2087  ls -l 
+ 2088  ls -lrt README*
+ 2089  vim Requirements_attendance.md 
+ 2126  git d 
+ 2128  git add . ; git commit -m "bug fixes - minor " ; git push
+ 2129  git status
+ 2130  git add . ; git commit -m "Start import whatsApp" ; git push
+ 1995  git add . ; git commit -m " Defining UI/UX" ; git push
+ 1996  vim .gitignore 
+ 1997  moff
+ 1998  onkyo
+ 1999  ./gradlew clean build --refresh-dependencies
+ 2000  clear
+ 2001  ls 
+ 2002  vim
+ 2003  mv delme-error\=tmpPad.txt delme-error-tmpPad.txt 
+ 2004  vim delme-error-tmpPad.txt 
