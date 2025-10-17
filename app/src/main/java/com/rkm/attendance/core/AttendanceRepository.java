@@ -55,6 +55,13 @@ public class AttendanceRepository {
         this.donationBatchDao = new DonationBatchDao(database);
         this.donationReportDao = new DonationReportDao(database);
     }
+    public List<ConfigItem> getAllEditableConfigs() {
+        return configDao.getAllEditableConfigs();
+    }
+
+    public void updateConfigValue(String key, String value) {
+        configDao.updateValue(key, value);
+    }
 
     public static class ActiveBatchData {
         public final DonationBatch batch;

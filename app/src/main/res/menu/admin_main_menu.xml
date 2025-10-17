@@ -13,6 +13,12 @@
         android:title="About"
         app:showAsAction="never" />
 
+    <!-- ANNOTATION: New menu item for Settings -->
+    <item
+        android:id="@+id/action_settings"
+        android:title="Settings"
+        app:showAsAction="never" />
+
     <item
         android:id="@+id/action_backup_restore"
         android:title="Backup &amp; Restore"

@@ -24,6 +24,7 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.rkm.rkmattendanceapp.R;
+import com.rkm.rkmattendanceapp.ui.settings.SettingsActivity;
 import com.rkm.rkmattendanceapp.util.AppLogger;
 
 import java.time.Instant;
@@ -137,6 +138,17 @@ public class AdminMainActivity extends AppCompatActivity {
     }
     // === END OF BANDAID FIX ===
 
+    // ANNOTATION: onPrepareOptionsMenu is used to show/hide items dynamically
+    @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        MenuItem settingsItem = menu.findItem(R.id.action_settings);
+        Privilege currentPrivilege = adminViewModel.currentPrivilege.getValue();
+        if (settingsItem != null && currentPrivilege != null) {
+            settingsItem.setVisible(currentPrivilege == Privilege.SUPER_ADMIN);
+        }
+        return super.onPrepareOptionsMenu(menu);
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.admin_main_menu, menu);
@@ -179,6 +191,9 @@ public class AdminMainActivity extends AppCompatActivity {
         } else if (itemId == R.id.action_backup_restore) {
             Intent intent = new Intent(this, BackupRestoreActivity.class);
             backupRestoreLauncher.launch(intent);
+            return true;
+        } else if (itemId == R.id.action_settings) { // ANNOTATION: Handle click on new item
+            startActivity(new Intent(this, SettingsActivity.class));
             return true;
         }
         return super.onOptionsItemSelected(item);

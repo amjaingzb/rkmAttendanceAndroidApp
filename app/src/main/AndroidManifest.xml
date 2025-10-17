@@ -72,9 +72,14 @@
             android:name=".ui.donations.AddEditDonationActivity"
             android:exported="false" />
             
-        <!-- NEWLY ADDED ACTIVITY FOR DONATION REPORTS -->
         <activity
             android:name=".ui.reports.ReportDonationDaysActivity"
+            android:exported="false"
+            android:parentActivityName=".ui.AdminMainActivity" />
+            
+        <!-- ANNOTATION: New Settings Activity registered -->
+        <activity
+            android:name=".ui.settings.SettingsActivity"
             android:exported="false"
             android:parentActivityName=".ui.AdminMainActivity" />
 
