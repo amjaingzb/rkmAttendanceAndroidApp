@@ -88,7 +88,7 @@ public class SettingsActivity extends AppCompatActivity {
         textInputLayout.setHint(item.displayName);
 
         if (item.isProtected) {
-            editText.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+            editText.setInputType(InputType.TYPE_CLASS_NUMBER );
         } else {
             editText.setText(item.value);
         }

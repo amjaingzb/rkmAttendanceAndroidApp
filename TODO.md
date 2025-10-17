@@ -1,10 +1,10 @@
 ###TAG-CONVERSATION-2025-10-17 22:55:56
 Trying to revive the project - tomorrow I have to install the app on math mobile. 
 So need to focus on absolute imprortant features. 
-1. Amit Jain ---> Amit
-2. Screen to edit app_config table ... (or this can also wait and I ac hard code the pwds
+1. Amit Jain ---> Amit(done)
+2. Screen to edit app_config table ... (done)
 3. Some portion of Readme-BackupRestore.md are essential like indicating if my copy is dirty,,
-4. WhatsApp group ... 
+4. WhatsApp group change ...  (done)
 5. Vijay Mj latest data  (done ..)
 
 

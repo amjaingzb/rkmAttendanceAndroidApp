@@ -101,12 +101,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "    FOREIGN KEY (batch_id)   REFERENCES donation_batches(batch_id) ON DELETE RESTRICT\n" +
                 ")");
 
-        insertDefaultPin(db, ConfigDao.KEY_SUPER_ADMIN_PIN, "2222");
-        insertDefaultPin(db, ConfigDao.KEY_EVENT_COORDINATOR_PIN, "1111");
-        insertDefaultPin(db, ConfigDao.KEY_DONATION_COLLECTOR_PIN, "3333");
-        insertDefaultPin(db, ConfigDao.KEY_WHATSAPP_INVITE_LINK, "https://chat.whatsapp.com/YOUR_INVITE_CODE_HERE");
-        insertDefaultPin(db, ConfigDao.KEY_WHATSAPP_INVITE_MESSAGE, "Hello! You are invited to join our RKM group for updates. Please join using this link: ");
-        insertDefaultPin(db, ConfigDao.KEY_OFFICE_EMAIL, "amjain.gzb@gmail.com"); // NEW
+        insertDefaultPin(db, ConfigDao.KEY_SUPER_ADMIN_PIN, "7760");
+        insertDefaultPin(db, ConfigDao.KEY_EVENT_COORDINATOR_PIN, "9731");
+        insertDefaultPin(db, ConfigDao.KEY_DONATION_COLLECTOR_PIN, "1863");
+        insertDefaultPin(db, ConfigDao.KEY_WHATSAPP_INVITE_LINK, "https://chat.whatsapp.com/GZV2s2kKT1qBdvmORyPNG2");
+        insertDefaultPin(db, ConfigDao.KEY_WHATSAPP_INVITE_MESSAGE, "Hello! You are invited to join RKM Halasuru group for updates. Please join using this link: ");
+        insertDefaultPin(db, ConfigDao.KEY_OFFICE_EMAIL, "halasuru@rkmm.org"); // NEW
     }
 
     private void insertDefaultPin(SQLiteDatabase db, String key, String value) {
