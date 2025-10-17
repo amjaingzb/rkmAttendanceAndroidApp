@@ -10,6 +10,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -17,6 +18,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
@@ -162,18 +164,48 @@ public class AdminMainActivity extends AppCompatActivity {
             backupStatusItem.setVisible(true);
 
             long lastBackupTimestamp = BackupRestoreActivity.getLastBackupTimestamp(this);
-            long sevenDaysAgo = Instant.now().getEpochSecond() - (7 * 24 * 60 * 60);
+//            long sevenDaysAgo = Instant.now().getEpochSecond() - (7 * 24 * 60 * 60);
+            long sevenDaysAgo = Instant.now().getEpochSecond() - 2 * 60;
+            boolean isStale = lastBackupTimestamp < sevenDaysAgo;
 
-            if (lastBackupTimestamp > sevenDaysAgo) {
-                backupStatusItem.setIcon(R.drawable.ic_cloud_done);
-            } else {
+            // In the next phase, we'll get this from BackupStateManager
+            boolean isDirty = false; // Placeholder for now
+
+            boolean needsBackup = isStale || isDirty;
+
+            if (needsBackup) {
                 backupStatusItem.setIcon(R.drawable.ic_cloud_warning);
+            } else {
+                backupStatusItem.setIcon(R.drawable.ic_cloud_done);
             }
+
+            // Remove theme tint to show the icon's true color
+            android.graphics.drawable.Drawable icon = backupStatusItem.getIcon();
+            if (icon != null) {
+                icon.mutate();
+                DrawableCompat.setTintList(icon, null);
+                backupStatusItem.setIcon(icon);
+            }
+
         } else {
             backupItem.setVisible(false);
             backupStatusItem.setVisible(false);
         }
         return true;
+    }
+
+    private String getBackupStatusMessage(boolean needsBackup, boolean isStale, boolean isDirty) {
+        if (!needsBackup) {
+            return "Backup is recent and the database is clean.";
+        } else {
+            if (isStale && isDirty) {
+                return "Backup is recommended: Data has changed and the last backup is over 1 month old.";
+            } else if (isDirty) {
+                return "Backup is recommended: Data has been changed since the last backup.";
+            } else { // isStale must be true
+                return "Backup is recommended: The last backup was more than 1 month old.";
+            }
+        }
     }
     
     @Override
@@ -194,6 +226,17 @@ public class AdminMainActivity extends AppCompatActivity {
             return true;
         } else if (itemId == R.id.action_settings) { // ANNOTATION: Handle click on new item
             startActivity(new Intent(this, SettingsActivity.class));
+            return true;
+        } else if (itemId == R.id.action_backup_status) {
+            long lastBackupTimestamp = BackupRestoreActivity.getLastBackupTimestamp(this);
+//            long sevenDaysAgo = Instant.now().getEpochSecond() - (7 * 24 * 60 * 60);
+            long sevenDaysAgo = Instant.now().getEpochSecond() - 2 * 60;
+            boolean isStale = lastBackupTimestamp < sevenDaysAgo;
+            boolean isDirty = false; // Placeholder, will be replaced by BackupStateManager
+            boolean needsBackup = isStale || isDirty;
+
+            String message = getBackupStatusMessage(needsBackup, isStale, isDirty);
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
             return true;
         }
         return super.onOptionsItemSelected(item);
