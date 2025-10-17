@@ -131,6 +131,7 @@ public class BackupRestoreActivity extends AppCompatActivity {
 
                 // ANNOTATION: Clear the dirty flag after successful restore
                 BackupStateManager.clearDbDirtyFlag(getApplicationContext());
+                saveLastBackupTimestamp(getApplicationContext());
                 Toast.makeText(this, "Restore successful! App will now restart.", Toast.LENGTH_LONG).show();
 
                 Intent intent = new Intent(this, LauncherActivity.class);
