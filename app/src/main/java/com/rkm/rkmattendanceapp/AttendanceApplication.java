@@ -25,6 +25,6 @@ public class AttendanceApplication extends Application {
 
         // 3. Create the single repository instance for the entire app,
         //    passing it the database connection.
-        repository = new AttendanceRepository(database);
+        repository = new AttendanceRepository(database, this);
     }
 }

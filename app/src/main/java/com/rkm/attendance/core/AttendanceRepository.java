@@ -19,6 +19,8 @@ import com.rkm.rkmattendanceapp.ui.donations.DonationRecord;
 import com.rkm.rkmattendanceapp.ui.reports.models.DonationReportModels;
 import com.rkm.rkmattendanceapp.ui.reports.models.DonationReportModels.DailySummary;
 import com.rkm.rkmattendanceapp.util.AppLogger;
+import com.rkm.rkmattendanceapp.util.BackupStateManager;
+
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
@@ -42,10 +44,12 @@ public class AttendanceRepository {
     private final DonationBatchDao donationBatchDao;
     private final DonationReportDao donationReportDao;
     private final SQLiteDatabase database;
+    private final Context context; // ANNOTATION: Store context for the state manager
+
     private static final String TAG = "AttendanceRepository";
     private static final DateTimeFormatter SQL_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    public AttendanceRepository(SQLiteDatabase database) {
+    public AttendanceRepository(SQLiteDatabase database, Context context) {
         this.database = database;
         this.devoteeDao = new DevoteeDao(database);
         this.eventDao = new EventDao(database);
@@ -54,6 +58,7 @@ public class AttendanceRepository {
         this.donationDao = new DonationDao(database);
         this.donationBatchDao = new DonationBatchDao(database);
         this.donationReportDao = new DonationReportDao(database);
+        this.context = context;
     }
     public List<ConfigItem> getAllEditableConfigs() {
         return configDao.getAllEditableConfigs();
@@ -61,6 +66,7 @@ public class AttendanceRepository {
 
     public void updateConfigValue(String key, String value) {
         configDao.updateValue(key, value);
+        BackupStateManager.setDbDirty(context); // ANNOTATION: Mark as dirty
     }
 
     public static class ActiveBatchData {
@@ -120,15 +126,18 @@ public class AttendanceRepository {
         ContentValues values = new ContentValues();
         values.put("receipt_number", receiptNumber);
         database.update("donations", values, "donation_id = ?", new String[]{String.valueOf(donationId)});
+        BackupStateManager.setDbDirty(context);
     }
 
     public void deleteDonation(long donationId) {
         donationDao.delete(donationId);
+        BackupStateManager.setDbDirty(context);
     }
 
     public void closeActiveBatch(long batchId, String user) {
         String now = SQL_FORMATTER.format(LocalDateTime.now());
         donationBatchDao.closeBatch(batchId, user, now);
+        BackupStateManager.setDbDirty(context);
     }
 
     public List<Devotee> searchSimpleDevotees(String query) {
@@ -146,24 +155,47 @@ public class AttendanceRepository {
     public boolean checkDonationCollectorPin(String pin) { return configDao.checkDonationCollectorPin(pin); }
     public List<Event> getAllEvents() { return eventDao.listAll(); }
     public Event getEventById(long eventId) { return eventDao.get(eventId); }
-    public long createEvent(String name, String date, String remark, String activeFrom, String activeUntil) throws OverlapException { if (name == null || name.trim().isEmpty()) { throw new IllegalArgumentException("Event Name is mandatory."); } if (date == null || date.trim().isEmpty()) { throw new IllegalArgumentException("Event Date is mandatory."); } String finalActiveFrom = activeFrom, finalActiveUntil = activeUntil; if (finalActiveFrom == null || finalActiveFrom.trim().isEmpty()) { finalActiveFrom = date + " 06:00:00"; } if (finalActiveUntil == null || finalActiveUntil.trim().isEmpty()) { finalActiveUntil = date + " 22:00:00"; } if (eventDao.hasOverlap(finalActiveFrom, finalActiveUntil, null)) { throw new OverlapException("Time window overlaps with an existing event."); } Event newEvent = new Event(null, null, name, date, finalActiveFrom, finalActiveUntil, remark); long newId = eventDao.insert(newEvent); String code = "EVT-" + new SimpleDateFormat("yyyyMMdd", Locale.US).format(new Date()) + "-" + newId; newEvent.setEventId(newId); newEvent.setEventCode(code); eventDao.update(newEvent); return newId; }
-    public void updateEvent(Event event) throws OverlapException { if (event == null || event.getEventName() == null || event.getEventName().trim().isEmpty() || event.getEventDate() == null || event.getEventDate().trim().isEmpty()) { throw new IllegalArgumentException("Event details are mandatory."); } if (eventDao.hasOverlap(event.getActiveFromTs(), event.getActiveUntilTs(), event.getEventId())) { throw new OverlapException("Time window overlaps with an existing event."); } eventDao.update(event); }
-    public void deleteEvent(long eventId) { eventDao.delete(eventId); }
+    public long createEvent(String name, String date, String remark, String activeFrom, String activeUntil) throws OverlapException { if (name == null || name.trim().isEmpty()) { throw new IllegalArgumentException("Event Name is mandatory."); } if (date == null || date.trim().isEmpty()) { throw new IllegalArgumentException("Event Date is mandatory."); } String finalActiveFrom = activeFrom, finalActiveUntil = activeUntil; if (finalActiveFrom == null || finalActiveFrom.trim().isEmpty()) { finalActiveFrom = date + " 06:00:00"; } if (finalActiveUntil == null || finalActiveUntil.trim().isEmpty()) { finalActiveUntil = date + " 22:00:00"; } if (eventDao.hasOverlap(finalActiveFrom, finalActiveUntil, null)) { throw new OverlapException("Time window overlaps with an existing event."); } Event newEvent = new Event(null, null, name, date, finalActiveFrom, finalActiveUntil, remark); long newId = eventDao.insert(newEvent); String code = "EVT-" + new SimpleDateFormat("yyyyMMdd", Locale.US).format(new Date()) + "-" + newId; newEvent.setEventId(newId); newEvent.setEventCode(code); eventDao.update(newEvent);BackupStateManager.setDbDirty(context);  return newId; }
+    public void updateEvent(Event event) throws OverlapException { if (event == null || event.getEventName() == null || event.getEventName().trim().isEmpty() || event.getEventDate() == null || event.getEventDate().trim().isEmpty()) { throw new IllegalArgumentException("Event details are mandatory."); } if (eventDao.hasOverlap(event.getActiveFromTs(), event.getActiveUntilTs(), event.getEventId())) { throw new OverlapException("Time window overlaps with an existing event."); } eventDao.update(event);BackupStateManager.setDbDirty(context);  }
+    public void deleteEvent(long eventId) { eventDao.delete(eventId); BackupStateManager.setDbDirty(context);  }
     public Event getActiveEvent() { return eventDao.findCurrentlyActiveEvent(); }
     public Devotee getDevoteeById(long devoteeId) { return devoteeDao.getById(devoteeId); }
-    public void updateDevotee(Devotee devotee) { devoteeDao.update(devotee); }
-    public int deleteDevotees(List<Long> devoteeIds) { return devoteeDao.deleteByIds(devoteeIds); }
-    public Devotee saveOrMergeDevoteeFromAdmin(Devotee devoteeFromForm) { long finalId = devoteeDao.resolveOrCreateDevotee( devoteeFromForm.getFullName(), devoteeFromForm.getMobileE164(), devoteeFromForm.getAddress(), devoteeFromForm.getAge(), devoteeFromForm.getEmail(), devoteeFromForm.getGender(), devoteeFromForm.getAadhaar(), devoteeFromForm.getPan() ); Devotee definitiveRecord = devoteeDao.getById(finalId); definitiveRecord.mergeWith(devoteeFromForm); devoteeDao.update(definitiveRecord); return definitiveRecord; }
+    public void updateDevotee(Devotee devotee) { devoteeDao.update(devotee); BackupStateManager.setDbDirty(context); }
+    public int deleteDevotees(List<Long> devoteeIds) {
+        int deletedRows = devoteeDao.deleteByIds(devoteeIds);
+        if (deletedRows > 0) {
+            BackupStateManager.setDbDirty(context);
+        }
+        return deletedRows;
+    }
+    public Devotee saveOrMergeDevoteeFromAdmin(Devotee devoteeFromForm) { long finalId = devoteeDao.resolveOrCreateDevotee( devoteeFromForm.getFullName(), devoteeFromForm.getMobileE164(), devoteeFromForm.getAddress(), devoteeFromForm.getAge(), devoteeFromForm.getEmail(), devoteeFromForm.getGender(), devoteeFromForm.getAadhaar(), devoteeFromForm.getPan() ); Devotee definitiveRecord = devoteeDao.getById(finalId); definitiveRecord.mergeWith(devoteeFromForm); devoteeDao.update(definitiveRecord);
+        BackupStateManager.setDbDirty(context);
+        return definitiveRecord;
+    }
     public List<EnrichedDevotee> getAllEnrichedDevotees() { return devoteeDao.getAllEnrichedDevotees(); }
     public Devotee addNewDevoteeOnSpot(Devotee newDevoteeData) { return saveOrMergeDevoteeFromAdmin(newDevoteeData); }
-    public boolean markDevoteeAsPresent(long eventId, long devoteeId) { EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devoteeId, eventId); if (status != null && status.count > 0) { return false; } if (status != null) { eventDao.markAsAttended(eventId, devoteeId); } else { eventDao.insertSpotRegistration(eventId, devoteeId); } return true; }
+    public boolean markDevoteeAsPresent(long eventId, long devoteeId) { EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devoteeId, eventId); if (status != null && status.count > 0) { return false; } if (status != null) { eventDao.markAsAttended(eventId, devoteeId); } else { eventDao.insertSpotRegistration(eventId, devoteeId); }
+        BackupStateManager.setDbDirty(context);
+        return true; }
     public List<Devotee> getCheckedInAttendeesForEvent(long eventId) { return eventDao.findCheckedInAttendeesForEvent(eventId); }
     public List<EnrichedDevotee> searchDevoteesForEvent(String query, long eventId) { List<Devotee> allMatches = devoteeDao.searchSimpleDevotees(query); return allMatches.stream() .map(devotee -> { EventDao.AttendanceStatus status = eventDao.getAttendanceStatus(devotee.getDevoteeId(), eventId); EventStatus eventStatus = (status == null) ? EventStatus.WALK_IN : (status.count > 0 ? EventStatus.PRESENT : EventStatus.PRE_REGISTERED); Integer whatsAppGroup = devoteeDao.getWhatsAppGroup(devotee.getMobileE164()); return new EnrichedDevotee(devotee, whatsAppGroup, 0, null, eventStatus); }) .sorted(Comparator.comparingInt((EnrichedDevotee e) -> e.getEventStatus() == EventStatus.PRESENT ? 1 : 0) .thenComparing(e -> e.devotee().getFullName(), String.CASE_INSENSITIVE_ORDER)) .collect(Collectors.toList()); }
     public DevoteeDao.CounterStats getCounterStats() { return devoteeDao.getCounterStats(); }
     public EventDao.EventStats getEventStats(long eventId) { return eventDao.getEventStats(eventId); }
     public List<EventDao.EventWithAttendance> getEventsWithAttendance() { return eventDao.getEventsWithAttendanceCounts(); }
     public CsvImporter.ImportStats importMasterDevoteeList(Context context, Uri uri, ImportMapping mapping) throws Exception { CsvImporter importer = new CsvImporter(database); CsvImporter.ImportStats stats = new CsvImporter.ImportStats(); try (InputStream inputStream = context.getContentResolver().openInputStream(uri); InputStreamReader reader = new InputStreamReader(inputStream); CSVReaderHeaderAware csvReader = new CSVReaderHeaderAware(reader)) { if (inputStream == null) { throw new Exception("Could not open file URI"); } database.beginTransaction(); try { Map<String, String> row; while ((row = csvReader.readMap()) != null) { stats.processed++; try { Devotee parsedDevotee = importer.toDevotee(row, mapping); if (parsedDevotee == null) { stats.skipped++; continue; } Devotee existing = devoteeDao.findByKey(parsedDevotee.getMobileE164(), parsedDevotee.getNameNorm()); if (existing != null) { stats.updatedChanged++; } else { stats.inserted++; } saveOrMergeDevoteeFromAdmin(parsedDevotee); } catch (IllegalArgumentException e) { AppLogger.w(TAG, "Skipping bad row in master import: " + row.toString(), e); stats.skipped++; } } database.setTransactionSuccessful(); } finally { database.endTransaction(); } } return stats; }
-    public CsvImporter.ImportStats importAttendanceList(Context context, Uri uri, ImportMapping mapping, long eventId) throws Exception { AttendanceImporter importer = new AttendanceImporter(); CsvImporter.ImportStats stats = new CsvImporter.ImportStats(); List<Map<String, String>> allRows = new ArrayList<>(); try (InputStream inputStream = context.getContentResolver().openInputStream(uri); InputStreamReader reader = new InputStreamReader(inputStream); CSVReaderHeaderAware csvReader = new CSVReaderHeaderAware(reader)) { Map<String, String> row; while((row = csvReader.readMap()) != null) { allRows.add(row); } } if (allRows.isEmpty()) { return stats; } database.beginTransaction(); try { for (Map<String, String> row : allRows) { stats.processed++; try { AttendanceImporter.ParsedAttendanceRow parsedRow = importer.parseRow(row, mapping); if (parsedRow == null) { stats.skipped++; continue; } saveOrMergeDevoteeFromAdmin(parsedRow.devotee); } catch (IllegalArgumentException e) { AppLogger.w(TAG, "Skipping bad devotee row during pass 1 of attendance import: " + row, e); stats.skipped++; } } database.setTransactionSuccessful(); } finally { database.endTransaction(); } database.beginTransaction(); try { for (Map<String, String> row : allRows) { try { AttendanceImporter.ParsedAttendanceRow parsedRow = importer.parseRow(row, mapping); if (parsedRow == null) continue; Devotee devotee = devoteeDao.findByKey(parsedRow.devotee.getMobileE164(), parsedRow.devotee.getNameNorm()); if (devotee == null) { AppLogger.w(TAG, "Could not find devotee in pass 2, skipping attendance link: " + parsedRow.devotee.getFullName()); continue; } eventDao.upsertAttendance(eventId, devotee.getDevoteeId(), "PRE_REG", parsedRow.count, "Imported"); stats.inserted++; } catch (Exception e) { AppLogger.w(TAG, "Skipping attendance link row during pass 2: " + row, e); } } database.setTransactionSuccessful(); } finally { database.endTransaction(); } stats.processed = allRows.size(); return stats; }
-    public WhatsAppGroupImporter.Stats importWhatsAppGroups(Context context, Uri uri, ImportMapping mapping) throws Exception { WhatsAppGroupImporter importer = new WhatsAppGroupImporter(database); try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) { if (inputStream == null) { throw new Exception("Could not open file URI"); } return importer.importCsv(inputStream, mapping); } }
+    public CsvImporter.ImportStats importAttendanceList(Context context, Uri uri, ImportMapping mapping, long eventId) throws Exception { AttendanceImporter importer = new AttendanceImporter(); CsvImporter.ImportStats stats = new CsvImporter.ImportStats(); List<Map<String, String>> allRows = new ArrayList<>(); try (InputStream inputStream = context.getContentResolver().openInputStream(uri); InputStreamReader reader = new InputStreamReader(inputStream); CSVReaderHeaderAware csvReader = new CSVReaderHeaderAware(reader)) { Map<String, String> row; while((row = csvReader.readMap()) != null) { allRows.add(row); } } if (allRows.isEmpty()) { return stats; } database.beginTransaction(); try { for (Map<String, String> row : allRows) { stats.processed++; try { AttendanceImporter.ParsedAttendanceRow parsedRow = importer.parseRow(row, mapping); if (parsedRow == null) { stats.skipped++; continue; } saveOrMergeDevoteeFromAdmin(parsedRow.devotee); } catch (IllegalArgumentException e) { AppLogger.w(TAG, "Skipping bad devotee row during pass 1 of attendance import: " + row, e); stats.skipped++; } } database.setTransactionSuccessful(); } finally { database.endTransaction(); } database.beginTransaction(); try { for (Map<String, String> row : allRows) { try { AttendanceImporter.ParsedAttendanceRow parsedRow = importer.parseRow(row, mapping); if (parsedRow == null) continue; Devotee devotee = devoteeDao.findByKey(parsedRow.devotee.getMobileE164(), parsedRow.devotee.getNameNorm()); if (devotee == null) { AppLogger.w(TAG, "Could not find devotee in pass 2, skipping attendance link: " + parsedRow.devotee.getFullName()); continue; } eventDao.upsertAttendance(eventId, devotee.getDevoteeId(), "PRE_REG", parsedRow.count, "Imported"); stats.inserted++; } catch (Exception e) { AppLogger.w(TAG, "Skipping attendance link row during pass 2: " + row, e); } } database.setTransactionSuccessful(); } finally { database.endTransaction(); } stats.processed = allRows.size();
+        if (stats.inserted > 0 || stats.updatedChanged > 0) { BackupStateManager.setDbDirty(this.context);}
+        return stats;
+    }
+    public WhatsAppGroupImporter.Stats importWhatsAppGroups(Context context, Uri uri, ImportMapping mapping) throws Exception {
+        WhatsAppGroupImporter importer = new WhatsAppGroupImporter(database); try (InputStream inputStream = context.getContentResolver().openInputStream(uri)) {
+        if (inputStream == null) { throw new Exception("Could not open file URI"); }
+            WhatsAppGroupImporter.Stats stats = importer.importCsv(inputStream, mapping);
+            if (stats.insertedOrUpdated > 0) {
+                BackupStateManager.setDbDirty(this.context);
+            }
+            return stats;
+    }
+    }
     // --- END: ALL OTHER EXISTING METHODS ---
 }
