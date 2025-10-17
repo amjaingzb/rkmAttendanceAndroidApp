@@ -169,7 +169,7 @@ public class BackupRestoreActivity extends AppCompatActivity {
 
     public static void saveLastBackupTimestamp(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        prefs.edit().putLong(KEY_LAST_BACKUP_TIMESTAMP, Instant.now().getEpochSecond()).apply();
+        prefs.edit().putLong(KEY_LAST_BACKUP_TIMESTAMP, Instant.now().getEpochSecond()).commit();
     }
 
     public static long getLastBackupTimestamp(Context context) {

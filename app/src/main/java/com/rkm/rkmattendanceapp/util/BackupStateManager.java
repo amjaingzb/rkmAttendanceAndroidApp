@@ -25,7 +25,7 @@ public class BackupStateManager {
      * Call this after a successful backup or restore.
      */
     public static void clearDbDirtyFlag(Context context) {
-        getPrefs(context).edit().putBoolean(KEY_IS_DB_DIRTY, false).apply();
+        getPrefs(context).edit().putBoolean(KEY_IS_DB_DIRTY, false).commit();
         AppLogger.d("BackupStateManager", "Database is now marked as CLEAN.");
     }
 
