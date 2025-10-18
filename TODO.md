@@ -29,6 +29,7 @@ Change Amit Jain to Amit
 3. build with real data before demo ...
 Bug-todo-tbd when there was an error in csv my app could not handle that  - Oct17-List-13.csv
 Bug-todo-tbd no option to delete a devotee record even for admin ... consider duplicate records e.g. Ruchi 
+Bug-todo-tbd while entering pin , the data is visiable... need a robust widget for that or build your own
 
 
 ==================
