@@ -21,7 +21,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Locale;
 import android.util.Pair; // Import this
-
+import com.rkm.rkmattendanceapp.R;
 
 public class DonationViewModel extends AndroidViewModel {
 
@@ -56,6 +56,16 @@ public class DonationViewModel extends AndroidViewModel {
         this.repository = ((AttendanceApplication) application).repository;
     }
 
+    private byte[] getBytesFromResource(android.content.Context context, int resId) {
+        try {
+            android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeResource(context.getResources(), resId);
+            java.io.ByteArrayOutputStream stream = new java.io.ByteArrayOutputStream();
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream);
+            return stream.toByteArray();
+        } catch (Exception e) {
+            return null;
+        }
+    }
     public LiveData<List<Devotee>> getSearchResults() { return searchResults; }
     public LiveData<AttendanceRepository.ActiveBatchData> getActiveBatchData() { return activeBatchData; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
@@ -147,13 +157,20 @@ public class DonationViewModel extends AndroidViewModel {
                 }
                 // ----------------------------
 
-                PdfReceiptGenerator generator = new PdfReceiptGenerator();
+                // 1. Load Images from resources
+                byte[] logo = getBytesFromResource(context, R.drawable.rkmlogo);
+                byte[] signature = getBytesFromResource(context, R.drawable.adhyakshasign);
+
+                // 2. Initialize the new generator with images
+                PdfReceiptGenerator generator = new PdfReceiptGenerator(logo, signature);
+
 
                 // Prepare Data
                 String receiptNo = record.donation.receiptNumber != null ? record.donation.receiptNumber : "TMP-" + donationId;
                 String date = record.donation.donationTimestamp.split(" ")[0];
                 String donorName = record.devotee.getFullName();
                 String mobile = record.devotee.getMobileE164();
+                String address = record.devotee.getAddress();
 
                 String uin = "";
                 String idType = "";
@@ -172,9 +189,10 @@ public class DonationViewModel extends AndroidViewModel {
                 String details = record.donation.referenceId != null ? "Ref: " + record.donation.referenceId : "";
 
                 byte[] pdfBytes = generator.generatePdfReceipt(
-                        receiptNo, date, donorName, mobile, email, uin, idType,
+                        receiptNo, date, donorName,address, mobile, email, uin, idType,
                         amountFigs, amountWords, purpose, payMode, details
                 );
+
 
                 File cachePath = new File(context.getCacheDir(), "receipts");
                 cachePath.mkdirs();
