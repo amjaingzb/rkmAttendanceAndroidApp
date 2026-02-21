@@ -128,8 +128,21 @@ public class AddEditDonationActivity extends AppCompatActivity {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, purposes);
         purposeAutoComplete.setAdapter(adapter);
 
-        purposeAutoComplete.setText(purposes[0], false);
+        // 1. DO NOT pre-fill text. Keep it clean.
+        // purposeAutoComplete.setText(purposes[0], false); <-- REMOVE THIS
 
+        // 2. Set a descriptive hint to inform the user of the default
+        TextInputLayout layout = findViewById(R.id.layout_purpose);
+        layout.setHint("Towards (Default: " + purposes[0] + ")");
+
+        // 3. FORCE the menu to open when clicked or focused.
+        // This solves the "clueless" problem. They tap, they see options immediately.
+        purposeAutoComplete.setOnClickListener(v -> purposeAutoComplete.showDropDown());
+        purposeAutoComplete.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                purposeAutoComplete.showDropDown();
+            }
+        });
     }
 
     private void setupListeners() {
