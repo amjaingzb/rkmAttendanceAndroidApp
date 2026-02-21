@@ -213,15 +213,39 @@ public class DonationActivity extends AppCompatActivity {
 
         viewModel.getReceiptResult().observe(this, result -> {
             if (result != null) {
-                Uri pdfUri = result.first;
-                String mobileNumber = result.second;
-
-                shareReceiptViaWhatsApp(pdfUri, mobileNumber);
-
+                if (result.mode == DonationViewModel.ShareMode.WHATSAPP) {
+                    shareReceiptViaWhatsApp(result.uri, result.targetContact);
+                } else {
+                    shareReceiptViaEmail(result.uri, result.targetContact);
+                }
                 viewModel.onReceiptHandled();
             }
         });
 
+
+    }
+
+    private void shareReceiptViaEmail(Uri pdfUri, String emailAddress) {
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("message/rfc822"); // Target Email apps
+        intent.putExtra(Intent.EXTRA_EMAIL, new String[]{emailAddress});
+        intent.putExtra(Intent.EXTRA_SUBJECT, "Donation Receipt - Ramakrishna Math, Halasuru");
+        intent.putExtra(Intent.EXTRA_TEXT, "Jai Ramakrishna,\n\nPlease find attached the receipt for your kind donation.\n\nWith Namaskar and best wishes.\n" +
+                "\n" +
+                "Yours in the Lord\n \nRamaKrishna Math\n");
+        intent.putExtra(Intent.EXTRA_STREAM, pdfUri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        // Try Gmail directly for better UX
+        intent.setPackage("com.google.android.gm");
+
+        try {
+            startActivity(intent);
+        } catch (android.content.ActivityNotFoundException ex) {
+            // Fallback to chooser
+            intent.setPackage(null);
+            startActivity(Intent.createChooser(intent, "Send Receipt Email"));
+        }
     }
 
     private void shareReceiptViaWhatsApp(Uri pdfUri, String mobileNumber) {

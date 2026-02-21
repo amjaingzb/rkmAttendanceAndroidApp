@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.util.Locale;
 import android.util.Pair; // Import this
 
+
 public class DonationViewModel extends AndroidViewModel {
 
     private static final String TAG = "DonationViewModel";
@@ -34,8 +35,21 @@ public class DonationViewModel extends AndroidViewModel {
 
     // Receipt LiveData
     // The Pair will hold <FileUri, PhoneNumber>
-    private final MutableLiveData<Pair<Uri, String>> receiptResult = new MutableLiveData<>();
 
+
+    public enum ShareMode { WHATSAPP, EMAIL }
+
+    public static class ReceiptResult {
+        public final Uri uri;
+        public final String targetContact; // Phone for WA, Email for Email
+        public final ShareMode mode;
+
+        public ReceiptResult(Uri uri, String targetContact, ShareMode mode) {
+            this.uri = uri;
+            this.targetContact = targetContact;
+            this.mode = mode;
+        }
+    }
 
     public DonationViewModel(@NonNull Application application) {
         super(application);
@@ -46,7 +60,9 @@ public class DonationViewModel extends AndroidViewModel {
     public LiveData<AttendanceRepository.ActiveBatchData> getActiveBatchData() { return activeBatchData; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
     public LiveData<Boolean> getBatchClosedEvent() { return batchClosedEvent; }
-    public LiveData<Pair<Uri, String>> getReceiptResult() { return receiptResult; }
+    // Change Pair<Uri, String> to ReceiptResult
+    private final MutableLiveData<ReceiptResult> receiptResult = new MutableLiveData<>();
+    public LiveData<ReceiptResult> getReceiptResult() { return receiptResult; }
 
     public void loadOrRefreshActiveBatch() {
         new Thread(() -> {
@@ -112,7 +128,7 @@ public class DonationViewModel extends AndroidViewModel {
     }
 
     // --- NEW: Receipt Generation Logic ---
-    public void generateAndShareReceipt(android.content.Context context, long donationId) {
+    public void generateAndShareReceipt(android.content.Context context, long donationId, ShareMode mode) {
         new Thread(() -> {
             try {
                 FullDonationRecord record = repository.getRecordForReceipt(donationId);
@@ -121,14 +137,23 @@ public class DonationViewModel extends AndroidViewModel {
                     return;
                 }
 
+                // --- VALIDATION FOR EMAIL ---
+                String email = record.devotee.getEmail() != null ? record.devotee.getEmail().trim() : "";
+                if (mode == ShareMode.EMAIL) {
+                    if (email.isEmpty()) {
+                        errorMessage.postValue("Email ID not available/valid for this donor.");
+                        return;
+                    }
+                }
+                // ----------------------------
+
                 PdfReceiptGenerator generator = new PdfReceiptGenerator();
 
                 // Prepare Data
                 String receiptNo = record.donation.receiptNumber != null ? record.donation.receiptNumber : "TMP-" + donationId;
-                String date = record.donation.donationTimestamp.split(" ")[0]; // Just YYYY-MM-DD
+                String date = record.donation.donationTimestamp.split(" ")[0];
                 String donorName = record.devotee.getFullName();
                 String mobile = record.devotee.getMobileE164();
-                String email = record.devotee.getEmail() != null ? record.devotee.getEmail() : "";
 
                 String uin = "";
                 String idType = "";
@@ -143,19 +168,14 @@ public class DonationViewModel extends AndroidViewModel {
                 String amountFigs = String.format(Locale.US, "%.2f", record.donation.amount);
                 String amountWords = NumberToWords.convert(record.donation.amount);
                 String purpose = record.donation.purpose;
-                String mode = record.donation.paymentMethod;
+                String payMode = record.donation.paymentMethod;
                 String details = record.donation.referenceId != null ? "Ref: " + record.donation.referenceId : "";
 
-                // Get the mobile number from the record
-                String rawMobile = record.devotee.getMobileE164();
-
-                // Generate Byte Array
                 byte[] pdfBytes = generator.generatePdfReceipt(
                         receiptNo, date, donorName, mobile, email, uin, idType,
-                        amountFigs, amountWords, purpose, mode, details
+                        amountFigs, amountWords, purpose, payMode, details
                 );
 
-                // Save to File
                 File cachePath = new File(context.getCacheDir(), "receipts");
                 cachePath.mkdirs();
                 File file = new File(cachePath, receiptNo + ".pdf");
@@ -166,7 +186,10 @@ public class DonationViewModel extends AndroidViewModel {
                 Uri uri = androidx.core.content.FileProvider.getUriForFile(
                         context, context.getPackageName() + ".fileprovider", file);
 
-                receiptResult.postValue(new Pair<>(uri, rawMobile));
+                // Decide which contact info to pass back based on mode
+                String target = (mode == ShareMode.WHATSAPP) ? mobile : email;
+
+                receiptResult.postValue(new ReceiptResult(uri, target, mode));
 
             } catch (Exception e) {
                 AppLogger.e(TAG, "Receipt generation failed", e);

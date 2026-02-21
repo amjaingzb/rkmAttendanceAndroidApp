@@ -35,28 +35,29 @@ public class DonationActionsBottomSheetFragment extends BottomSheetDialogFragmen
         return inflater.inflate(R.layout.bottom_sheet_donation_actions, container, false);
     }
 
+
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
         long donationId = getArguments().getLong(KEY_DONATION_ID);
-
-        // Use requireActivity() to share the ViewModel with DonationActivity
         sharedViewModel = new ViewModelProvider(requireActivity()).get(DonationViewModel.class);
 
+        // Edit button is GONE in XML, but logic remains safe here
         view.findViewById(R.id.action_edit_donation).setOnClickListener(v -> sendResult("EDIT", donationId));
         view.findViewById(R.id.action_delete_donation).setOnClickListener(v -> sendResult("DELETE", donationId));
 
-        TextView receiptAction = view.findViewById(R.id.action_send_receipt);
+        // WhatsApp Option
+        view.findViewById(R.id.action_send_receipt).setOnClickListener(v -> {
+            Toast.makeText(getContext(), "Generating WhatsApp Receipt...", Toast.LENGTH_SHORT).show();
+            sharedViewModel.generateAndShareReceipt(requireContext(), donationId, DonationViewModel.ShareMode.WHATSAPP);
+            dismiss();
+        });
 
-        // ENABLE BUTTON AND SET TEXT
-        receiptAction.setEnabled(true);
-        receiptAction.setAlpha(1.0f);
-        receiptAction.setText("Generate & Share Receipt");
-
-        receiptAction.setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Generating Receipt...", Toast.LENGTH_SHORT).show();
-            sharedViewModel.generateAndShareReceipt(requireContext(), donationId);
+        // Email Option
+        view.findViewById(R.id.action_send_email_receipt).setOnClickListener(v -> {
+            Toast.makeText(getContext(), "Generating Email Receipt...", Toast.LENGTH_SHORT).show();
+            sharedViewModel.generateAndShareReceipt(requireContext(), donationId, DonationViewModel.ShareMode.EMAIL);
             dismiss();
         });
     }

@@ -6,6 +6,7 @@
     android:paddingTop="8dp"
     android:paddingBottom="8dp">
 
+    <!-- 1. HIDE EDIT DONATION -->
     <TextView
         android:id="@+id/action_edit_donation"
         style="@style/Widget.AppCompat.TextView.SpinnerItem"
@@ -15,8 +16,10 @@
         android:gravity="center_vertical"
         android:padding="16dp"
         android:text="Edit Donation"
-        android:background="?android:attr/selectableItemBackground"/>
+        android:background="?android:attr/selectableItemBackground"
+        android:visibility="gone"/>
 
+    <!-- 2. RENAME TO WHATSAPP RECEIPT -->
     <TextView
         android:id="@+id/action_send_receipt"
         style="@style/Widget.AppCompat.TextView.SpinnerItem"
@@ -25,7 +28,21 @@
         android:drawablePadding="16dp"
         android:gravity="center_vertical"
         android:padding="16dp"
-        android:text="Send Receipt (Phase 3)"
+        android:text="WhatsApp Receipt"
+        android:drawableStart="@drawable/ic_whatsapp_green"
+        android:background="?android:attr/selectableItemBackground"/>
+
+    <!-- 3. ADD EMAIL RECEIPT OPTION -->
+    <TextView
+        android:id="@+id/action_send_email_receipt"
+        style="@style/Widget.AppCompat.TextView.SpinnerItem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawablePadding="16dp"
+        android:gravity="center_vertical"
+        android:padding="16dp"
+        android:text="Email Receipt"
+        android:drawableStart="@drawable/ic_send"
         android:background="?android:attr/selectableItemBackground"/>
 
     <TextView
