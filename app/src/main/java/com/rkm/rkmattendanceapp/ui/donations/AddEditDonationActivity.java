@@ -147,10 +147,16 @@ public class AddEditDonationActivity extends AppCompatActivity {
 
     private void setupListeners() {
         paymentMethodRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
-            if (checkedId == R.id.radio_upi) {
-                upiRefLayout.setVisibility(View.VISIBLE);
-            } else {
+            if (checkedId == R.id.radio_cash) {
                 upiRefLayout.setVisibility(View.GONE);
+            } else {
+                upiRefLayout.setVisibility(View.VISIBLE);
+                // Dynamic Hint Change
+                if (checkedId == R.id.radio_upi) {
+                    upiRefLayout.setHint("UPI Reference ID*");
+                } else {
+                    upiRefLayout.setHint("Cheque Number*");
+                }
             }
         });
 
@@ -231,26 +237,40 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private void saveDonation() {
         String amountStr = amountEditText.getText().toString().trim();
         String purpose = purposeAutoComplete.getText().toString().trim();
-        String paymentMethod = paymentMethodRadioGroup.getCheckedRadioButtonId() == R.id.radio_upi ? "UPI" : "CASH";
-        String upiRef = upiRefEditText.getText().toString().trim();
+        String refId = upiRefEditText.getText().toString().trim();
+
+        // Determine Payment Method
+        int selectedId = paymentMethodRadioGroup.getCheckedRadioButtonId();
+        String paymentMethod;
+        if (selectedId == R.id.radio_upi) {
+            paymentMethod = "UPI";
+        } else if (selectedId == R.id.radio_cheque) {
+            paymentMethod = "CHEQUE";
+        } else {
+            paymentMethod = "CASH";
+        }
 
         if (TextUtils.isEmpty(amountStr) || Double.parseDouble(amountStr) <= 0) {
             Toast.makeText(this, "Please enter a valid amount.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // AUTO-FILL PURPOSE if empty
         if (TextUtils.isEmpty(purpose)) {
             purpose = purposes[0];
         }
 
-        if ("UPI".equals(paymentMethod) && TextUtils.isEmpty(upiRef)) {
-            Toast.makeText(this, "Please enter the UPI Reference ID.", Toast.LENGTH_SHORT).show();
+        // Validate Ref ID for both UPI and Cheque
+        if (!"CASH".equals(paymentMethod) && TextUtils.isEmpty(refId)) {
+            String errorMsg = "UPI".equals(paymentMethod) ? "Please enter the UPI Reference ID." : "Please enter the Cheque Number.";
+            Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show();
             return;
         }
 
         double amount = Double.parseDouble(amountStr);
-        viewModel.saveDonation(currentDevoteeId, amount, paymentMethod, "UPI".equals(paymentMethod) ? upiRef : null, purpose, currentBatchId);
+        // Pass refId only if not Cash
+        String finalRef = "CASH".equals(paymentMethod) ? null : refId;
+
+        viewModel.saveDonation(currentDevoteeId, amount, paymentMethod, finalRef, purpose, currentBatchId);
     }
 
     @Override

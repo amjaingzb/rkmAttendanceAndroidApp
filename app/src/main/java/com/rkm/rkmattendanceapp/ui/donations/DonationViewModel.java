@@ -186,7 +186,14 @@ public class DonationViewModel extends AndroidViewModel {
                 String amountWords = NumberToWords.convert(record.donation.amount);
                 String purpose = record.donation.purpose;
                 String payMode = record.donation.paymentMethod;
-                String details = record.donation.referenceId != null ? "Ref: " + record.donation.referenceId : "";
+                String details = "";
+                if (record.donation.referenceId != null && !record.donation.referenceId.isEmpty()) {
+                    String label = "Ref";
+                    if ("CHEQUE".equalsIgnoreCase(payMode)) {
+                        label = "Chq No";
+                    }
+                    details = label + ": " + record.donation.referenceId;
+                }
 
                 byte[] pdfBytes = generator.generatePdfReceipt(
                         receiptNo, date, donorName,address, mobile, email, uin, idType,
