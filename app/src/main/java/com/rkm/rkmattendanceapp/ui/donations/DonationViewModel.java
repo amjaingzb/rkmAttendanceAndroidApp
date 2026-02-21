@@ -20,6 +20,7 @@ import com.rkm.rkmattendanceapp.ui.reports.models.DonationReportModels.FullDonat
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.Locale;
+import android.util.Pair; // Import this
 
 public class DonationViewModel extends AndroidViewModel {
 
@@ -32,7 +33,9 @@ public class DonationViewModel extends AndroidViewModel {
     private final MutableLiveData<Boolean> batchClosedEvent = new MutableLiveData<>(false);
 
     // Receipt LiveData
-    private final MutableLiveData<Uri> receiptUri = new MutableLiveData<>();
+    // The Pair will hold <FileUri, PhoneNumber>
+    private final MutableLiveData<Pair<Uri, String>> receiptResult = new MutableLiveData<>();
+
 
     public DonationViewModel(@NonNull Application application) {
         super(application);
@@ -43,7 +46,7 @@ public class DonationViewModel extends AndroidViewModel {
     public LiveData<AttendanceRepository.ActiveBatchData> getActiveBatchData() { return activeBatchData; }
     public LiveData<String> getErrorMessage() { return errorMessage; }
     public LiveData<Boolean> getBatchClosedEvent() { return batchClosedEvent; }
-    public LiveData<Uri> getReceiptUri() { return receiptUri; }
+    public LiveData<Pair<Uri, String>> getReceiptResult() { return receiptResult; }
 
     public void loadOrRefreshActiveBatch() {
         new Thread(() -> {
@@ -143,6 +146,9 @@ public class DonationViewModel extends AndroidViewModel {
                 String mode = record.donation.paymentMethod;
                 String details = record.donation.referenceId != null ? "Ref: " + record.donation.referenceId : "";
 
+                // Get the mobile number from the record
+                String rawMobile = record.devotee.getMobileE164();
+
                 // Generate Byte Array
                 byte[] pdfBytes = generator.generatePdfReceipt(
                         receiptNo, date, donorName, mobile, email, uin, idType,
@@ -160,7 +166,7 @@ public class DonationViewModel extends AndroidViewModel {
                 Uri uri = androidx.core.content.FileProvider.getUriForFile(
                         context, context.getPackageName() + ".fileprovider", file);
 
-                receiptUri.postValue(uri);
+                receiptResult.postValue(new Pair<>(uri, rawMobile));
 
             } catch (Exception e) {
                 AppLogger.e(TAG, "Receipt generation failed", e);
@@ -169,5 +175,5 @@ public class DonationViewModel extends AndroidViewModel {
         }).start();
     }
 
-    public void onReceiptHandled() { receiptUri.setValue(null); }
+    public void onReceiptHandled() { receiptResult.setValue(null); }
 }

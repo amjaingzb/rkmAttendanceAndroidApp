@@ -211,24 +211,59 @@ public class DonationActivity extends AppCompatActivity {
         });
         viewModel.getErrorMessage().observe(this, error -> { if (error != null && !error.isEmpty()) { Toast.makeText(this, error, Toast.LENGTH_LONG).show(); } });
 
-        viewModel.getReceiptUri().observe(this, uri -> {
-            if (uri != null) {
-                Intent intent = new Intent(Intent.ACTION_SEND);
-                intent.setType("application/pdf");
-                intent.putExtra(Intent.EXTRA_STREAM, uri);
-                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                intent.setPackage("com.whatsapp"); // Try WhatsApp first
+        viewModel.getReceiptResult().observe(this, result -> {
+            if (result != null) {
+                Uri pdfUri = result.first;
+                String mobileNumber = result.second;
 
-                try {
-                    startActivity(intent);
-                } catch (Exception e) {
-                    // Fallback if WhatsApp not installed
-                    intent.setPackage(null);
-                    startActivity(Intent.createChooser(intent, "Share Receipt Via"));
-                }
+                shareReceiptViaWhatsApp(pdfUri, mobileNumber);
+
                 viewModel.onReceiptHandled();
             }
         });
+
+    }
+
+    private void shareReceiptViaWhatsApp(Uri pdfUri, String mobileNumber) {
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("application/pdf");
+        intent.putExtra(Intent.EXTRA_STREAM, pdfUri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.setPackage("com.whatsapp");
+
+        // --- THE MAGIC LOGIC ---
+        if (mobileNumber != null && !mobileNumber.isEmpty()) {
+            try {
+                // 1. Clean the number (remove spaces, dashes, plus signs)
+                String cleanNumber = mobileNumber.replaceAll("[^0-9]", "");
+
+                // 2. Ensure Country Code (Assuming India '91' for RKM Halasuru if missing)
+                if (cleanNumber.length() == 10) {
+                    cleanNumber = "91" + cleanNumber;
+                }
+
+                // 3. Use the 'jid' extra.
+                // "jid" stands for Jabber ID, which is the protocol WhatsApp is built on.
+                // Format: countrycode+phonenumber + "@s.whatsapp.net"
+                String jid = cleanNumber + "@s.whatsapp.net";
+
+                intent.putExtra("jid", jid);
+
+                // Note: "jid" is preferred over "address" or "phone" for file sharing intents
+            } catch (Exception e) {
+                // If number formatting fails, it will just default to contact picker
+                AppLogger.e(TAG, "Error formatting mobile for WhatsApp", e);
+            }
+        }
+        // -----------------------
+
+        try {
+            startActivity(intent);
+        } catch (android.content.ActivityNotFoundException ex) {
+            Toast.makeText(this, "WhatsApp is not installed.", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Error launching WhatsApp.", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void updateBatchUi(AttendanceRepository.ActiveBatchData data) {
