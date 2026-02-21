@@ -1,5 +1,7 @@
 package com.rkm.rkmattendanceapp.util;
 
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -12,6 +14,13 @@ import android.text.TextPaint;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+import kotlinx.coroutines.channels.ActorKt;
+
 public class PdfReceiptGenerator {
 
     public static class GenerationException extends Exception {
@@ -20,7 +29,55 @@ public class PdfReceiptGenerator {
         }
     }
 
+    Bitmap logo , sign ;
+
+    public PdfReceiptGenerator(Bitmap logo, Bitmap sign) {
+        this.logo=logo;
+        this.sign=sign;
+    }
+
     public byte[] generatePdfReceipt(
+            String receiptNo,
+            String date,
+            String donorName,
+            String mobileNum,
+            String emailID,
+            String UIN,
+            String IDType,
+            String amountFigures,
+            String amountWords,
+            String purpose,
+            String txnMode,
+            String txnModeDetails
+    ) throws GenerationException, IOException {
+        try {
+
+
+
+            // Initialize the generator
+            ReceiptGenerator generator = new NativePdfReceiptGenerator(logo, sign);
+
+            // Generate the PDF data
+            byte[] pdfData = generator.generatePdfReceipt(
+                    "RDB1003", "30-Sep-25", "RAHUL SHARMA, FLAT 402, INDIRANAGAR, BENGALURU",
+                    "9876543210", "rahul@example.com", "AFBPJ7070B", "PAN",
+                    "1,00,000.00", "Indian Rupees One Lakh Only",
+                    "FUND LAND AND BUILDING", "Electronic Transfer", "TXN123456"
+            );
+
+            // Write bytes to file
+            try (FileOutputStream fos = new FileOutputStream("Final_Receipt.pdf")) {
+                fos.write(pdfData);
+            }
+
+            System.out.println("Interface implementation successful!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public byte[] generatePdfReceipt_Amit(
             String receiptNo,
             String date,
             String donorName,

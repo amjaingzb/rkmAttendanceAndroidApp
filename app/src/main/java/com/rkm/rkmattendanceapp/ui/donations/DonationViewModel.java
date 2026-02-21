@@ -1,6 +1,8 @@
 package com.rkm.rkmattendanceapp.ui.donations;
 
 import android.app.Application;
+import android.content.res.AssetManager;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -11,6 +13,8 @@ import com.rkm.attendance.model.Devotee;
 import com.rkm.attendance.model.Donation;
 import com.rkm.rkmattendanceapp.AttendanceApplication;
 import com.rkm.rkmattendanceapp.util.AppLogger;
+
+import java.io.InputStream;
 import java.util.List;
 
 // New imports for Receipt generation
@@ -36,6 +40,7 @@ public class DonationViewModel extends AndroidViewModel {
     // Receipt LiveData
     // The Pair will hold <FileUri, PhoneNumber>
 
+    private Bitmap logo , sign ;
 
     public enum ShareMode { WHATSAPP, EMAIL }
 
@@ -69,6 +74,30 @@ public class DonationViewModel extends AndroidViewModel {
             try {
                 AttendanceRepository.ActiveBatchData data = repository.getActiveDonationBatchOrCreateNew();
                 activeBatchData.postValue(data);
+            } catch (Exception e) {
+                AppLogger.e(TAG, "Failed to load active batch data", e);
+                errorMessage.postValue("Failed to load active batch.");
+            }
+        }).start();
+    }
+
+    public void loadAssets() {
+        new Thread(() -> {
+            try {
+                AssetManager assetManager = getApplication().getAssets();
+                
+
+
+                // 2. Open the file and read bytes
+                InputStream is = assetManager.open("logo.jpeg");
+                logo = new byte[is.available()];
+                is.read(logo);
+                is.close();
+
+                InputStream isSign = assetManager.open("sign.png");
+                sign = new byte[isSign.available()];
+                isSign.read(sign);
+                isSign.close();
             } catch (Exception e) {
                 AppLogger.e(TAG, "Failed to load active batch data", e);
                 errorMessage.postValue("Failed to load active batch.");
@@ -147,7 +176,7 @@ public class DonationViewModel extends AndroidViewModel {
                 }
                 // ----------------------------
 
-                PdfReceiptGenerator generator = new PdfReceiptGenerator();
+                PdfReceiptGenerator generator = new PdfReceiptGenerator(logo,sign);
 
                 // Prepare Data
                 String receiptNo = record.donation.receiptNumber != null ? record.donation.receiptNumber : "TMP-" + donationId;
