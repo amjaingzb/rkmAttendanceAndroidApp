@@ -198,4 +198,10 @@ public class AttendanceRepository {
     }
     }
     // --- END: ALL OTHER EXISTING METHODS ---
+// ... inside AttendanceRepository class
+
+    // Fetch a single donation record joined with devotee data
+    public DonationReportModels.FullDonationRecord getRecordForReceipt(long donationId) {
+        return donationDao.getFullRecordById(donationId);
+    }
 }

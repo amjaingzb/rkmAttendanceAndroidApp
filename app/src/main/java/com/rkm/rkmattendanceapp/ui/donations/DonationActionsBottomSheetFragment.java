@@ -1,12 +1,14 @@
-// In: app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/DonationActionsBottomSheetFragment.java
 package com.rkm.rkmattendanceapp.ui.donations;
 
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.ViewModelProvider;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.rkm.rkmattendanceapp.R;
 
@@ -16,6 +18,8 @@ public class DonationActionsBottomSheetFragment extends BottomSheetDialogFragmen
     public static final String REQUEST_KEY = "donation_action_request";
     public static final String KEY_ACTION = "selected_action";
     public static final String KEY_DONATION_ID = "donation_id";
+
+    private DonationViewModel sharedViewModel;
 
     public static DonationActionsBottomSheetFragment newInstance(long donationId) {
         Bundle args = new Bundle();
@@ -37,13 +41,24 @@ public class DonationActionsBottomSheetFragment extends BottomSheetDialogFragmen
 
         long donationId = getArguments().getLong(KEY_DONATION_ID);
 
+        // Use requireActivity() to share the ViewModel with DonationActivity
+        sharedViewModel = new ViewModelProvider(requireActivity()).get(DonationViewModel.class);
+
         view.findViewById(R.id.action_edit_donation).setOnClickListener(v -> sendResult("EDIT", donationId));
         view.findViewById(R.id.action_delete_donation).setOnClickListener(v -> sendResult("DELETE", donationId));
 
-        // Disable "Send Receipt" for now
-        View receiptAction = view.findViewById(R.id.action_send_receipt);
-        receiptAction.setEnabled(false);
-        receiptAction.setAlpha(0.5f);
+        TextView receiptAction = view.findViewById(R.id.action_send_receipt);
+
+        // ENABLE BUTTON AND SET TEXT
+        receiptAction.setEnabled(true);
+        receiptAction.setAlpha(1.0f);
+        receiptAction.setText("Generate & Share Receipt");
+
+        receiptAction.setOnClickListener(v -> {
+            Toast.makeText(getContext(), "Generating Receipt...", Toast.LENGTH_SHORT).show();
+            sharedViewModel.generateAndShareReceipt(requireContext(), donationId);
+            dismiss();
+        });
     }
 
     private void sendResult(String action, long donationId) {

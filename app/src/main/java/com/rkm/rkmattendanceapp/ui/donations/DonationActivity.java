@@ -210,6 +210,25 @@ public class DonationActivity extends AppCompatActivity {
             }
         });
         viewModel.getErrorMessage().observe(this, error -> { if (error != null && !error.isEmpty()) { Toast.makeText(this, error, Toast.LENGTH_LONG).show(); } });
+
+        viewModel.getReceiptUri().observe(this, uri -> {
+            if (uri != null) {
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.setType("application/pdf");
+                intent.putExtra(Intent.EXTRA_STREAM, uri);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                intent.setPackage("com.whatsapp"); // Try WhatsApp first
+
+                try {
+                    startActivity(intent);
+                } catch (Exception e) {
+                    // Fallback if WhatsApp not installed
+                    intent.setPackage(null);
+                    startActivity(Intent.createChooser(intent, "Share Receipt Via"));
+                }
+                viewModel.onReceiptHandled();
+            }
+        });
     }
 
     private void updateBatchUi(AttendanceRepository.ActiveBatchData data) {

@@ -3,4 +3,8 @@
     <cache-path
         name="shared_csv"
         path="exports/" />
+    <!-- ADD THIS -->
+    <cache-path
+        name="receipts"
+        path="receipts/" />
 </paths>
