@@ -20,11 +20,13 @@ public class DonationDao {
     public static class BatchSummary {
         public final double totalCash;
         public final double totalUpi;
+        public final double totalCheque; // ADD THIS
         public final int donationCount;
 
-        public BatchSummary(double totalCash, double totalUpi, int donationCount) {
+        public BatchSummary(double totalCash, double totalUpi, double totalCheque, int donationCount) {
             this.totalCash = totalCash;
             this.totalUpi = totalUpi;
+            this.totalCheque = totalCheque; // ASSIGN THIS
             this.donationCount = donationCount;
         }
     }
@@ -87,8 +89,9 @@ public class DonationDao {
         String[] args = new String[]{String.valueOf(batchId)};
         double totalCash = simpleQueryForDouble("SELECT SUM(amount) FROM donations WHERE batch_id = ? AND payment_method = 'CASH'", args);
         double totalUpi = simpleQueryForDouble("SELECT SUM(amount) FROM donations WHERE batch_id = ? AND payment_method = 'UPI'", args);
+        double totalCheque = simpleQueryForDouble("SELECT SUM(amount) FROM donations WHERE batch_id = ? AND payment_method = 'CHEQUE'", args);
         int count = (int) simpleQueryForLong("SELECT COUNT(*) FROM donations WHERE batch_id = ?", args);
-        return new BatchSummary(totalCash, totalUpi, count);
+        return new BatchSummary(totalCash, totalUpi, totalCheque, count);
     }
 
     private Donation fromCursor(Cursor cursor) {

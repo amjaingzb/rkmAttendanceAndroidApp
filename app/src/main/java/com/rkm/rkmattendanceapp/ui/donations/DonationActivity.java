@@ -296,8 +296,8 @@ public class DonationActivity extends AppCompatActivity {
         LocalDateTime startTime = LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         batchStartTimeText.setText(getString(R.string.batch_start_time_format, timeFormatter.format(startTime)));
         batchCashText.setText(currencyFormatter.format(data.summary.totalCash));
-        batchUpiText.setText(currencyFormatter.format(data.summary.totalUpi));
-        batchTotalText.setText(currencyFormatter.format(data.summary.totalCash + data.summary.totalUpi));
+        batchUpiText.setText(currencyFormatter.format(data.summary.totalUpi+ data.summary.totalCheque));
+        batchTotalText.setText(currencyFormatter.format(data.summary.totalCash + data.summary.totalUpi + data.summary.totalCheque));
         donationAdapter.setDonations(data.donations);
         listHeaderTextView.setVisibility(data.donations.isEmpty() ? View.GONE : View.VISIBLE);
         listHeaderTextView.setText("Donations in this Batch (" + data.donations.size() + ")");
@@ -373,7 +373,24 @@ public class DonationActivity extends AppCompatActivity {
 
             String today = DateTimeFormatter.ofPattern("dd MMM, yyyy").format(LocalDateTime.now());
             String subject = String.format("Donation Collection Summary: Batch #%d (%s)", data.batch.batchId, today);
-            String body = "Donation Collection Summary\n" + "-----------------------------------\n" + "Batch ID: " + data.batch.batchId + "\n" + "Date: " + today + "\n" + "Collection Period: " + timeFormatter.format(LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))) + " - " + timeFormatter.format(LocalDateTime.now()) + "\n" + "Collected By: Donation Collector\n" + "-----------------------------------\n" + "Total Donations: " + data.summary.donationCount + "\n" + "Cash Collected: " + currencyFormatter.format(data.summary.totalCash) + "\n" + "UPI Collected: " + currencyFormatter.format(data.summary.totalUpi) + "\n" + "-----------------------------------\n" + "Grand Total: " + currencyFormatter.format(data.summary.totalCash + data.summary.totalUpi) + "\n" + "-----------------------------------\n\n" + "Detailed transaction list is attached.\n\n" + "This is an auto-generated email from the SevaConnect Halasuru app.";
+            double grandTotal = data.summary.totalCash + data.summary.totalUpi + data.summary.totalCheque;
+            String body = "Donation Collection Summary\n" +
+                    "-----------------------------------\n" +
+                    "Batch ID: " + data.batch.batchId + "\n" +
+                    "Date: " + today + "\n" +
+                    "Collection Period: " + timeFormatter.format(LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))) + " - " + timeFormatter.format(LocalDateTime.now()) + "\n" +
+                    "Collected By: Donation Collector\n" +
+                    "-----------------------------------\n" +
+                    "Total Donations: " + data.summary.donationCount + "\n" +
+                    "Cash Collected: " + currencyFormatter.format(data.summary.totalCash) + "\n" +
+                    "UPI Collected: " + currencyFormatter.format(data.summary.totalUpi) + "\n" +
+                    "Cheque Collected: " + currencyFormatter.format(data.summary.totalCheque) + "\n" + // NEW LINE
+                    "-----------------------------------\n" +
+                    "Grand Total: " + currencyFormatter.format(grandTotal) + "\n" +
+                    "-----------------------------------\n\n" +
+                    "Detailed transaction list is attached.\n\n" +
+                    "This is an auto-generated email from the SevaConnect Halasuru app.";
+
 
             // --- START OF DEFINITIVE FIX ---
             // Use the robust ACTION_SEND intent, which is designed for attachments.

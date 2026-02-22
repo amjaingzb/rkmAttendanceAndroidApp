@@ -55,7 +55,7 @@
                     <TextView android:id="@+id/text_batch_cash" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="₹2,200.00" android:textSize="18sp" android:textStyle="bold" android:textColor="?android:attr/textColorPrimary"/>
                 </LinearLayout>
                 <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="center_horizontal">
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UPI" android:textSize="14sp" android:textColor="?android:attr/textColorSecondary"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="UPI/Cheque" android:textSize="14sp" android:textColor="?android:attr/textColorSecondary"/>
                     <TextView android:id="@+id/text_batch_upi" android:layout_width="wrap_content" android:layout_height="wrap_content" tools:text="₹0.00" android:textSize="18sp" android:textStyle="bold" android:textColor="?android:attr/textColorPrimary"/>
                 </LinearLayout>
                  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:gravity="end">
