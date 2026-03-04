@@ -204,9 +204,10 @@
             android:visibility="gone"
             tools:visibility="visible">
 
+            <!-- Using .Dense to reduce bloating -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/layout_bank_name"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1.2"
@@ -218,12 +219,16 @@
                     android:id="@+id/autocomplete_bank_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="textCapWords" />
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp"
+                    android:inputType="textCapWords"
+                    android:textSize="16sp" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Match the style here as well -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/layout_upi_ref"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -233,13 +238,16 @@
                     android:id="@+id/edit_text_upi_ref"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:inputType="text" />
+                    android:paddingTop="12dp"
+                    android:paddingBottom="12dp"
+                    android:inputType="text"
+                    android:textSize="16sp" />
             </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layout_purpose"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"

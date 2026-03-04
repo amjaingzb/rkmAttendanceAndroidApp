@@ -131,7 +131,19 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private void setupBankAutoComplete() {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, banks);
         bankAutoComplete.setAdapter(adapter);
+
+        // 1. Force dropdown on Click
         bankAutoComplete.setOnClickListener(v -> bankAutoComplete.showDropDown());
+
+        // 2. Force dropdown on Focus (This fixes the 1st touch issue)
+        bankAutoComplete.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                bankAutoComplete.showDropDown();
+            }
+        });
+
+        // 3. Optional but helpful: Ensure list shows even if 0 characters typed
+        bankAutoComplete.setThreshold(1);
     }
 
     private void setupPurposeAutoComplete() {
