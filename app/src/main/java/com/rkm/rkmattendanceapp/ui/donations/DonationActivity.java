@@ -71,6 +71,8 @@ public class DonationActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> addDevoteeLauncher, addDonationLauncher,emailLauncher;
     
     private Long activeBatchId = null;
+    private Integer activeBatchSequence = null; // NEW: Track the display number
+
     private final NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.US);
 
@@ -291,8 +293,9 @@ public class DonationActivity extends AppCompatActivity {
     }
 
     private void updateBatchUi(AttendanceRepository.ActiveBatchData data) {
-        this.activeBatchId = data.batch.batchId;
-        batchTitleText.setText(getString(R.string.batch_title_format, data.batch.batchId));
+        this.activeBatchId = data.batch.batchId; // Keep the real DB ID for logic
+        this.activeBatchSequence = data.batch.dailySequence; // Store sequence
+        batchTitleText.setText(getString(R.string.batch_title_format, data.batch.dailySequence));
         LocalDateTime startTime = LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         batchStartTimeText.setText(getString(R.string.batch_start_time_format, timeFormatter.format(startTime)));
         batchCashText.setText(currencyFormatter.format(data.summary.totalCash));
@@ -332,8 +335,8 @@ public class DonationActivity extends AppCompatActivity {
         listHeaderTextView.setVisibility(View.GONE);
         searchControlsLayout.setVisibility(View.GONE);
         batchClosedLayout.setVisibility(View.VISIBLE);
-        if (activeBatchId != null) {
-            batchClosedMessageText.setText(String.format(Locale.US, "Batch #%d successfully closed.\nThank you.", activeBatchId));
+        if (activeBatchSequence != null) {
+            batchClosedMessageText.setText(String.format(Locale.US, "Batch #%d successfully closed.\nThank you.", activeBatchSequence));
         } else {
             batchClosedMessageText.setText("Batch successfully closed.\nThank you.");
         }
@@ -369,14 +372,14 @@ public class DonationActivity extends AppCompatActivity {
         try {
             CsvExporter exporter = new CsvExporter();
             String authority = getApplication().getPackageName() + ".fileprovider";
-            Uri csvUri = exporter.exportDonationsForBatch(this, data.batch.batchId, data.donations, authority);
+            Uri csvUri = exporter.exportDonationsForBatch(this, data.batch.batchId, data.batch.dailySequence, data.donations, authority);
 
             String today = DateTimeFormatter.ofPattern("dd MMM, yyyy").format(LocalDateTime.now());
-            String subject = String.format("Donation Collection Summary: Batch #%d (%s)", data.batch.batchId, today);
+            String subject = String.format("Donation Collection Summary: Batch #%d (%s)", data.batch.dailySequence, today);
             double grandTotal = data.summary.totalCash + data.summary.totalUpi + data.summary.totalCheque;
             String body = "Donation Collection Summary\n" +
                     "-----------------------------------\n" +
-                    "Batch ID: " + data.batch.batchId + "\n" +
+                    "Batch ID: " + data.batch.dailySequence + "\n" +
                     "Date: " + today + "\n" +
                     "Collection Period: " + timeFormatter.format(LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))) + " - " + timeFormatter.format(LocalDateTime.now()) + "\n" +
                     "Collected By: Donation Collector\n" +

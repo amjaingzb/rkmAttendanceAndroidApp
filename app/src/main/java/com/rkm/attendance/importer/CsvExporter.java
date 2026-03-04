@@ -54,7 +54,7 @@ public class CsvExporter {
                     record.donation.referenceId,
                     record.donation.purpose,
                     record.donation.receiptNumber,
-                    String.valueOf(record.donation.batchId)
+                    String.valueOf(record.donation.batchSequence)
                 };
                 writer.writeNext(data);
             }
@@ -62,7 +62,7 @@ public class CsvExporter {
         return FileProvider.getUriForFile(context, fileProviderAuthority, file);
     }
 
-    public Uri exportDonationsForBatch(Context context, long batchId, List<DonationRecord> donations, String fileProviderAuthority) throws Exception {
+    public Uri exportDonationsForBatch(Context context, long batchId, int dailySequence, List<DonationRecord> donations, String fileProviderAuthority) throws Exception {
         File exportDir = new File(context.getCacheDir(), "exports");
         if (!exportDir.exists()) exportDir.mkdirs();
         
@@ -85,7 +85,7 @@ public class CsvExporter {
                     record.donation.referenceId,
                     record.donation.purpose,
                     record.donation.receiptNumber,
-                    String.valueOf(record.donation.batchId)
+                    String.valueOf(dailySequence)
                 };
                 writer.writeNext(data);
             }
