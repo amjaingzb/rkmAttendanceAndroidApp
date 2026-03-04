@@ -1,0 +1,171 @@
+diff --git a/app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationActivity.java b/app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationActivity.java
+index 9443b23..2564a78 100644
+--- a/app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationActivity.java
++++ b/app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationActivity.java
+@@ -46,9 +46,9 @@ public class AddEditDonationActivity extends AppCompatActivity {
+     private ImageButton editDevoteeButton;
+     private LinearLayout donorIdLayout;
+     private EditText amountEditText, upiRefEditText;
+-    private AutoCompleteTextView purposeAutoComplete;
++    private AutoCompleteTextView purposeAutoComplete, bankAutoComplete;
+     private RadioGroup paymentMethodRadioGroup;
+-    private TextInputLayout upiRefLayout;
++    private TextInputLayout upiRefLayout, bankNameLayout, paymentExtraDetailsContainer;
+     
+     private ActivityResultLauncher<Intent> editDevoteeLauncher;
+     private MenuItem saveDonationMenuItem;
+@@ -57,6 +57,7 @@ public class AddEditDonationActivity extends AppCompatActivity {
+     private Button skipDetailsButton;
+     private boolean isDetailsSkipped = false;
+     private final String[] purposes = {"General Donation","Sadhu Seva", "Math Activities", "Bhandara" };
++    private final String[] banks = {"Axis", "BOB", "Bandhan", "Canara", "CUB", "Federal", "HDFC", "ICICI", "IDBI", "IDFC First", "Indian Bank", "IndusInd", "IOB", "KBL", "Kotak", "PNB", "RBL", "SBI", "South Indian", "Union"};
+ 
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+@@ -82,6 +83,7 @@ public class AddEditDonationActivity extends AppCompatActivity {
+         setupLauncher();
+         bindViews();
+         setupPurposeAutoComplete();
++        setupBankAutoComplete();
+         setupListeners();
+ 
+         viewModel = new ViewModelProvider(this).get(AddEditDonationViewModel.class);
+@@ -116,10 +118,21 @@ public class AddEditDonationActivity extends AppCompatActivity {
+         upiRefEditText = findViewById(R.id.edit_text_upi_ref);
+         purposeAutoComplete = findViewById(R.id.autocomplete_purpose);
+         paymentMethodRadioGroup = findViewById(R.id.radio_group_payment_method);
++        
+         upiRefLayout = findViewById(R.id.layout_upi_ref);
++        bankNameLayout = findViewById(R.id.layout_bank_name);
++        paymentExtraDetailsContainer = findViewById(R.id.layout_payment_extra_details);
++        bankAutoComplete = findViewById(R.id.autocomplete_bank_name);
++        
+         skipDetailsButton = findViewById(R.id.button_skip_details);
+     }
+ 
++    private void setupBankAutoComplete() {
++        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, banks);
++        bankAutoComplete.setAdapter(adapter);
++        bankAutoComplete.setOnClickListener(v -> bankAutoComplete.showDropDown());
++    }
++
+     private void setupPurposeAutoComplete() {
+         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, purposes);
+         purposeAutoComplete.setAdapter(adapter);
+@@ -136,12 +149,14 @@ public class AddEditDonationActivity extends AppCompatActivity {
+     private void setupListeners() {
+         paymentMethodRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+             if (checkedId == R.id.radio_cash) {
+-                upiRefLayout.setVisibility(View.GONE);
++                paymentExtraDetailsContainer.setVisibility(View.GONE);
+             } else {
+-                upiRefLayout.setVisibility(View.VISIBLE);
++                paymentExtraDetailsContainer.setVisibility(View.VISIBLE);
+                 if (checkedId == R.id.radio_upi) {
++                    bankNameLayout.setVisibility(View.GONE);
+                     upiRefLayout.setHint("UPI Reference ID*");
+                 } else {
++                    bankNameLayout.setVisibility(View.VISIBLE);
+                     upiRefLayout.setHint("Cheque Number*");
+                 }
+             }
+@@ -251,6 +266,23 @@ public class AddEditDonationActivity extends AppCompatActivity {
+         else if (selectedId == R.id.radio_cheque) { paymentMethod = "CHEQUE"; } 
+         else { paymentMethod = "CASH"; }
+ 
++        // Bank and Ref logic
++        String bankName = bankAutoComplete.getText().toString().trim();
++        if ("CHEQUE".equals(paymentMethod)) {
++            if (TextUtils.isEmpty(bankName)) {
++                Toast.makeText(this, "Please select or enter the Bank Name.", Toast.LENGTH_SHORT).show();
++                return;
++            }
++            if (TextUtils.isEmpty(refId)) {
++                Toast.makeText(this, "Please enter the Cheque Number.", Toast.LENGTH_SHORT).show();
++                return;
++            }
++            refId = bankName + "#" + refId;
++        } else if ("UPI".equals(paymentMethod) && TextUtils.isEmpty(refId)) {
++            Toast.makeText(this, "Please enter the UPI Reference ID.", Toast.LENGTH_SHORT).show();
++            return;
++        }
++
+         if (TextUtils.isEmpty(amountStr) || Double.parseDouble(amountStr) <= 0) {
+             Toast.makeText(this, "Please enter a valid amount.", Toast.LENGTH_SHORT).show();
+             return;
+@@ -258,12 +290,6 @@ public class AddEditDonationActivity extends AppCompatActivity {
+ 
+         if (TextUtils.isEmpty(purpose)) { purpose = purposes[0]; }
+ 
+-        if (!"CASH".equals(paymentMethod) && TextUtils.isEmpty(refId)) {
+-            String errorMsg = "UPI".equals(paymentMethod) ? "Please enter the UPI Reference ID." : "Please enter the Cheque Number.";
+-            Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show();
+-            return;
+-        }
+-
+         double amount = Double.parseDouble(amountStr);
+         String finalRef = "CASH".equals(paymentMethod) ? null : refId;
+         viewModel.saveDonation(currentDevoteeId, amount, paymentMethod, finalRef, purpose, currentBatchId);
+diff --git a/app/src/main/res/layout/activity_add_edit_donation.xml b/app/src/main/res/layout/activity_add_edit_donation.xml
+index 45284ed..f1a07d7 100644
+--- a/app/src/main/res/layout/activity_add_edit_donation.xml
++++ b/app/src/main/res/layout/activity_add_edit_donation.xml
+@@ -194,23 +194,48 @@
+                 android:text="Cheque" />
+ 
+         </RadioGroup>
+-
+-        <com.google.android.material.textfield.TextInputLayout
+-            android:id="@+id/layout_upi_ref"
+-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
++        <LinearLayout
++            android:id="@+id/layout_payment_extra_details"
+             android:layout_width="match_parent"
+             android:layout_height="wrap_content"
+             android:layout_marginTop="8dp"
+-            android:hint="UPI Reference ID*"
++            android:orientation="horizontal"
++            android:baselineAligned="false"
+             android:visibility="gone"
+             tools:visibility="visible">
+ 
+-            <com.google.android.material.textfield.TextInputEditText
+-                android:id="@+id/edit_text_upi_ref"
+-                android:layout_width="match_parent"
++            <com.google.android.material.textfield.TextInputLayout
++                android:id="@+id/layout_bank_name"
++                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
++                android:layout_width="0dp"
+                 android:layout_height="wrap_content"
+-                android:inputType="text" />
+-        </com.google.android.material.textfield.TextInputLayout>
++                android:layout_weight="1.2"
++                android:layout_marginEnd="4dp"
++                android:hint="Bank Name*"
++                android:visibility="gone">
++
++                <AutoCompleteTextView
++                    android:id="@+id/autocomplete_bank_name"
++                    android:layout_width="match_parent"
++                    android:layout_height="wrap_content"
++                    android:inputType="textCapWords" />
++            </com.google.android.material.textfield.TextInputLayout>
++
++            <com.google.android.material.textfield.TextInputLayout
++                android:id="@+id/layout_upi_ref"
++                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
++                android:layout_width="0dp"
++                android:layout_height="wrap_content"
++                android:layout_weight="1"
++                android:hint="Ref ID*">
++
++                <com.google.android.material.textfield.TextInputEditText
++                    android:id="@+id/edit_text_upi_ref"
++                    android:layout_width="match_parent"
++                    android:layout_height="wrap_content"
++                    android:inputType="text" />
++            </com.google.android.material.textfield.TextInputLayout>
++        </LinearLayout>
+ 
+         <com.google.android.material.textfield.TextInputLayout
+             android:id="@+id/layout_purpose"
