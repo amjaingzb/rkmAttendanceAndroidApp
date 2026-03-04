@@ -27,3 +27,14 @@
  2002  vim
  2003  mv delme-error\=tmpPad.txt delme-error-tmpPad.txt 
  2004  vim delme-error-tmpPad.txt 
+ 1996  npx
+ 2000  npx repomix --list-files > project_map.txt
+ 2004  npx repomix --list-files > project_map.txt
+ 2005  npx repomix --top-files-len 0 --output project_map.md
+ 2007  npx repomix --no-files --output project_map.md
+ 2019  npx repomix --no-files --output project_map.md
+ 2021  npx repomix --no-files --output project_map.md
+ 2022  npx repomix --include "app/src/main/java/com/rkm/attendance/db/DonationDao.java,app/src/main/java/com/rkm/attendance/importer/CsvExporter.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/DonationViewModel.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/reports/ReportDonationViewModel.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationActivity.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationViewModel.java,app/src/main/java/com/rkm/attendance/model/Donation.java" --output surgery_files.md
+ 2023  npx repomix --include "app/src/main/java/com/rkm/attendance/db/DonationDao.java,app/src/main/java/com/rkm/attendance/importer/CsvExporter.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/DonationViewModel.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/reports/ReportDonationViewModel.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationActivity.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationViewModel.java,app/src/main/java/com/rkm/attendance/model/Donation.java,app/src/main/res/layout/activity_add_edit_donation.xml" --output surgery_files.md
+ 2026  history  | grep npx 
+ 2027  history  | grep npx >> cmds-history.txt 
