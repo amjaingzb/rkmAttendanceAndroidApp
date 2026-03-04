@@ -48,7 +48,6 @@ google-services.json
 delme*
 
 #repomix files"
-surgery_files.md
-project_map.md
-project_map.txt
+repomix_*
 
+ai_studio_code.sh

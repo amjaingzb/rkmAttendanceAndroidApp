@@ -1,4 +1,3 @@
-// In: app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationViewModel.java
 package com.rkm.rkmattendanceapp.ui.donations;
 
 import android.app.Application;
@@ -43,6 +42,18 @@ public class AddEditDonationViewModel extends AndroidViewModel {
     public void saveDonation(long devoteeId, double amount, String paymentMethod, String refId, String purpose, long batchId) {
         new Thread(() -> {
             try {
+                // Final safety check for KYC requirements (Amount > 2000)
+                Devotee d = repository.getDevoteeById(devoteeId);
+                boolean hasKyc = d != null && 
+                                 (d.getAddress() != null && !d.getAddress().trim().isEmpty()) && 
+                                 ((d.getPan() != null && !d.getPan().trim().isEmpty()) || 
+                                  (d.getAadhaar() != null && !d.getAadhaar().trim().isEmpty()));
+
+                if (amount > 2000 && !hasKyc) {
+                    errorMessage.postValue("KYC details (Address + PAN/Aadhaar) are mandatory for donations above ₹2000.");
+                    return;
+                }
+
                 repository.recordDonationInBatch(devoteeId, amount, paymentMethod, refId, purpose, "DonationCollector", batchId);
                 saveFinished.postValue(true);
             } catch (Exception e) {

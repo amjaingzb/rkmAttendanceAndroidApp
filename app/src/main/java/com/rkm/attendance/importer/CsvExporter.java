@@ -1,4 +1,3 @@
-// In: src/main/java/com/rkm/attendance/importer/CsvExporter.java
 package com.rkm.attendance.importer;
 
 import android.content.Context;
@@ -26,12 +25,13 @@ public class CsvExporter {
         return FILENAME_FORMATTER.format(LocalDateTime.now());
     }
 
+    // Standardized Header Order requested by customer
+    private final String[] DONATION_HEADERS = {
+            "Timestamp", "Devotee Name", "Mobile", "Address", "Email", "PAN", "Aadhaar",
+            "Amount", "Payment Method", "Reference ID", "Purpose", "Receipt Number", "Batch ID"
+    };
+
     public Uri exportFullDonationRecords(Context context, List<DonationReportModels.FullDonationRecord> records, String date, String fileProviderAuthority) throws Exception {
-        String[] headers = {
-                "Donation ID", "Receipt Number", "Timestamp", "Batch ID",
-                "Devotee Name", "Mobile", "Address", "Email", "PAN", "Aadhaar",
-                "Amount", "Payment Method", "Reference ID", "Purpose"
-        };
         File exportDir = new File(context.getCacheDir(), "exports");
         if (!exportDir.exists()) exportDir.mkdirs();
         
@@ -39,16 +39,22 @@ public class CsvExporter {
         File file = new File(exportDir, fileName);
 
         try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
-            writer.writeNext(headers);
+            writer.writeNext(DONATION_HEADERS);
             for (DonationReportModels.FullDonationRecord record : records) {
                 String[] data = {
-                    String.valueOf(record.donation.donationId), record.donation.receiptNumber,
-                    record.donation.donationTimestamp, String.valueOf(record.donation.batchId),
-                    record.devotee.getFullName(), record.devotee.getMobileE164(),
-                    record.devotee.getAddress(), record.devotee.getEmail(),
-                    record.devotee.getPan(), record.devotee.getAadhaar(),
-                    String.valueOf(record.donation.amount), record.donation.paymentMethod,
-                    record.donation.referenceId, record.donation.purpose
+                    record.donation.donationTimestamp,
+                    record.devotee.getFullName(),
+                    record.devotee.getMobileE164(),
+                    record.devotee.getAddress(),
+                    record.devotee.getEmail(),
+                    record.devotee.getPan(),
+                    record.devotee.getAadhaar(),
+                    String.format(Locale.US, "%.2f", record.donation.amount),
+                    record.donation.paymentMethod,
+                    record.donation.referenceId,
+                    record.donation.purpose,
+                    record.donation.receiptNumber,
+                    String.valueOf(record.donation.batchId)
                 };
                 writer.writeNext(data);
             }
@@ -57,19 +63,29 @@ public class CsvExporter {
     }
 
     public Uri exportDonationsForBatch(Context context, long batchId, List<DonationRecord> donations, String fileProviderAuthority) throws Exception {
-        String[] headers = { "Donation ID", "Receipt Number", "Devotee Name", "Amount", "Payment Method", "Reference ID", "Purpose", "Timestamp" };
         File exportDir = new File(context.getCacheDir(), "exports");
         if (!exportDir.exists()) exportDir.mkdirs();
+        
         String fileName = String.format(Locale.US, "batch_%d_donations_%s.csv", batchId, generateTimestamp());
         File file = new File(exportDir, fileName);
+        
         try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
-            writer.writeNext(headers);
+            writer.writeNext(DONATION_HEADERS);
             for (DonationRecord record : donations) {
                 String[] data = {
-                    String.valueOf(record.donation.donationId), record.donation.receiptNumber,
-                    record.devoteeName, String.valueOf(record.donation.amount),
-                    record.donation.paymentMethod, record.donation.referenceId,
-                    record.donation.purpose, record.donation.donationTimestamp
+                    record.donation.donationTimestamp,
+                    record.devoteeName,
+                    record.mobile,
+                    record.address,
+                    record.email,
+                    record.pan,
+                    record.aadhaar,
+                    String.format(Locale.US, "%.2f", record.donation.amount),
+                    record.donation.paymentMethod,
+                    record.donation.referenceId,
+                    record.donation.purpose,
+                    record.donation.receiptNumber,
+                    String.valueOf(record.donation.batchId)
                 };
                 writer.writeNext(data);
             }

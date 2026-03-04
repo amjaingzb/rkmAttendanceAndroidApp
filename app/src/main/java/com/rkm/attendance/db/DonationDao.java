@@ -20,18 +20,17 @@ public class DonationDao {
     public static class BatchSummary {
         public final double totalCash;
         public final double totalUpi;
-        public final double totalCheque; // ADD THIS
+        public final double totalCheque;
         public final int donationCount;
 
         public BatchSummary(double totalCash, double totalUpi, double totalCheque, int donationCount) {
             this.totalCash = totalCash;
             this.totalUpi = totalUpi;
-            this.totalCheque = totalCheque; // ASSIGN THIS
+            this.totalCheque = totalCheque;
             this.donationCount = donationCount;
         }
     }
 
-    // --- RECEIPT GENERATION METHOD (Ensure this appears only once) ---
     public DonationReportModels.FullDonationRecord getFullRecordById(long donationId) {
         String sql = "SELECT d.*, dv.* FROM donations d " +
                 "JOIN devotee dv ON d.devotee_id = dv.devotee_id " +
@@ -47,14 +46,11 @@ public class DonationDao {
         }
         return null;
     }
-    // ---------------------------------------------------------------
 
     public long insert(long devoteeId, Long eventId, double amount, String paymentMethod, String referenceId, String purpose, String createdByUser, long batchId, String receiptNumber) {
         ContentValues values = new ContentValues();
         values.put("devotee_id", devoteeId);
-        if (eventId != null) {
-            values.put("event_id", eventId);
-        }
+        if (eventId != null) { values.put("event_id", eventId); }
         values.put("amount", amount);
         values.put("payment_method", paymentMethod);
         values.put("reference_id", referenceId);
@@ -71,7 +67,7 @@ public class DonationDao {
 
     public List<DonationRecord> getDonationsForBatch(long batchId) {
         List<DonationRecord> records = new ArrayList<>();
-        String sql = "SELECT dn.*, dv.full_name " +
+        String sql = "SELECT dn.*, dv.full_name, dv.mobile_e164, dv.address, dv.email, dv.pan, dv.aadhaar " +
                 "FROM donations dn " +
                 "JOIN devotee dv ON dn.devotee_id = dv.devotee_id " +
                 "WHERE dn.batch_id = ? " +
@@ -112,16 +108,21 @@ public class DonationDao {
 
     private DonationRecord recordFromCursor(Cursor cursor) {
         Donation donation = fromCursor(cursor);
-        String devoteeName = cursor.getString(cursor.getColumnIndexOrThrow("full_name"));
-        return new DonationRecord(donation, devoteeName);
+        return new DonationRecord(
+                donation,
+                cursor.getString(cursor.getColumnIndexOrThrow("full_name")),
+                cursor.getString(cursor.getColumnIndexOrThrow("mobile_e164")),
+                cursor.getString(cursor.getColumnIndexOrThrow("address")),
+                cursor.getString(cursor.getColumnIndexOrThrow("email")),
+                cursor.getString(cursor.getColumnIndexOrThrow("pan")),
+                cursor.getString(cursor.getColumnIndexOrThrow("aadhaar"))
+        );
     }
 
     private long simpleQueryForLong(String sql, String[] args) {
         try (SQLiteStatement statement = db.compileStatement(sql)) {
             if (args != null) {
-                for (int i = 0; i < args.length; i++) {
-                    statement.bindString(i + 1, args[i]);
-                }
+                for (int i = 0; i < args.length; i++) { statement.bindString(i + 1, args[i]); }
             }
             return statement.simpleQueryForLong();
         }
@@ -130,15 +131,9 @@ public class DonationDao {
     private double simpleQueryForDouble(String sql, String[] args) {
         try (SQLiteStatement statement = db.compileStatement(sql)) {
             if (args != null) {
-                for (int i = 0; i < args.length; i++) {
-                    statement.bindString(i + 1, args[i]);
-                }
+                for (int i = 0; i < args.length; i++) { statement.bindString(i + 1, args[i]); }
             }
-            try {
-                return statement.simpleQueryForLong();
-            } catch (android.database.sqlite.SQLiteDoneException e) {
-                return 0.0;
-            }
+            try { return statement.simpleQueryForLong(); } catch (android.database.sqlite.SQLiteDoneException e) { return 0.0; }
         }
     }
 }

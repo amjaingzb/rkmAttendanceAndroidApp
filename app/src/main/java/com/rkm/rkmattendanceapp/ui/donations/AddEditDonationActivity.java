@@ -1,11 +1,12 @@
-// In: app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationActivity.java
 package com.rkm.rkmattendanceapp.ui.donations;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -53,12 +54,9 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private MenuItem saveDonationMenuItem;
     private Devotee currentDevotee;
 
-    private Button skipDetailsButton; // New Button
-    private boolean isDetailsSkipped = false; // New Flag
+    private Button skipDetailsButton;
+    private boolean isDetailsSkipped = false;
     private final String[] purposes = {"General Donation","Sadhu Seva", "Math Activities", "Bhandara" };
-
-
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,7 +95,6 @@ public class AddEditDonationActivity extends AppCompatActivity {
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK) {
                         Toast.makeText(this, "Devotee details updated.", Toast.LENGTH_SHORT).show();
-                        // Reset flag so we re-check the actual data
                         isDetailsSkipped = false;
                         viewModel.loadDevotee(currentDevoteeId);
                     }
@@ -120,23 +117,14 @@ public class AddEditDonationActivity extends AppCompatActivity {
         purposeAutoComplete = findViewById(R.id.autocomplete_purpose);
         paymentMethodRadioGroup = findViewById(R.id.radio_group_payment_method);
         upiRefLayout = findViewById(R.id.layout_upi_ref);
-        skipDetailsButton = findViewById(R.id.button_skip_details); // Bind new button
-
+        skipDetailsButton = findViewById(R.id.button_skip_details);
     }
 
     private void setupPurposeAutoComplete() {
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, purposes);
         purposeAutoComplete.setAdapter(adapter);
-
-        // 1. DO NOT pre-fill text. Keep it clean.
-        // purposeAutoComplete.setText(purposes[0], false); <-- REMOVE THIS
-
-        // 2. Set a descriptive hint to inform the user of the default
         TextInputLayout layout = findViewById(R.id.layout_purpose);
         layout.setHint("Towards (Default: " + purposes[0] + ")");
-
-        // 3. FORCE the menu to open when clicked or focused.
-        // This solves the "clueless" problem. They tap, they see options immediately.
         purposeAutoComplete.setOnClickListener(v -> purposeAutoComplete.showDropDown());
         purposeAutoComplete.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
@@ -151,12 +139,22 @@ public class AddEditDonationActivity extends AppCompatActivity {
                 upiRefLayout.setVisibility(View.GONE);
             } else {
                 upiRefLayout.setVisibility(View.VISIBLE);
-                // Dynamic Hint Change
                 if (checkedId == R.id.radio_upi) {
                     upiRefLayout.setHint("UPI Reference ID*");
                 } else {
                     upiRefLayout.setHint("Cheque Number*");
                 }
+            }
+        });
+
+        amountEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            @Override
+            public void afterTextChanged(Editable s) {
+                validateDevoteeAndSetSaveState();
             }
         });
 
@@ -170,7 +168,6 @@ public class AddEditDonationActivity extends AppCompatActivity {
             isDetailsSkipped = true;
             validateDevoteeAndSetSaveState();
         });
-
     }
 
     private void observeViewModel() {
@@ -206,29 +203,38 @@ public class AddEditDonationActivity extends AppCompatActivity {
     private void validateDevoteeAndSetSaveState() {
         if (currentDevotee == null || saveDonationMenuItem == null) return;
 
-        // Check if data exists
+        String amountStr = amountEditText.getText().toString().trim();
+        double amount = 0;
+        try { amount = amountStr.isEmpty() ? 0 : Double.parseDouble(amountStr); } catch (NumberFormatException e) { amount = 0; }
+
         boolean isAddressValid = isNotBlank(currentDevotee.getAddress());
         boolean isIdValid = isNotBlank(currentDevotee.getPan()) || isNotBlank(currentDevotee.getAadhaar());
         boolean hasRequiredDetails = isAddressValid && isIdValid;
+        boolean amountRequiresKyc = amount > 2000;
+        
+        if (amountRequiresKyc) {
+            isDetailsSkipped = false;
+        }
 
-        // ENABLE SAVE: If details exist OR user explicitly skipped
-        boolean enableSave = hasRequiredDetails || isDetailsSkipped;
-
-        saveDonationMenuItem.setEnabled(enableSave);
-
-        // Update Icon Alpha
+        boolean canSave = hasRequiredDetails || (isDetailsSkipped && !amountRequiresKyc);
+        saveDonationMenuItem.setEnabled(canSave);
         Drawable icon = saveDonationMenuItem.getIcon();
-        if (icon != null) icon.mutate().setAlpha(enableSave ? 255 : 130);
+        if (icon != null) icon.mutate().setAlpha(canSave ? 255 : 130);
 
-        // SHOW/HIDE WARNING & SKIP BUTTON
-        // If save is enabled, we don't need warnings or skip buttons
-        if (enableSave) {
+        if (hasRequiredDetails) {
             missingFieldsWarningText.setVisibility(View.GONE);
             skipDetailsButton.setVisibility(View.GONE);
         } else {
-            // Data is missing and user hasn't skipped yet
             missingFieldsWarningText.setVisibility(View.VISIBLE);
-            skipDetailsButton.setVisibility(View.VISIBLE);
+            if (amountRequiresKyc) {
+                missingFieldsWarningText.setText("⚠️ Amount > ₹2000 requires Address & PAN/Aadhaar. Update details to proceed.");
+                missingFieldsWarningText.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
+                skipDetailsButton.setVisibility(View.GONE);
+            } else {
+                missingFieldsWarningText.setText("⚠️ Please provide Address & PAN/Aadhaar or skip for small amounts.");
+                missingFieldsWarningText.setTextColor(getResources().getColor(R.color.purple_700));
+                skipDetailsButton.setVisibility(isDetailsSkipped ? View.GONE : View.VISIBLE);
+            }
         }
     }
 
@@ -239,27 +245,19 @@ public class AddEditDonationActivity extends AppCompatActivity {
         String purpose = purposeAutoComplete.getText().toString().trim();
         String refId = upiRefEditText.getText().toString().trim();
 
-        // Determine Payment Method
         int selectedId = paymentMethodRadioGroup.getCheckedRadioButtonId();
         String paymentMethod;
-        if (selectedId == R.id.radio_upi) {
-            paymentMethod = "UPI";
-        } else if (selectedId == R.id.radio_cheque) {
-            paymentMethod = "CHEQUE";
-        } else {
-            paymentMethod = "CASH";
-        }
+        if (selectedId == R.id.radio_upi) { paymentMethod = "UPI"; } 
+        else if (selectedId == R.id.radio_cheque) { paymentMethod = "CHEQUE"; } 
+        else { paymentMethod = "CASH"; }
 
         if (TextUtils.isEmpty(amountStr) || Double.parseDouble(amountStr) <= 0) {
             Toast.makeText(this, "Please enter a valid amount.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (TextUtils.isEmpty(purpose)) {
-            purpose = purposes[0];
-        }
+        if (TextUtils.isEmpty(purpose)) { purpose = purposes[0]; }
 
-        // Validate Ref ID for both UPI and Cheque
         if (!"CASH".equals(paymentMethod) && TextUtils.isEmpty(refId)) {
             String errorMsg = "UPI".equals(paymentMethod) ? "Please enter the UPI Reference ID." : "Please enter the Cheque Number.";
             Toast.makeText(this, errorMsg, Toast.LENGTH_SHORT).show();
@@ -267,9 +265,7 @@ public class AddEditDonationActivity extends AppCompatActivity {
         }
 
         double amount = Double.parseDouble(amountStr);
-        // Pass refId only if not Cash
         String finalRef = "CASH".equals(paymentMethod) ? null : refId;
-
         viewModel.saveDonation(currentDevoteeId, amount, paymentMethod, finalRef, purpose, currentBatchId);
     }
 
