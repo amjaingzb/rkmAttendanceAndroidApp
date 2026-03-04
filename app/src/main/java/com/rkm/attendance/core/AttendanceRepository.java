@@ -206,4 +206,20 @@ public class AttendanceRepository {
     public DonationReportModels.FullDonationRecord getRecordForReceipt(long donationId) {
         return donationDao.getFullRecordById(donationId);
     }
+
+    // Update this method in app/src/main/java/com/rkm/attendance/core/AttendanceRepository.java
+
+    public List<Uri> getDonationsForDateTripleExport(Context context, String date, String authority) throws Exception {
+        List<DonationReportModels.FullDonationRecord> records = getFullDonationRecordsForDay(date);
+        if (records == null || records.isEmpty()) throw new Exception("No records found.");
+
+        CsvExporter exporter = new CsvExporter();
+        List<Uri> uris = new ArrayList<>();
+
+        uris.add(exporter.exportFullDonationRecords(context, records, date, authority));
+        uris.add(exporter.exportCashSummary(context, records, date, authority));
+        uris.add(exporter.exportChequeSummary(context, records, date, authority));
+
+        return uris;
+    }
 }

@@ -132,4 +132,50 @@ public class CsvExporter {
         }
         return FileProvider.getUriForFile(context, fileProviderAuthority, file);
     }
+
+    // Add these methods to app/src/main/java/com/rkm/attendance/importer/CsvExporter.java
+
+    public Uri exportCashSummary(Context context, List<DonationReportModels.FullDonationRecord> records, String date, String authority) throws Exception {
+        File exportDir = new File(context.getCacheDir(), "exports");
+        if (!exportDir.exists()) exportDir.mkdirs();
+        File file = new File(exportDir, "cash_summary_" + date + "_" + generateTimestamp() + ".csv");
+
+        try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
+            writer.writeNext(new String[]{"CASH SUMMARY - " + date});
+            writer.writeNext(new String[]{"SNo", "Donor Name", "Amount"});
+
+            double total = 0;
+            int sno = 1;
+            for (DonationReportModels.FullDonationRecord r : records) {
+                if ("CASH".equalsIgnoreCase(r.donation.paymentMethod)) {
+                    writer.writeNext(new String[]{String.valueOf(sno++), r.devotee.getFullName(), String.format(Locale.US, "%.2f", r.donation.amount)});
+                    total += r.donation.amount;
+                }
+            }
+            writer.writeNext(new String[]{"", "TOTAL", String.format(Locale.US, "%.2f", total)});
+        }
+        return FileProvider.getUriForFile(context, authority, file);
+    }
+
+    public Uri exportChequeSummary(Context context, List<DonationReportModels.FullDonationRecord> records, String date, String authority) throws Exception {
+        File exportDir = new File(context.getCacheDir(), "exports");
+        if (!exportDir.exists()) exportDir.mkdirs();
+        File file = new File(exportDir, "cheque_summary_" + date + "_" + generateTimestamp() + ".csv");
+
+        try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {
+            writer.writeNext(new String[]{"CHEQUE SUMMARY - " + date});
+            writer.writeNext(new String[]{"SNo", "Donor Name", "Amount", "Cheque No"});
+
+            double total = 0;
+            int sno = 1;
+            for (DonationReportModels.FullDonationRecord r : records) {
+                if ("CHEQUE".equalsIgnoreCase(r.donation.paymentMethod)) {
+                    writer.writeNext(new String[]{String.valueOf(sno++), r.devotee.getFullName(), String.format(Locale.US, "%.2f", r.donation.amount), r.donation.referenceId});
+                    total += r.donation.amount;
+                }
+            }
+            writer.writeNext(new String[]{"", "TOTAL", String.format(Locale.US, "%.2f", total), ""});
+        }
+        return FileProvider.getUriForFile(context, authority, file);
+    }
 }

@@ -24,6 +24,8 @@ import com.rkm.rkmattendanceapp.util.AppLogger;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 
 public class ReportDonationDaysActivity extends AppCompatActivity implements ReportDonationDaysAdapter.OnDayReportClickListener {
@@ -72,21 +74,67 @@ public class ReportDonationDaysActivity extends AppCompatActivity implements Rep
         });
 
         // ANNOTATION: This observer now handles both email and share actions
-        viewModel.getShareableFileUri().observe(this, uri -> {
-            if (uri != null) {
+        viewModel.getShareableFileUris().observe(this, uris -> {
+            if (uris != null && !uris.isEmpty()) {
                 if (requestedAction == ActionType.EMAIL && selectedSummary != null) {
-                    emailCsvFile(uri, selectedSummary);
+                    emailMultipleFiles(uris, selectedSummary);
                 } else {
-                    shareCsvFile(uri);
+                    shareMultipleFiles(uris);
                 }
-                // Reset state
-                requestedAction = null;
-                selectedSummary = null;
                 viewModel.onShareIntentHandled();
             }
         });
 
+
         viewModel.getErrorMessage().observe(this, error -> { if (error != null && !error.isEmpty()) { Toast.makeText(this, error, Toast.LENGTH_LONG).show(); } });
+    }
+
+    private void shareMultipleFiles(List<Uri> uris) {
+        Intent intent = new Intent(Intent.ACTION_SEND_MULTIPLE);
+        intent.setType("text/csv");
+        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, new ArrayList<>(uris));
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(Intent.createChooser(intent, "Share Triple Report"));
+    }
+
+    private void emailMultipleFiles(List<Uri> uris, DailySummary summary) {
+        String officeEmail = ((AttendanceApplication) getApplication()).repository.getOfficeEmail();
+        if (officeEmail == null || officeEmail.isEmpty()) {
+            Toast.makeText(this, "Error: Office email has not been configured.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US);
+        DateTimeFormatter subjectFormatter = DateTimeFormatter.ofPattern("dd MMM, yyyy", Locale.US);
+        LocalDate date = LocalDate.parse(summary.date, inputFormatter);
+        String subject = "Donation Report: " + subjectFormatter.format(date);
+
+        NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("en", "IN"));
+        String body = "Daily Donation Summary for " + subjectFormatter.format(date) + "\n" +
+                "-----------------------------------\n" +
+                "Total Amount: " + currencyFormatter.format(summary.totalAmount) + "\n" +
+                "Total Donations: " + summary.donationCount + "\n" +
+                "Number of Batches: " + summary.batchCount + "\n" +
+                "-----------------------------------\n\n" +
+                "The detailed transaction list is attached.";
+
+        // --- START OF FIX: Using the robust, direct-to-Gmail intent ---
+
+        Intent intent = new Intent(Intent.ACTION_SEND_MULTIPLE);
+        intent.setType("message/rfc822");
+        intent.putExtra(Intent.EXTRA_EMAIL, new String[]{officeEmail});
+        intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+        intent.putExtra(Intent.EXTRA_TEXT, body);
+        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, new ArrayList<>(uris));
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.setPackage("com.google.android.gm");
+
+        try {
+            startActivity(intent);
+        } catch (Exception e) {
+            intent.setPackage(null); // Fallback
+            startActivity(Intent.createChooser(intent, "Email Reports"));
+        }
     }
 
     private void shareCsvFile(Uri uri) {
