@@ -187,13 +187,24 @@ public class DonationActivity extends AppCompatActivity {
             }
             public void afterTextChanged(Editable s) {}
         });
+        // Updated Deposit/Cancel Logic
+        depositButton.setOnClickListener(v -> {
+            if (donationAdapter.getItemCount() == 0) {
+                new AlertDialog.Builder(this)
+                    .setTitle("Cancel Batch")
+                    .setMessage("No donations collected. Close without saving?")
+                    .setPositiveButton("Yes", (d, w) -> viewModel.cancelEmptyBatch(activeBatchId))
+                    .setNegativeButton("No", null).show();
+            } else {
+                showDepositConfirmation();
+            }
+        });
         addNewButton.setOnClickListener(v -> {
             Intent intent = new Intent(this, AddEditDevoteeActivity.class);
             String prefillQuery = searchEditText.getText().toString().trim();
             if (!prefillQuery.isEmpty()) { intent.putExtra(AddEditDevoteeActivity.EXTRA_PREFILL_QUERY, prefillQuery); }
             addDevoteeLauncher.launch(intent);
         });
-        depositButton.setOnClickListener(v -> showDepositConfirmation());
         startNewBatchButton.setOnClickListener(v -> viewModel.startNewBatch());
         logoutButton.setOnClickListener(v -> logoutAndReturnToRoleSelection());
     }
@@ -294,6 +305,7 @@ public class DonationActivity extends AppCompatActivity {
 
     private void updateBatchUi(AttendanceRepository.ActiveBatchData data) {
         this.activeBatchId = data.batch.batchId; // Keep the real DB ID for logic
+        depositButton.setText(data.donations.isEmpty() ? "CANCEL BATCH" : "DEPOSIT & CLOSE BATCH");
         this.activeBatchSequence = data.batch.dailySequence; // Store sequence
         batchTitleText.setText(getString(R.string.batch_title_format, data.batch.dailySequence));
         LocalDateTime startTime = LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));

@@ -134,6 +134,8 @@ public class AttendanceRepository {
         BackupStateManager.setDbDirty(context);
     }
 
+    public void deleteBatch(long batchId) { donationBatchDao.deleteBatch(batchId); }
+
     public void closeActiveBatch(long batchId, String user) {
         String now = SQL_FORMATTER.format(LocalDateTime.now());
         donationBatchDao.closeBatch(batchId, user, now);

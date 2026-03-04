@@ -91,6 +91,18 @@ public class DonationViewModel extends AndroidViewModel {
         loadOrRefreshActiveBatch();
     }
 
+    public void cancelEmptyBatch(long batchId) {
+        new Thread(() -> {
+            try {
+                repository.deleteBatch(batchId);
+                activeBatchData.postValue(null);
+                batchClosedEvent.postValue(true);
+            } catch (Exception e) {
+                errorMessage.postValue("Failed to cancel batch.");
+            }
+        }).start();
+    }
+
     public void closeActiveBatch() {
         AttendanceRepository.ActiveBatchData currentData = activeBatchData.getValue();
         if (currentData == null || currentData.batch == null) {

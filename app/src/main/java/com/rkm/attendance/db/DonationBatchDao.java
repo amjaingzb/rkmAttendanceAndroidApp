@@ -44,6 +44,8 @@ public class DonationBatchDao {
         db.update("donation_batches", values, "batch_id = ?", new String[]{String.valueOf(batchId)});
     }
 
+    public void deleteBatch(long batchId) { db.delete("donation_batches", "batch_id = ?", new String[]{String.valueOf(batchId)}); }
+
     public DonationBatch fromCursor(Cursor cursor) {
         int seqIdx = cursor.getColumnIndex("daily_seq");
         int sequence = (seqIdx != -1) ? cursor.getInt(seqIdx) : 0;
