@@ -1,0 +1,25 @@
+ 2029  #npx repomix --include "app/src/main/java/com/rkm/attendance/db/DonationDao.java,app/src/main/java/com/rkm/attendance/importer/CsvExporter.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/DonationViewModel.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/reports/ReportDonationViewModel.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationActivity.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/AddEditDonationViewModel.java,app/src/main/java/com/rkm/attendance/model/Donation.java,app/src/main/res/layout/activity_add_edit_donation.xml" --output surgery_files.md
+ 2030  npx repomix --include "app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/DonationRecord.java" --output model_definition.md  --output npx_model_definition.md
+ 2031  npx repomix --include "app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/DonationRecord.java,app/src/main/java/com/rkm/attendance/model/Devotee.java"  --output reomix_source_and_entity.md
+ 2032  npx repomix --include "app/src/main/java/com/rkm/attendance/db/DonationBatchDao.java,app/src/main/java/com/rkm/attendance/model/DonationBatch.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/donations/DonationActivity.java" --output repomix_batch_reset_refresh.md
+ 2033  npx repomix --no-files --output project_map.md
+ 2034  vim project_map.md 
+ 2035  npx repomix --include "app/src/main/java/com/rkm/attendance/importer/CsvExporter.java,app/src/main/java/com/rkm/attendance/core/AttendanceRepository.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/reports/ReportDonationViewModel.java,app/src/main/java/com/rkm/rkmattendanceapp/ui/reports/ReportDonationDaysActivity.java" --output repomix_triple_export_logic.md
+ 2072  git status
+ 2073  #git add .  ; git commit -m " All done before the demmo given to vijay mj. " ; git push
+ 2075  git d 
+ 2076  #git add .  ; git commit -m "bug which was causing sequence mismatch due to danling batch from 1 jan fixed.  All done before the demo given to vijay mj. " ; git push
+ 2077  git add .  ; git commit -m "bug which was causing sequence mismatch due to danling batch from 1 jan fixed.  All done before the demo given to vijay mj. " ; git push
+ 2078  ls -lrt 
+ 2039  git status 
+ 2043  mv ~/Downloads/ai_studio_code.sh . ; chmod +x ai_studio_code.sh 
+ 2044  ./ai_studio_code.sh 
+ 2045  git diff > diff.txt
+ 2046  git d 
+ 2105  ls -lrt 
+ 2107  xdg-open .
+ 2108  vim PROJECT_CONTEXT.md 
+ 2110  cat TODO_IMMEDIATE.md 
+ 2111  ls -l 
+ 2112  ./code_combine.sh 
+ 2113  ls -lrt delme-combined-code-only.txt 
