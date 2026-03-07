@@ -214,12 +214,17 @@ public class DonationActivity extends AppCompatActivity {
             if (data != null) {
                 showActiveBatchState();
                 updateBatchUi(data);
+                // CRITICAL: Update these every time the data changes
+                this.activeBatchId = data.batch.batchId;
+                this.activeBatchSequence = data.batch.dailySequence;
             }
         });
+
         viewModel.getSearchResults().observe(this, this::updateSearchResultsUi);
         viewModel.getBatchClosedEvent().observe(this, closed -> {
             if (closed != null && closed) {
-                showBatchClosedState();
+                showBatchClosedState(activeBatchId, activeBatchSequence);
+
             }
         });
         viewModel.getErrorMessage().observe(this, error -> { if (error != null && !error.isEmpty()) { Toast.makeText(this, error, Toast.LENGTH_LONG).show(); } });
@@ -307,8 +312,27 @@ public class DonationActivity extends AppCompatActivity {
         this.activeBatchId = data.batch.batchId; // Keep the real DB ID for logic
         depositButton.setText(data.donations.isEmpty() ? "CANCEL BATCH" : "DEPOSIT & CLOSE BATCH");
         this.activeBatchSequence = data.batch.dailySequence; // Store sequence
+
         batchTitleText.setText(getString(R.string.batch_title_format, data.batch.dailySequence));
         LocalDateTime startTime = LocalDateTime.parse(data.batch.startTs, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+/*
+        // --- DEBUG BLOCK: PRINT RAW SQL DATA ---
+        String rawStartTs = data.batch.startTs;
+        // Simulate the SQL SUBSTR(start_ts, 1, 10) logic
+        String sqlComparisonPart = (rawStartTs != null && rawStartTs.length() >= 10)
+                ? rawStartTs.substring(0, 10) : "ERR-SHORT";
+
+        // Check for hidden characters (like a leading space)
+        boolean hasLeadingSpace = rawStartTs != null && rawStartTs.startsWith(" ");
+
+        String debugLabel = String.format(Locale.US,
+                "ID:%d | Seq:%d | TS:[%s] | Sub:[%s] | Space:%b",
+                activeBatchId, activeBatchSequence, rawStartTs, sqlComparisonPart, hasLeadingSpace);
+
+        // Temporarily hijack the Batch Title to show this info
+        batchTitleText.setText(debugLabel);
+        // ---------------------------------------
+*/
         batchStartTimeText.setText(getString(R.string.batch_start_time_format, timeFormatter.format(startTime)));
         batchCashText.setText(currencyFormatter.format(data.summary.totalCash));
         batchUpiText.setText(currencyFormatter.format(data.summary.totalUpi+ data.summary.totalCheque));
@@ -340,15 +364,17 @@ public class DonationActivity extends AppCompatActivity {
         noResultsTextView.setVisibility(View.GONE);
         searchProgressBar.setVisibility(View.GONE);
     }
-    
-    private void showBatchClosedState() {
+
+    private void showBatchClosedState(Long id, Integer seq) {
         batchSummaryCard.setVisibility(View.GONE);
         donationsRecyclerView.setVisibility(View.GONE);
         listHeaderTextView.setVisibility(View.GONE);
         searchControlsLayout.setVisibility(View.GONE);
         batchClosedLayout.setVisibility(View.VISIBLE);
-        if (activeBatchSequence != null) {
-            batchClosedMessageText.setText(String.format(Locale.US, "Batch #%d successfully closed.\nThank you.", activeBatchSequence));
+
+        // Now we use the ID and Sequence passed into the method
+        if (seq != null) {
+            batchClosedMessageText.setText(String.format(Locale.US,"Batch #%d successfully closed.\nThank you.",seq));
         } else {
             batchClosedMessageText.setText("Batch successfully closed.\nThank you.");
         }

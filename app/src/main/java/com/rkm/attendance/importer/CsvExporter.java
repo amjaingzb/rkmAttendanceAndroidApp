@@ -66,7 +66,7 @@ public class CsvExporter {
         File exportDir = new File(context.getCacheDir(), "exports");
         if (!exportDir.exists()) exportDir.mkdirs();
         
-        String fileName = String.format(Locale.US, "batch_%d_donations_%s.csv", batchId, generateTimestamp());
+        String fileName = String.format(Locale.US, "batch_%d_donations_%s.csv", dailySequence, generateTimestamp());
         File file = new File(exportDir, fileName);
         
         try (CSVWriter writer = new CSVWriter(new FileWriter(file))) {

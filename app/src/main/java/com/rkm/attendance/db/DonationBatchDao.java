@@ -20,14 +20,17 @@ public class DonationBatchDao {
     }
 
     public DonationBatch findActiveBatch() {
-        // Subquery calculates the count of batches on the same date with ID <= current ID
+        // 1. date(start_ts) normalizes the string to YYYY-MM-DD
+        // 2. We only find a batch if it was started TODAY (device time)
         String sql = "SELECT b.*, " +
                 "(SELECT COUNT(*) FROM donation_batches b2 " +
-                " WHERE date(b2.start_ts) = date(b.start_ts) AND b2.batch_id <= b.batch_id) as daily_seq " +
+                " WHERE date(b2.start_ts) = date(b.start_ts) " +
+                " AND b2.batch_id <= b.batch_id) as daily_seq " +
                 "FROM donation_batches b " +
                 "WHERE b.status = 'ACTIVE' " +
-                "ORDER BY b.start_ts DESC LIMIT 1";
-        
+                "AND date(b.start_ts) = date('now', 'localtime') " +
+                "ORDER BY b.batch_id DESC LIMIT 1";
+
         try (Cursor cursor = db.rawQuery(sql, null)) {
             if (cursor.moveToFirst()) {
                 return fromCursor(cursor);
@@ -35,6 +38,7 @@ public class DonationBatchDao {
             return null;
         }
     }
+
 
     public void closeBatch(long batchId, String user, String localTimestamp) {
         ContentValues values = new ContentValues();
